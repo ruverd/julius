@@ -1,8 +1,8 @@
 # Native text operation measurement
 
-This is a local operation timing sample, not an agent benchmark or a claim of advantage over another implementation. The input was 100 identical neutral lines (9,599 UTF-8 bytes). The installed PyO3 extension returned 8,404 UTF-8 bytes. The original remains necessary for recovery. No model request was made.
+This is a local operation timing sample, not an agent benchmark or a claim of advantage over another implementation. The input was 100 identical neutral lines (9,599 UTF-8 bytes). The version-2 PyO3 extension returned 2,287 UTF-8 bytes using exact repeated-block markers. The original remains necessary for recovery. No model request was made.
 
-Environment: macOS arm64, Python 3.12.10, release-built `julius._native`, September 21, 2026. One Python process called `compress_repeated_lines` 1,000 times in a loop and measured the whole loop with `time.perf_counter()`. Elapsed time was 0.019619 seconds, or 19.619 microseconds per call in that sample. `tracemalloc` reported a 16,962-byte Python allocation peak; it does not measure all Rust allocations. The process high-water RSS was 22,904,832 bytes and includes the Python interpreter and imported extension. No baseline, confidence interval, concurrent load, or quality evaluation was measured.
+Environment: macOS arm64, Python 3.12.10, release-built `julius._native`, September 21, 2026. One Python process called `compress_repeated_lines` 1,000 times in a loop and measured the whole loop with `time.perf_counter()`. Elapsed time was 0.126847 seconds, or 126.847 microseconds per call in that sample. `tracemalloc` reported a 4,728-byte Python allocation peak; it does not measure all Rust allocations. The process high-water RSS was 21,102,592 bytes and includes the Python interpreter and imported extension. No baseline, confidence interval, concurrent load, or quality evaluation was measured.
 
 Reproduction command:
 
