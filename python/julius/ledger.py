@@ -6,10 +6,11 @@ import json
 import os
 import sqlite3
 import stat
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 from .events import normalize_utc, validate_event
 
@@ -41,6 +42,18 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+def _retry_locked(action: Callable[[], Any]) -> Any:
+    """Retry SQLite startup locks while other processes enable WAL or create schema."""
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            return action()
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower() or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.025)
+
+
 class Ledger:
     def __init__(self, path: str | Path):
         safe = _safe_path(path)
@@ -49,8 +62,9 @@ class Ledger:
         if safe != ":memory:":
             os.chmod(safe, stat.S_IRUSR | stat.S_IWUSR)
         self.db.execute("PRAGMA busy_timeout=5000")
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.executescript("""
+        try:
+            _retry_locked(lambda: self.db.execute("PRAGMA journal_mode=WAL"))
+            _retry_locked(lambda: self.db.executescript("""
             CREATE TABLE IF NOT EXISTS events (
               event_id TEXT PRIMARY KEY, source_id TEXT NOT NULL, source_event_id TEXT NOT NULL,
               project_id TEXT NOT NULL, task_id TEXT, model_id TEXT, event_type TEXT NOT NULL,
@@ -70,7 +84,10 @@ class Ledger:
               reservation_id TEXT PRIMARY KEY, budget_id TEXT NOT NULL, amount REAL NOT NULL,
               limit_amount REAL NOT NULL, spent REAL, expires_at TEXT NOT NULL, status TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS reservations_budget ON reservations(budget_id,status,expires_at);
-        """)
+            """))
+        except BaseException:
+            self.db.close()
+            raise
 
     @contextmanager
     def _write(self) -> Iterator[None]:
