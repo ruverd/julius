@@ -5,3 +5,11 @@
 Search requires both a project ID and the exact snapshot ID. It excludes expired and invalidated entries. Queries are converted to bounded literal words before parameterized FTS5 matching, so user text cannot become FTS operators. A changed repository snapshot needs new memory entries; old snapshots are never silently reused.
 
 The store makes no model or network requests. Search verifies each returned content hash. `invalidate(id, project_id)` hides that ID in one project. `delete_project(project_id)` removes a project's indexed text. `purge_expired(project_id)` deletes expired records and their FTS entries. SQLite secure deletion is enabled and a WAL checkpoint is attempted after purge. Neither this nor any local deletion can guarantee physical erasure on SSDs. Call `close()` to release the SQLite connection.
+
+## Code symbols
+
+`SymbolStore(memory, project_id=..., project_root=...)` binds a project ID to an explicit local repository root. Index selected files with `index_file("relative/path.py", snapshot="revision-id")`. Search with `search("symbol name", snapshot="revision-id", limit=20)`. Results contain the relative path, name, qualified name, kind, line, declaration text, SHA-256 hash of the indexed file, and lexical score. This is local FTS5 retrieval; it uses no embeddings or network requests.
+
+Only `.py`, `.rs`, `.ts`, `.tsx`, `.js`, and `.jsx` files are accepted. Python declarations use the standard AST; Rust and JavaScript/TypeScript declarations use bounded line patterns and may miss complex syntax. Each file is limited to 256 KiB and 512 symbols; each project snapshot is limited to 2,048 files. Queries use at most 16 literal terms and return at most 100 hits. Paths must be relative to the authorized root; path traversal and symlink components are rejected. The root is held open by a directory descriptor until `SymbolStore.close()`.
+
+Reindexing a file in the same snapshot compares its SHA-256 content hash and atomically replaces stale declarations when bytes change. A failed refresh invalidates that file's old declarations. Call `invalidate_file(path, snapshot=...)` when a file is removed without refreshing it. Indexes are snapshot scoped, so a new revision must be indexed under its own snapshot ID. `MemoryStore.delete_project(project_id)` also deletes that project's symbols and root binding.

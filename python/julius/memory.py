@@ -145,7 +145,14 @@ class MemoryStore:
     def delete_project(self, project_id: str) -> int:
         with self.db:
             cursor = self.db.execute("DELETE FROM memories WHERE project_id=?", (project_id,))
-            return cursor.rowcount
+            removed = cursor.rowcount
+            if self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='symbol_roots'"
+            ).fetchone():
+                self.db.execute("DELETE FROM symbols WHERE project_id=?", (project_id,))
+                self.db.execute("DELETE FROM symbol_files WHERE project_id=?", (project_id,))
+                self.db.execute("DELETE FROM symbol_roots WHERE project_id=?", (project_id,))
+            return removed
 
     def purge_expired(self, project_id: str) -> int:
         with self.db:
