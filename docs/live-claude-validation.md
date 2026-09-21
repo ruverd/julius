@@ -11,4 +11,19 @@ On September 21, 2026, Claude Code `2.1.278` on macOS arm64 ran four isolated sy
 
 The second hook probe used Haiku; the first used the client's default model. The test allowed only a synthetic `printf` Bash command and the Julius recovery tool. The print observation used restricted mode and no built-in tools. These are client-integration acceptance checks, not a paired optimization benchmark. The four CLI-reported costs total USD 0.22686570 for validation activity; they are not a Julius savings figure or a verified invoice.
 
+## One bounded baseline/safe pair
+
+On the same date, `run_claude_pair` ran one further synthetic task under Claude Code `2.1.278` with requested `haiku`, four turns, USD 0.05, and 90 seconds as **per-arm** caps. Both arms used fresh projects and the same fixed 96-line Bash command. Both returned `96`, one Bash request, and one Bash result; neither called recovery. The client reported actual model `claude-haiku-4-5-20251001` for both arms.
+
+| Client-reported session measure | Baseline | Julius safe hook |
+| --- | ---: | ---: |
+| Non-cached input tokens | 18 | 18 |
+| Cache-read input tokens | 13,292 | 13,294 |
+| Cache-creation input tokens | 3,320 | 5,425 |
+| Output tokens | 477 | 667 |
+| Client-estimated USD cost | 0.00788220 | 0.01146365 |
+| Wall-clock seconds | 11.05 | 11.10 |
+
+The safe arm cost USD 0.00358145 more and produced 190 more output tokens. These are observed session totals, not a provider invoice or a controlled estimate of savings. The safe arm created an original artifact and its ID appeared in the client stream. The stored original matched all 96 expected lines but omitted the command's trailing newline: strict byte comparison is false, comparison after removing exactly that final newline is true. The artifact receipt records both checks. No sent-request before/after token count exists for this pair, so direct input reduction is **unavailable**. One pair cannot establish quality equivalence, causal economy, or a general loss; it does show that enabling this hook was not cheaper in this observed run. This case should remain visible when evaluating cache-aware policy.
+
 The [Claude CLI reference](https://code.claude.com/docs/en/cli-reference) documents the temporary settings and MCP flags, restricted mode, non-persistent print mode, turn and spend caps, and tool controls used here. The [hooks reference](https://code.claude.com/docs/en/hooks) defines `PostToolUse`; the [MCP guide](https://code.claude.com/docs/en/mcp) defines the client connection and tool naming. Future versions require another live acceptance test. The local `doctor` subprocess probe alone remains weaker evidence because it does not start Claude.

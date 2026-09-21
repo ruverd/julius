@@ -129,10 +129,14 @@ def test_answer_needs_exact_command_and_tool_result(tmp_path):
 def test_artifact_evidence_checks_restored_original_and_stream_id(tmp_path):
     store = ArtifactStore(tmp_path / "artifacts")
     matching = store.put("safe-project", EXPECTED_OUTPUT)
+    normalized = store.put("safe-project", EXPECTED_OUTPUT.rstrip("\n"))
     other = store.put("safe-project", "different")
     evidence = _artifact_evidence(tmp_path, "safe-project", matching["id"])
     by_id = {item["artifact_id"]: item for item in evidence}
     assert by_id[matching["id"]]["original_matches_fixed_output"] is True
+    assert by_id[matching["id"]]["original_matches_without_final_newline"] is False
     assert by_id[matching["id"]]["id_observed_in_stream"] is True
+    assert by_id[normalized["id"]]["original_matches_fixed_output"] is False
+    assert by_id[normalized["id"]]["original_matches_without_final_newline"] is True
     assert by_id[other["id"]]["original_matches_fixed_output"] is False
     assert _artifact_evidence(tmp_path, "another-project", matching["id"]) == []

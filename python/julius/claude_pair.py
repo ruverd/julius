@@ -140,11 +140,14 @@ def _artifact_evidence(data_dir: Path, project_id: str, stdout: str) -> list[dic
             original = store.get(project_id, ident)
         except (OSError, ValueError, UnicodeError, json.JSONDecodeError):
             match = False
+            matches_without_final_newline = False
         else:
             match = original == EXPECTED_OUTPUT
+            matches_without_final_newline = original == EXPECTED_OUTPUT.rstrip("\n")
         evidence.append({
             "artifact_id": ident,
             "original_matches_fixed_output": match,
+            "original_matches_without_final_newline": matches_without_final_newline,
             "id_observed_in_stream": ident in stdout,
         })
     return evidence
