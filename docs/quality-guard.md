@@ -1,0 +1,7 @@
+# Offline quality suspension guard
+
+`julius.quality_guard.decide_suspension` makes a deterministic decision for one project, model, strategy, and strategy version. The caller supplies a versioned policy, task outcomes, and any explicit manual disable or re-enable actions. Julius does not fetch outcomes, call a model, or change production configuration. The returned decision includes the policy version, record sequence IDs, sample count, known count and value for every metric, manual action, and suspension reasons so a caller can persist an audit trail.
+
+After the minimum sample count, the guard checks error, recovery, and rework rates; mean latency; and total net USD savings against policy thresholds. A metric is unavailable if any task in the current window lacks that measurement. Missing values are never treated as zero. A known threshold breach suspends the scope even when another metric is unknown. Without a breach, unknowns yield `insufficient_evidence`, which is not an automatic suspension. Consumers should define their own safe behavior for that state.
+
+Manual disable takes precedence. Manual re-enable begins a fresh evidence window after its sequence number, so old failures do not immediately suspend the scope again. Re-enable does not certify quality: the guard reports `insufficient_evidence` until enough new measured outcomes exist. The input records must have unique sequence numbers and task IDs within the scope. This module is an offline policy mechanism; fixture tests do not establish real task quality or causal savings.
