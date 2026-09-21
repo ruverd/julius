@@ -24,6 +24,15 @@ def _utc_day(event: dict) -> str:
     return datetime.fromisoformat(event["occurredAt"].replace("Z", "+00:00")).astimezone(timezone.utc).date().isoformat()
 
 
+def _reduction(events: list[dict]) -> dict[str, Any]:
+    return _sum([
+        None if event["payload"].get("inputTokens") is None
+        or event["payload"].get("outputTokens") is None
+        else event["payload"]["inputTokens"] - event["payload"]["outputTokens"]
+        for event in events
+    ])
+
+
 def _daily_series(usage: list[dict], transforms: list[dict]) -> list[dict[str, Any]]:
     """Aggregate observed events by UTC day; counters and reductions remain separate."""
     dated_usage = [event for event in usage if event.get("occurredAt")]
@@ -56,10 +65,11 @@ def _daily_series(usage: list[dict], transforms: list[dict]) -> list[dict[str, A
                 "input": _sum([event["payload"].get("inputTokens") for event in overhead]),
                 "output": _sum([event["payload"].get("outputTokens") for event in overhead]),
             },
-            "directInputReduction": _sum([
-                None if event["payload"].get("inputTokens") is None or event["payload"].get("outputTokens") is None
-                else event["payload"]["inputTokens"] - event["payload"]["outputTokens"]
-                for event in sent
+            "directInputReduction": _reduction([
+                event for event in sent if event["payload"]["scope"] == "request"
+            ]),
+            "toolOutputReduction": _reduction([
+                event for event in sent if event["payload"]["scope"] == "tool_output"
             ]),
             "sentTransforms": len(sent),
         })
@@ -87,6 +97,7 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     ]
     groups: dict[str, list[dict]] = defaultdict(list)
     reductions: dict[tuple, list[int | None]] = defaultdict(list)
+    tool_reductions: dict[tuple, list[int | None]] = defaultdict(list)
     for event in usage:
         key = (
             (event.get("modelId") or "unknown")
@@ -96,9 +107,12 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         groups[key].append(event)
     for event in transforms:
         payload = event["payload"]
+        if payload["scope"] not in ("request", "tool_output"):
+            continue
         key = (payload["scope"], event["evidence"], payload["tokenizer"], event["modelId"])
         before, after = payload["inputTokens"], payload["outputTokens"]
-        reductions[key].append(None if before is None or after is None else before - after)
+        collection = reductions if payload["scope"] == "request" else tool_reductions
+        collection[key].append(None if before is None or after is None else before - after)
 
     def request_key(event: dict) -> tuple | None:
         return (
@@ -108,7 +122,9 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         )
 
     observed = {request_key(event) for event in usage} - {None}
-    transformed = {request_key(event) for event in transforms} & observed
+    transformed = {
+        request_key(event) for event in transforms if event["payload"]["scope"] == "request"
+    } & observed
 
     # A task ID can be attached to a preview or decision before any attempt.
     # Outcome is a separate fact; usage alone cannot establish resolution.
@@ -136,10 +152,11 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             "cacheRead": _sum([item["payload"]["cacheReadTokens"] for item in task_usage]),
             "cacheWrite": _sum([item["payload"]["cacheWriteTokens"] for item in task_usage]),
             "auxiliaryUsageRecords": sum(item["payload"]["category"] != "primary" for item in task_usage),
-            "directInputReduction": _sum([
-                None if item["payload"]["inputTokens"] is None or item["payload"]["outputTokens"] is None
-                else item["payload"]["inputTokens"] - item["payload"]["outputTokens"]
-                for item in task_transforms
+            "directInputReduction": _reduction([
+                item for item in task_transforms if item["payload"]["scope"] == "request"
+            ]),
+            "toolOutputReduction": _reduction([
+                item for item in task_transforms if item["payload"]["scope"] == "tool_output"
             ]),
         })
 
@@ -187,6 +204,16 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
                 "tokens": _sum(values),
             }
             for key, values in reductions.items()
+        ],
+        "toolOutputReduction": [
+            {
+                "scope": key[0],
+                "evidence": key[1],
+                "tokenizer": key[2],
+                "modelId": key[3],
+                "tokens": _sum(values),
+            }
+            for key, values in tool_reductions.items()
         ],
         "dailySeries": _daily_series(usage, transforms),
         "candidateTransformsNotCounted": sum(
@@ -260,6 +287,10 @@ def render_text(data: dict) -> str:
     )
     if not data["directInputReduction"]:
         lines.append("Direct input reduction: unavailable (no sent transformation evidence)")
+    lines.extend(
+        f"Tool-output reduction: {_display(item['tokens']['total'])} tokens; known subtotal {item['tokens']['known']}; {item['evidence']}; tokenizer {item['tokenizer'] or 'unknown'}"
+        for item in data.get("toolOutputReduction", [])
+    )
     lines.extend(
         [
             f"Estimated cost USD (non-provider): {_display(data['modeledCostUsd']['total'])}; known subtotal: {data['modeledCostUsd']['known']}",
@@ -402,7 +433,8 @@ def render_html(data: dict) -> str:
             f"<td>{measure(task['input'])}</td><td>{measure(task['output'])}</td>"
             f"<td>{measure(task['cacheRead'])}</td><td>{measure(task['cacheWrite'])}</td>"
             f"<td>{cell(task['auxiliaryUsageRecords'])}</td>"
-            f"<td>{measure(task['directInputReduction'])}</td></tr>"
+            f"<td>{measure(task['directInputReduction'])}</td>"
+            f"<td>{measure(task['toolOutputReduction'])}</td></tr>"
         )
     daily_rows = []
     for day in data.get("dailySeries", []):
@@ -416,14 +448,16 @@ def render_html(data: dict) -> str:
                 f"<td>{measure(category['input'])}</td><td>{measure(category['output'])}</td>"
                 f"<td>{measure(category['cacheRead'])}</td><td>{measure(category['cacheWrite'])}</td>"
                 f"<td>{cell(day['incompleteUsageRecords'])}</td>"
-                f"<td>{measure(day['directInputReduction'])}</td></tr>"
+                f"<td>{measure(day['directInputReduction'])}</td>"
+                f"<td>{measure(day['toolOutputReduction'])}</td></tr>"
             )
         if not any(category["usageRecords"] for category in day["categories"]):
             daily_rows.append(
                 f"<tr><th scope='row'>{cell(day['dateUtc'])}</th><td>no usage</td>"
                 "<td>0</td><td>unavailable</td><td>unavailable</td>"
                 "<td>unavailable</td><td>unavailable</td><td>0</td>"
-                f"<td>{measure(day['directInputReduction'])}</td></tr>"
+                f"<td>{measure(day['directInputReduction'])}</td>"
+                f"<td>{measure(day['toolOutputReduction'])}</td></tr>"
             )
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
@@ -460,18 +494,21 @@ def render_html(data: dict) -> str:
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
         "<th scope='col'>Cache write</th><th scope='col'>Auxiliary records</th>"
-        "<th scope='col'>Direct input reduction</th></tr></thead>"
+        "<th scope='col'>Direct request input reduction</th>"
+        "<th scope='col'>Tool-output reduction</th></tr></thead>"
         f"<tbody>{''.join(task_rows)}</tbody></table></div></section>"
         "<section aria-labelledby='daily-title'><h2 id='daily-title'>Daily observed usage (UTC)</h2>"
         "<p>Categories are mutually exclusive. Cache counters are separate dimensions of input usage. "
-        "Unknown totals show known subtotals; direct reduction is signed sent-transform evidence "
+        "Unknown totals show known subtotals; direct request and tool-output reductions are "
+        "separate signed sent-transform evidence "
         "and is repeated on each category row for that day. Auxiliary overhead includes auxiliary "
         "and restoration categories. Unobserved traffic remains unknown.</p>"
         "<div class='table-wrap'><table><caption>Daily UTC event evidence by category</caption>"
         "<thead><tr><th scope='col'>UTC day</th><th scope='col'>Category</th><th scope='col'>Records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
         "<th scope='col'>Cache write</th><th scope='col'>Incomplete records (day)</th>"
-        "<th scope='col'>Direct input reduction (day)</th></tr></thead>"
+        "<th scope='col'>Direct request input reduction (day)</th>"
+        "<th scope='col'>Tool-output reduction (day)</th></tr></thead>"
         f"<tbody>{''.join(daily_rows)}</tbody></table></div></section>"
         f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
         "<section aria-labelledby='usage-title'><h2 id='usage-title'>Observed usage</h2>"

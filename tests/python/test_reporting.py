@@ -25,6 +25,31 @@ def test_marginal_chain_unknown_money_and_negative_gain():
     assert report(events[:1], WINDOW)["directInputReduction"][0]["tokens"]["total"] == -20
 
 
+def test_request_and_nested_tool_output_reductions_remain_separate():
+    events = [json.loads(line) for line in FIXTURE.read_text().splitlines()]
+    tool = {**events[0], "eventId": "tool-transform", "sourceEventId": "tool-transform"}
+    tool["payload"] = {
+        **events[0]["payload"], "scope": "tool_output", "transformId": "tool-transform",
+        "inputTokens": 2000, "outputTokens": 500,
+    }
+    result = report([*events, tool], WINDOW)
+    assert result["directInputReduction"][0]["tokens"]["total"] == 7000
+    assert result["toolOutputReduction"][0]["tokens"]["total"] == 1500
+    assert result["dailySeries"][0]["directInputReduction"]["total"] == 7000
+    assert result["dailySeries"][0]["toolOutputReduction"]["total"] == 1500
+    assert result["tasks"][0]["directInputReduction"]["total"] == 7000
+    assert result["tasks"][0]["toolOutputReduction"]["total"] == 1500
+    assert result["coverage"]["transformedObservedRequests"] == 1
+    page = render_html(result)
+    assert "Direct request input reduction" in page
+    assert "Tool-output reduction" in page
+
+    tool_only = report([tool, events[-1]], WINDOW)
+    assert tool_only["directInputReduction"] == []
+    assert tool_only["toolOutputReduction"][0]["tokens"]["total"] == 1500
+    assert tool_only["coverage"]["transformedObservedRequests"] == 0
+
+
 def test_preview_and_foreign_project_do_not_count_coverage():
     events = [json.loads(line) for line in FIXTURE.read_text().splitlines()]
     events[0]["payload"]["sent"] = False
