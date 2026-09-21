@@ -13,6 +13,14 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 from .adapter_capabilities import capabilities_for_client
 from .claude_probe import probe_local_protocol
 
+
+_DOCTOR_VERIFIED_CAPABILITIES = {
+    "canObserveUsage": False,
+    "canOptimizeInput": False,
+    "canImportUsage": False,
+    "liveCompatibilityTested": False,
+}
+
 # Exact CLI versions observed locally. This is not a live integration certification.
 _CLIENT_MATRIX = {
     "claude": {"2.1.278": "2.1.278 (Claude Code)"},
@@ -66,6 +74,8 @@ def doctor() -> dict[str, Any]:
                 "version": version,
                 "capability": manifest.status,
                 "adapterCapabilities": manifest.model_dump(mode="json"),
+                "capabilities": dict(_DOCTOR_VERIFIED_CAPABILITIES),
+                "capabilitiesScope": "current doctor invocation; client not invoked",
                 "featureStatus": feature_status,
                 "featureStatusScope": "declared local integration status; client not invoked",
                 "adapterEvidenceScope": (
