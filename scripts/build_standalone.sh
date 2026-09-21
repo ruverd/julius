@@ -12,6 +12,7 @@ fi
 uv run --no-sync --with 'pyinstaller==6.22.3' pyinstaller \
   --clean --noconfirm --onefile --console \
   --name julius \
+  --add-data "$PWD/python/julius/data/repo_task_pilot.json:julius/data" \
   --distpath dist/standalone \
   --workpath dist/pyinstaller-work \
   --specpath dist/pyinstaller-spec \

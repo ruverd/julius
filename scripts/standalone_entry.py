@@ -10,6 +10,11 @@ if __name__ == "__main__":
         module = sys.argv[2]
         if module in {"julius", "julius.cli"}:
             del sys.argv[1:3]
+        elif module == "julius.repo_task_pilot":
+            from julius.repo_task_pilot import _main as repo_task_main
+
+            del sys.argv[1:3]
+            raise SystemExit(repo_task_main())
         elif module == "julius.claude_pair":
             from julius.claude_pair import _main as pair_main
 

@@ -32,6 +32,8 @@ from .claude_print_runner import run_claude_print
 from .claude_pilot import run_claude_pilot
 from .claude_pilot_analysis import analyze_claude_pilot_report
 from .codex_live_probe import probe_codex_usage
+from .codex_hook_probe import probe_codex_hook
+from .repo_task_pilot import run_repo_task_pilot
 from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
 from .price_store import PriceSnapshot, PriceStore
@@ -101,7 +103,7 @@ def _parser() -> argparse.ArgumentParser:
         parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--max-turns", type=int, default=4)
     parser.add_argument("--order-seed", type=int)
-    parser.add_argument("--execute", action="store_true", help="Explicitly run the bounded external Claude pilot")
+    parser.add_argument("--execute", action="store_true", help="Explicitly run a bounded external client probe or pilot")
     parser.add_argument("--by", choices=["model", "category", "client"])
     parser.add_argument("--runtime", choices=["ollama", "lmstudio"], default="ollama")
     parser.add_argument("--format")
@@ -229,8 +231,14 @@ def run(argv: list[str] | None = None) -> int:
     if args.memory_search and (command != "mcp" or args.arguments != ["recovery"]):
         raise ValueError("--memory-search requires mcp recovery --project <id>")
     if command == "probe":
+        if args.arguments == ["codex-hook"]:
+            if not args.execute:
+                raise ValueError("probe codex-hook requires --execute because it makes one external Codex turn")
+            hook_probe_result = probe_codex_hook(confirmed=True)
+            _json(hook_probe_result)
+            return 0 if hook_probe_result["status"] == "accepted" else 2
         if args.arguments != ["codex"]:
-            raise ValueError("Use probe codex --project <id> [--task <id>]")
+            raise ValueError("Use probe codex --project <id> [--task <id>] or probe codex-hook --execute")
         project_id = _required(args.project, "--project")
         probe_result = probe_codex_usage(confirmed=True)
         usage = probe_result["usage"]
@@ -508,6 +516,22 @@ def run(argv: list[str] | None = None) -> int:
                 ))
         return 0
     if command == "evaluate":
+        if args.arguments == ["repo-pilot"]:
+            if not args.execute:
+                raise ValueError("evaluate repo-pilot requires --execute because it makes external Claude sessions")
+            if args.max_budget_usd is None or args.timeout_seconds is None:
+                raise ValueError("evaluate repo-pilot requires --max-budget-usd and --timeout-seconds per arm")
+            _json(run_repo_task_pilot(
+                work_dir=Path(_required(args.work_dir, "--work-dir")),
+                project_id=_required(args.project, "--project"),
+                max_turns=args.max_turns,
+                max_budget_usd=args.max_budget_usd,
+                timeout_seconds=args.timeout_seconds,
+                model=args.model,
+                task_ids=(args.task,) if args.task else None,
+                claude_executable=args.claude_executable or "claude",
+            ))
+            return 0
         if args.arguments == ["pilot-report"]:
             payload = _json_file(_required(args.state_file, "--state-file"), 16 * 1024 * 1024)
             if not isinstance(payload, dict):

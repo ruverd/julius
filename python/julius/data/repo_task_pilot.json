@@ -1,0 +1,14 @@
+{
+  "files": {
+    "README.md": "# Small note service\nThe service stores notes. POST /notes creates one. GET /notes/{id} retrieves one.\n",
+    "notes.py": "def create_note(store, title):\n    note_id = store.next_id()\n    store.save(note_id, title)\n    return note_id\n\ndef get_note(store, note_id):\n    return store.load(note_id)\n",
+    "store.py": "class NoteStore:\n    def __init__(self):\n        self.items = {}\n        self.counter = 0\n\n    def next_id(self):\n        self.counter += 1\n        return self.counter\n\n    def save(self, note_id, title):\n        self.items[note_id] = title\n\n    def load(self, note_id):\n        return self.items.get(note_id)\n",
+    "routes.py": "from notes import create_note, get_note\n\ndef post_notes(store, body):\n    return create_note(store, body['title'])\n\ndef get_notes_id(store, note_id):\n    return get_note(store, note_id)\n"
+  },
+  "tasks": [
+    {"id": "bug-en", "language": "en", "kind": "bug_localization", "question": "Which file and function returns None for a missing note? Answer exactly FILE:FUNCTION.", "answer": "store.py:load"},
+    {"id": "bug-pt", "language": "pt", "kind": "bug_localization", "question": "Qual arquivo e função retornam None para uma nota ausente? Responda exatamente ARQUIVO:FUNÇÃO.", "answer": "store.py:load"},
+    {"id": "flow-en", "language": "en", "kind": "code_comprehension", "question": "Which function directly calls create_note? Answer exactly FILE:FUNCTION.", "answer": "routes.py:post_notes"},
+    {"id": "flow-pt", "language": "pt", "kind": "code_comprehension", "question": "Qual função chama create_note diretamente? Responda exatamente ARQUIVO:FUNÇÃO.", "answer": "routes.py:post_notes"}
+  ]
+}
