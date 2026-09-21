@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 282 Python tests passed, Rust workspace tests passed, Ruff passed, and mypy checked 46 source files without errors. A freshly rebuilt macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10. A PyInstaller macOS arm64 standalone executable passed its own CLI, hook/MCP, and restoration smoke; its release archive passed temporary managed install and remove checks.
+Current local result: 284 Python tests passed, Rust workspace tests passed, Ruff passed, and mypy checked 46 source files without errors. A freshly rebuilt macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10. A PyInstaller macOS arm64 standalone executable passed its CLI, hook/MCP, restoration, and memory-search smoke; its current release archive passed temporary managed install and remove checks.
 
 ## Active Python/Rust validation
 

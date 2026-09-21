@@ -63,6 +63,7 @@ def _parser() -> argparse.ArgumentParser:
             "doctor",
             "models",
             "symbols",
+            "memory",
             "prices",
             "import",
             "optimize",
@@ -104,6 +105,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
     parser.add_argument("--recovery-verified", action="store_true", help="Attest that Claude can invoke the matching project recovery tool in this session")
+    parser.add_argument("--memory-search", action="store_true", help="Expose project-scoped lexical memory search through an explicit MCP recovery session")
     parser.add_argument("--restore-loop", action="store_true", help="Explicitly serve only Julius restore function calls in xAI Responses")
     parser.add_argument("--max-restore-calls", type=int, default=4)
     return parser
@@ -213,6 +215,8 @@ def run(argv: list[str] | None = None) -> int:
         return 0
     if args.include_raw and (command != "export" or args.format != "events-jsonl"):
         raise ValueError("--include-raw requires export --format events-jsonl")
+    if args.memory_search and (command != "mcp" or args.arguments != ["recovery"]):
+        raise ValueError("--memory-search requires mcp recovery --project <id>")
     if command == "probe":
         if args.arguments != ["codex"]:
             raise ValueError("Use probe codex --project <id> [--task <id>]")
@@ -278,17 +282,47 @@ def run(argv: list[str] | None = None) -> int:
             raise ValueError("Use mcp recovery --project <id>")
         root = Path(args.data_dir).absolute() / "artifacts"
         project_id = _required(args.project, "--project")
-        if args.project_root:
+        if args.project_root or args.memory_search:
             memory = MemoryStore(Path(args.data_dir).absolute() / "memory.sqlite3")
             try:
                 serve_recovery_stdio(
-                    ArtifactStore(root), project_id, symbol_memory=memory,
+                    ArtifactStore(root), project_id,
+                    symbol_memory=memory if args.project_root else None,
                     project_root=args.project_root,
+                    memory_store=memory if args.memory_search else None,
                 )
             finally:
                 memory.close()
         else:
             serve_recovery_stdio(ArtifactStore(root), project_id)
+        return 0
+    if command == "memory":
+        project_id = _required(args.project, "--project")
+        action = argument
+        if action not in ("put", "search", "invalidate", "purge"):
+            raise ValueError("Use memory put <json-file>|search <query>|invalidate <id>|purge --project <id>")
+        if len(args.arguments) != (1 if action == "purge" else 2):
+            raise ValueError("Invalid memory arguments")
+        memory = MemoryStore(Path(args.data_dir).absolute() / "memory.sqlite3")
+        try:
+            if action == "put":
+                item = _json_file(args.arguments[1], 1_200_000)
+                if not isinstance(item, dict) or item.get("projectId") != project_id:
+                    raise ValueError("Memory record project must match --project")
+                if args.snapshot is not None and item.get("snapshot") != args.snapshot:
+                    raise ValueError("Memory record snapshot must match --snapshot")
+                memory.put(item)
+                _json({"stored": True, "id": item["id"], "version": item["version"]})
+            elif action == "search":
+                _json(memory.search(
+                    project_id, args.arguments[1], snapshot=_required(args.snapshot, "--snapshot"),
+                ))
+            elif action == "invalidate":
+                _json({"invalidated": memory.invalidate(args.arguments[1], project_id)})
+            else:
+                _json({"removed": memory.purge_expired(project_id)})
+        finally:
+            memory.close()
         return 0
     if command == "hook":
         if args.arguments != ["claude-post-tool-use"]:

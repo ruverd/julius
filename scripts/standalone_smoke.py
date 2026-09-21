@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import subprocess
 import sys
@@ -39,7 +41,29 @@ def main() -> None:
             raise AssertionError(f"Bundled hook/MCP probe failed: {doctor['localProtocolProbe']}")
         if list(data_dir.glob("*.sqlite")):
             raise AssertionError("Doctor left ledger files in smoke directory")
-    print(f"Standalone smoke passed: {version}; hook/MCP recovery protocol")
+        now = datetime.now(timezone.utc)
+        content = "standalone memory fixture"
+        record = {
+            "id": "smoke", "version": 1, "projectId": "smoke", "snapshot": "snapshot-a",
+            "content": content, "contentSha256": hashlib.sha256(content.encode()).hexdigest(),
+            "createdAt": (now - timedelta(seconds=1)).isoformat(timespec="microseconds").replace(
+                "+00:00", "Z"
+            ),
+            "expiresAt": (now + timedelta(minutes=1)).isoformat(timespec="microseconds").replace(
+                "+00:00", "Z"
+            ),
+            "provenance": "observed", "origin": "standalone-smoke",
+        }
+        record_path = data_dir / "record.json"
+        record_path.write_text(json.dumps(record))
+        _run(binary, "memory", "put", str(record_path), "--project", "smoke", data_dir=data_dir)
+        hits = json.loads(_run(
+            binary, "memory", "search", "standalone", "--project", "smoke",
+            "--snapshot", "snapshot-a", data_dir=data_dir,
+        ).stdout)
+        if len(hits) != 1 or hits[0]["contentSha256"] != record["contentSha256"]:
+            raise AssertionError("Bundled memory search did not restore its indexed evidence")
+    print(f"Standalone smoke passed: {version}; hook/MCP recovery and memory search")
 
 
 if __name__ == "__main__":

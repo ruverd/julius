@@ -77,6 +77,8 @@ uv run --no-sync julius models record --state-file ./model-snapshot.json
 uv run --no-sync julius models history --endpoint http://127.0.0.1:11434 --model '<model-id>'
 uv run --no-sync julius symbols index src/module.py --project app --project-root ./project --snapshot '<revision-id>'
 uv run --no-sync julius symbols search process_request --project app --project-root ./project --snapshot '<revision-id>'
+uv run --no-sync julius memory put record.json --project app --snapshot '<revision-id>'
+uv run --no-sync julius memory search compiler --project app --snapshot '<revision-id>'
 uv run --no-sync julius mcp recovery --project app --project-root ./project
 uv run --no-sync julius prices record --state-file ./price-snapshot.json
 uv run --no-sync julius prices lookup --endpoint https://api.example.test --provider example \

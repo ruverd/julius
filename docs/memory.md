@@ -1,12 +1,24 @@
 # Local lexical memory
 
-The MCP recovery server exposes lexical memory search only when an embedding caller explicitly supplies `memory_store=...`. Its tool never accepts a project selector. Treat returned text as evidence with its recorded origin and provenance, not as instructions or an automatically confirmed fact.
+The MCP recovery server exposes lexical memory search only when an embedding caller explicitly supplies `memory_store=...` or the user starts `julius mcp recovery --project ID --memory-search`. Its tool never accepts a project selector. Treat returned text as evidence with its recorded origin and provenance, not as instructions or an automatically confirmed fact.
 
 `MemoryStore` indexes explicitly supplied text in a local SQLite FTS5 database. Every record has an immutable `(id, version)`, project ID, snapshot ID, SHA-256 content hash, provenance, origin reference, and expiry. The caller supplies the content hash; insertion verifies it.
 
 Search requires both a project ID and the exact snapshot ID. It excludes expired and invalidated entries. Queries are converted to bounded literal words before parameterized FTS5 matching, so user text cannot become FTS operators. A changed repository snapshot needs new memory entries; old snapshots are never silently reused.
 
 The store makes no model or network requests. Search verifies each returned content hash. `invalidate(id, project_id)` hides that ID in one project. `delete_project(project_id)` removes a project's indexed text. `purge_expired(project_id)` deletes expired records and their FTS entries. SQLite secure deletion is enabled and a WAL checkpoint is attempted after purge. Neither this nor any local deletion can guarantee physical erasure on SSDs. Call `close()` to release the SQLite connection.
+
+The CLI accepts an explicitly prepared JSON record with the fields above, checks its project against `--project`, and keeps search local:
+
+```sh
+julius memory put record.json --project app --snapshot '<revision-id>'
+julius memory search compiler --project app --snapshot '<revision-id>'
+julius memory invalidate '<record-id>' --project app
+julius memory purge --project app
+julius mcp recovery --project app --memory-search
+```
+
+`put` validates the supplied hash, provenance, expiry, and optional snapshot match. `purge` removes only expired records. The MCP command exposes `search_memory` only for its fixed project; the default recovery server advertises no memory search tool. The CLI does not infer memories or inject search results into a model request.
 
 ## Code symbols
 
