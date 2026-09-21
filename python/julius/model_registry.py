@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
@@ -60,7 +62,19 @@ def _identity(snapshot: ModelSnapshot) -> str:
 
 class ModelRegistry:
     def __init__(self, path: str | Path):
-        self.db = sqlite3.connect(path)
+        database_path = Path(path)
+        if database_path.is_symlink():
+            raise ValueError("Model registry path is a symlink")
+        try:
+            fd = os.open(database_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY |
+                         getattr(os, "O_NOFOLLOW", 0), 0o600)
+        except FileExistsError:
+            info = database_path.stat()
+            if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+                raise ValueError("Model registry file has unsafe permissions")
+        else:
+            os.close(fd)
+        self.db = sqlite3.connect(database_path)
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("""CREATE TABLE IF NOT EXISTS model_snapshots (

@@ -1,4 +1,5 @@
 import sqlite3
+import stat
 
 import pytest
 from pydantic import ValidationError
@@ -55,3 +56,24 @@ def test_runtime_schema_rejects_fabricated_zero_and_naive_time():
         snapshot(source_updated_at="2026-09-21T00:00:00Z")
     with pytest.raises(ValidationError):
         snapshot(state="possibly_installed")
+
+
+def test_registry_file_is_private_and_existing_unsafe_file_is_preserved(tmp_path):
+    path = tmp_path / "models.sqlite"
+    with ModelRegistry(path) as registry:
+        registry.add(snapshot())
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    path.chmod(0o644)
+    with pytest.raises(ValueError, match="unsafe permissions"):
+        ModelRegistry(path)
+    assert path.stat().st_size > 0
+
+
+def test_registry_rejects_symlink(tmp_path):
+    actual = tmp_path / "actual.sqlite"
+    with ModelRegistry(actual):
+        pass
+    link = tmp_path / "linked.sqlite"
+    link.symlink_to(actual)
+    with pytest.raises(ValueError, match="symlink"):
+        ModelRegistry(link)
