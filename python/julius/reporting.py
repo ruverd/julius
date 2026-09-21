@@ -6,6 +6,7 @@ import io
 import re
 from collections import defaultdict
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -17,6 +18,52 @@ def _sum(values: Sequence[int | float | None]) -> dict[str, Any]:
         "unknownRecords": unknown,
         "total": known if values and not unknown else None,
     }
+
+
+def _utc_day(event: dict) -> str:
+    return datetime.fromisoformat(event["occurredAt"].replace("Z", "+00:00")).astimezone(timezone.utc).date().isoformat()
+
+
+def _daily_series(usage: list[dict], transforms: list[dict]) -> list[dict[str, Any]]:
+    """Aggregate observed events by UTC day; counters and reductions remain separate."""
+    dated_usage = [event for event in usage if event.get("occurredAt")]
+    dated_transforms = [event for event in transforms if event.get("occurredAt")]
+    days = sorted({_utc_day(event) for event in [*dated_usage, *dated_transforms]})
+    result = []
+    for day in days:
+        records = [event for event in dated_usage if _utc_day(event) == day]
+        sent = [event for event in dated_transforms if _utc_day(event) == day]
+        categories = []
+        for category in ("primary", "auxiliary", "restoration", "unknown"):
+            items = [event for event in records if
+                     (event["payload"].get("category") if event["payload"].get("category")
+                      in ("primary", "auxiliary", "restoration") else "unknown") == category]
+            categories.append({
+                "category": category,
+                "usageRecords": len(items),
+                **{name: _sum([item["payload"].get(field) for item in items])
+                   for name, field in (("input", "inputTokens"), ("output", "outputTokens"),
+                                       ("cacheRead", "cacheReadTokens"), ("cacheWrite", "cacheWriteTokens"))},
+            })
+        overhead = [event for event in records if event["payload"].get("category") in ("auxiliary", "restoration")]
+        result.append({
+            "dateUtc": day,
+            "usageRecords": len(records),
+            "incompleteUsageRecords": sum(not event["payload"]["complete"] for event in records),
+            "categories": categories,
+            "auxiliaryOverhead": {
+                "usageRecords": len(overhead),
+                "input": _sum([event["payload"].get("inputTokens") for event in overhead]),
+                "output": _sum([event["payload"].get("outputTokens") for event in overhead]),
+            },
+            "directInputReduction": _sum([
+                None if event["payload"].get("inputTokens") is None or event["payload"].get("outputTokens") is None
+                else event["payload"]["inputTokens"] - event["payload"]["outputTokens"]
+                for event in sent
+            ]),
+            "sentTransforms": len(sent),
+        })
+    return result
 
 
 def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any]:
@@ -141,6 +188,7 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             }
             for key, values in reductions.items()
         ],
+        "dailySeries": _daily_series(usage, transforms),
         "candidateTransformsNotCounted": sum(
             event["eventType"] == "transform" and not event["payload"]["sent"] for event in events
         ),
@@ -356,6 +404,27 @@ def render_html(data: dict) -> str:
             f"<td>{cell(task['auxiliaryUsageRecords'])}</td>"
             f"<td>{measure(task['directInputReduction'])}</td></tr>"
         )
+    daily_rows = []
+    for day in data.get("dailySeries", []):
+        for category in day["categories"]:
+            if not category["usageRecords"]:
+                continue
+            daily_rows.append(
+                "<tr>"
+                f"<th scope='row'>{cell(day['dateUtc'])}</th>"
+                f"<td>{cell(category['category'])}</td><td>{cell(category['usageRecords'])}</td>"
+                f"<td>{measure(category['input'])}</td><td>{measure(category['output'])}</td>"
+                f"<td>{measure(category['cacheRead'])}</td><td>{measure(category['cacheWrite'])}</td>"
+                f"<td>{cell(day['incompleteUsageRecords'])}</td>"
+                f"<td>{measure(day['directInputReduction'])}</td></tr>"
+            )
+        if not any(category["usageRecords"] for category in day["categories"]):
+            daily_rows.append(
+                f"<tr><th scope='row'>{cell(day['dateUtc'])}</th><td>no usage</td>"
+                "<td>0</td><td>unavailable</td><td>unavailable</td>"
+                "<td>unavailable</td><td>unavailable</td><td>0</td>"
+                f"<td>{measure(day['directInputReduction'])}</td></tr>"
+            )
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width'>"
@@ -393,6 +462,17 @@ def render_html(data: dict) -> str:
         "<th scope='col'>Cache write</th><th scope='col'>Auxiliary records</th>"
         "<th scope='col'>Direct input reduction</th></tr></thead>"
         f"<tbody>{''.join(task_rows)}</tbody></table></div></section>"
+        "<section aria-labelledby='daily-title'><h2 id='daily-title'>Daily observed usage (UTC)</h2>"
+        "<p>Categories are mutually exclusive. Cache counters are separate dimensions of input usage. "
+        "Unknown totals show known subtotals; direct reduction is signed sent-transform evidence "
+        "and is repeated on each category row for that day. Auxiliary overhead includes auxiliary "
+        "and restoration categories. Unobserved traffic remains unknown.</p>"
+        "<div class='table-wrap'><table><caption>Daily UTC event evidence by category</caption>"
+        "<thead><tr><th scope='col'>UTC day</th><th scope='col'>Category</th><th scope='col'>Records</th>"
+        "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
+        "<th scope='col'>Cache write</th><th scope='col'>Incomplete records (day)</th>"
+        "<th scope='col'>Direct input reduction (day)</th></tr></thead>"
+        f"<tbody>{''.join(daily_rows)}</tbody></table></div></section>"
         f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
         "<section aria-labelledby='usage-title'><h2 id='usage-title'>Observed usage</h2>"
         f"<div class='filters' aria-label='Filter usage table'>{filters}</div>"

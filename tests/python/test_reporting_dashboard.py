@@ -1,6 +1,12 @@
 """Offline HTML dashboard contract and privacy checks."""
 
-from julius.reporting import render_html
+import json
+from pathlib import Path
+
+from julius.reporting import render_html, report
+
+
+FIXTURE = Path(__file__).parents[1] / "fixtures" / "events.jsonl"
 
 
 def sample():
@@ -57,3 +63,40 @@ def test_html_escapes_group_and_attribute_values():
     page = render_html(data)
     assert "<script>alert" not in page
     assert "&lt;script&gt;" in page
+
+
+def test_daily_categories_cache_unknown_and_signed_reduction():
+    template = json.loads(FIXTURE.read_text().splitlines()[-1])
+
+    def usage(category, input_tokens, output_tokens, cache_read, day):
+        event = {**template, "eventType": "usage", "occurredAt": day}
+        event["payload"] = {
+            "category": category, "complete": False, "callId": None,
+            "inputTokens": input_tokens, "outputTokens": output_tokens,
+            "cacheReadTokens": cache_read, "cacheWriteTokens": None, "costUsd": None,
+        }
+        return event
+
+    primary = usage("primary", 100, 20, 30, "2026-09-21T23:30:00-02:00")
+    auxiliary = usage("auxiliary", 10, None, 3, "2026-09-22T01:30:00Z")
+    restoration = usage("restoration", None, 4, None, "2026-09-22T02:00:00Z")
+    transform = json.loads(FIXTURE.read_text().splitlines()[0])
+    transform["occurredAt"] = "2026-09-22T02:00:00Z"
+    transform["payload"].update(sent=True, inputTokens=10, outputTokens=30)
+    window = {"since": "2026-09-21T00:00:00Z", "until": "2026-09-23T00:00:00Z", "timezone": "UTC"}
+    data = report([primary, auxiliary, restoration, transform], window)
+    assert len(data["dailySeries"]) == 1
+    day = data["dailySeries"][0]
+    assert day["dateUtc"] == "2026-09-22"
+    assert [part["usageRecords"] for part in day["categories"]] == [1, 1, 1, 0]
+    assert day["categories"][0]["input"]["total"] == 100
+    assert day["categories"][0]["cacheRead"]["total"] == 30
+    assert day["categories"][1]["output"]["total"] is None
+    assert day["categories"][2]["input"]["unknownRecords"] == 1
+    assert day["auxiliaryOverhead"]["input"]["total"] is None
+    assert day["directInputReduction"]["total"] == -20
+    assert day["incompleteUsageRecords"] == 3
+    page = render_html(data)
+    assert "Daily observed usage (UTC)" in page
+    assert "-20" in page
+    assert "known subtotal 0; 1 unknown" in page
