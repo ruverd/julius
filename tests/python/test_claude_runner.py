@@ -62,3 +62,27 @@ def test_safe_hook_requires_verified_recovery(tmp_path):
 def test_rejects_blank_project_before_launch(tmp_path):
     with pytest.raises(ValueError, match="project ID"):
         run_claude(project_id=" ", data_dir=tmp_path, runner=lambda *a, **k: None)
+
+
+def test_task_identity_is_quoted_only_in_julius_hook(tmp_path):
+    task = "ticket 42; printf unsafe $(touch /tmp/nope)"
+    plan = build_launch_plan(
+        project_id="project 'one'", task_id=task, data_dir=tmp_path,
+        settings_path=tmp_path / "settings.json", mcp_path=tmp_path / "mcp.json",
+        enable_safe_hook=True, claude_args=("--model", "sonnet"),
+    )
+    command = plan.settings["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
+    parts = shlex.split(command)
+    assert parts[parts.index("--task") + 1] == task
+    assert parts[parts.index("--project") + 1] == "project 'one'"
+    assert task not in plan.claude_command
+    assert task not in plan.mcp_config["mcpServers"]["julius-recovery"]["args"]
+    assert "--task" not in plan.claude_command
+
+
+def test_rejects_blank_task(tmp_path):
+    with pytest.raises(ValueError, match="Task ID"):
+        build_launch_plan(
+            project_id="p", task_id=" ", data_dir=tmp_path,
+            settings_path=tmp_path / "settings.json", mcp_path=tmp_path / "mcp.json",
+        )

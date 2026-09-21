@@ -31,6 +31,7 @@ def build_launch_plan(
     python_executable: str = sys.executable,
     claude_executable: str = "claude",
     claude_args: Sequence[str] = (),
+    task_id: str | None = None,
     enable_safe_hook: bool = False,
 ) -> ClaudeLaunchPlan:
     """Build session-only config without inspecting or changing Claude credentials."""
@@ -38,11 +39,15 @@ def build_launch_plan(
         raise ValueError("A non-empty project ID is required")
     if not python_executable or not claude_executable:
         raise ValueError("Executable names must be non-empty")
+    if task_id is not None and (not isinstance(task_id, str) or not task_id.strip()):
+        raise ValueError("Task ID must be non-empty when supplied")
     root = str(data_dir.expanduser().resolve())
     julius_args = [python_executable, "-m", "julius"]
     scope_args = ["--project", project_id, "--data-dir", root]
+    task_args = ["--task", task_id] if task_id is not None else []
     hook_command = shlex.join([
         *julius_args, "hook", "claude-post-tool-use", *scope_args,
+        *task_args,
         "--profile", "safe", "--recovery-available",
     ])
     return ClaudeLaunchPlan(
@@ -65,6 +70,7 @@ def run_claude(
     project_id: str,
     data_dir: Path,
     claude_args: Sequence[str] = (),
+    task_id: str | None = None,
     python_executable: str = sys.executable,
     claude_executable: str = "claude",
     runner: Callable[..., subprocess.CompletedProcess[Any]] = subprocess.run,
@@ -82,6 +88,7 @@ def run_claude(
             settings_path=settings_path, mcp_path=mcp_path,
             python_executable=python_executable,
             claude_executable=claude_executable, claude_args=claude_args,
+            task_id=task_id,
             enable_safe_hook=enable_safe_hook,
         )
         settings_path.write_text(json.dumps(plan.settings), encoding="utf-8")
