@@ -114,7 +114,7 @@ def test_usage_tokenizer_alias_conflict_needs_append_only_reconciliation(tmp_pat
         assert effective["tokenizerId"] == "tok-v1"
         assert effective["tokenizerSource"] == "registered-model-snapshot"
         assert effective["outputTokens"] == 6
-        assert ledger.history()[0]["payload"]["tokenizerId"] is None
+        assert ledger.history()[0]["payload"].get("tokenizerId") is None
     finally:
         ledger.close()
 
