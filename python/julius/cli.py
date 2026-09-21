@@ -30,8 +30,10 @@ from .mcp_recovery import serve_stdio as serve_recovery_stdio
 from .claude_runner import run_claude
 from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
+from .model_scan import scan_models
 from .evaluation_runner import Attempt, FrozenFixture, replay_paired_fixtures
 from .integration_manager import ClaudeIntegrationManager
+from .quality_guard import GuardPolicy, ManualAction, Scope, TaskOutcome, decide_suspension
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -69,6 +71,7 @@ def _parser() -> argparse.ArgumentParser:
             "hook",
             "mcp",
             "evaluate",
+            "policy",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -242,7 +245,7 @@ def run(argv: list[str] | None = None) -> int:
                 if args.runtime == "lmstudio"
                 else discover_ollama(args.endpoint or "http://127.0.0.1:11434")
             )
-        elif argument in ("record", "history"):
+        elif argument in ("record", "history", "scan"):
             directory = Path(args.data_dir).absolute()
             directory.mkdir(mode=0o700, parents=True, exist_ok=True)
             with ModelRegistry(directory / "models.sqlite3") as registry:
@@ -251,13 +254,22 @@ def run(argv: list[str] | None = None) -> int:
                         _json_file(_required(args.state_file, "--state-file"))
                     )
                     _json(registry.add(snapshot))
-                else:
+                elif argument == "history":
                     _json(registry.history(
                         endpoint=_required(args.endpoint, "--endpoint"),
                         requested_model=_required(args.model, "--model"),
                     ))
+                else:
+                    default_endpoint = (
+                        "http://127.0.0.1:1234" if args.runtime == "lmstudio"
+                        else "http://127.0.0.1:11434"
+                    )
+                    _json(scan_models(
+                        registry, provider=args.runtime,
+                        endpoint=args.endpoint or default_endpoint,
+                    ))
         else:
-            raise ValueError("Use models list, record, or history")
+            raise ValueError("Use models list, record, history, or scan")
         return 0
     if command == "evaluate":
         if args.arguments != ["replay"]:
@@ -275,6 +287,23 @@ def run(argv: list[str] | None = None) -> int:
             baseline_arm=_required(payload.get("baselineArm"), "baselineArm"),
             candidate_arm=_required(payload.get("candidateArm"), "candidateArm"),
             seed=payload.get("seed", 0),
+        ))
+        return 0
+    if command == "policy":
+        if args.arguments != ["check"]:
+            raise ValueError("Use policy check --state-file <json>")
+        payload = _json_file(_required(args.state_file, "--state-file"))
+        if not isinstance(payload, dict):
+            raise ValueError("Policy input must be a JSON object")
+        outcomes = payload.get("outcomes")
+        actions = payload.get("actions", [])
+        if not isinstance(outcomes, list) or not isinstance(actions, list):
+            raise ValueError("Policy check requires outcomes and actions arrays")
+        _json(decide_suspension(
+            Scope.model_validate(payload.get("scope")),
+            GuardPolicy.model_validate(payload.get("policy")),
+            [TaskOutcome.model_validate(item) for item in outcomes],
+            [ManualAction.model_validate(item) for item in actions],
         ))
         return 0
     if command == "run" and args.agent not in ("grok", "xai", "claude"):
@@ -311,6 +340,7 @@ def run(argv: list[str] | None = None) -> int:
             raise ValueError("Persistent safe hook requires --recovery-verified")
         project_root = Path(args.project_root).resolve()
         project_id = _required(args.project, "--project")
+        detected = doctor()
         module_command = [sys.executable, "-m", "julius.cli", "--data-dir", str(directory)]
         hook_command = shlex.join([
             *module_command, "hook", "claude-post-tool-use", "--project", project_id,
@@ -343,6 +373,7 @@ def run(argv: list[str] | None = None) -> int:
             "recoveryAttested": args.recovery_verified,
             "backupState": str(_integration_state_root(directory, project_root)),
             "settingsDiff": plan.settings.diff, "mcpDiff": plan.mcp.diff,
+            "doctor": detected,
         })
         return 0
     if command == "setup" and args.apply_plan is not None:
@@ -524,7 +555,7 @@ def run(argv: list[str] | None = None) -> int:
                 destination = _required(args.output, "--output")
                 fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                    handle.write(render_html(data))
+                    handle.write(render_html({**data, "groupBy": args.by or "model"}))
                 print(f"Local HTML report written to {destination}")
             elif command == "export":
                 if args.format == "json":

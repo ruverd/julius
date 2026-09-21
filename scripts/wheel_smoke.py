@@ -44,6 +44,8 @@ def main() -> None:
             "from julius.integration_manager import ClaudeIntegrationManager; "
             "from julius.model_registry import ModelRegistry; "
             "from julius.evaluation_runner import replay_paired_fixtures; "
+            "from julius.model_scan import scan_models; "
+            "from julius.quality_guard import decide_suspension; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")

@@ -77,6 +77,10 @@ def test_cli_model_snapshot_history_keeps_unknown(tmp_path: Path) -> None:
     assert isinstance(history, list) and len(history) == 1
     assert history[0]["snapshotId"] == recorded["snapshotId"]
     assert history[0]["tokenizer"] is None
+    refused = _cli(tmp_path, "models", "scan", "--endpoint", "http://bad-host:1111")
+    assert isinstance(refused, dict)
+    assert refused["snapshots"] == []
+    assert refused["error"] is not None
 
 
 def test_cli_offline_fixture_replay_preserves_signed_output_difference(tmp_path: Path) -> None:
@@ -103,3 +107,30 @@ def test_cli_offline_fixture_replay_preserves_signed_output_difference(tmp_path:
     assert result["scope"] == "offline_fixture_replay"
     assert result["analysis"]["savings"]["input_tokens"] == 20
     assert result["analysis"]["savings"]["output_tokens"] == -10
+
+
+def test_cli_policy_check_suspends_negative_net_without_model_call(tmp_path: Path) -> None:
+    scope = {
+        "project_id": "p", "model_id": "m", "strategy_id": "compress",
+        "strategy_version": "1",
+    }
+    policy = {
+        "version": "1", "minimum_samples": 1,
+        "max_error_rate": 1.0, "max_recovery_rate": 1.0,
+        "max_rework_rate": 1.0, "max_mean_latency_ms": 1000.0,
+        "min_total_net_savings_usd": 0.0,
+    }
+    payload = {
+        "scope": scope, "policy": policy,
+        "outcomes": [{
+            "scope": scope, "sequence": 0, "task_id": "task-1", "error": False,
+            "recovery_used": False, "rework_needed": False,
+            "latency_ms": 50.0, "net_savings_usd": -0.01,
+        }],
+    }
+    source = tmp_path / "guard.json"
+    source.write_text(json.dumps(payload))
+    decision = _cli(tmp_path, "policy", "check", "--state-file", str(source))
+    assert isinstance(decision, dict)
+    assert decision["status"] == "suspended"
+    assert decision["reasons"] == ["below_min_total_net_savings_usd"]

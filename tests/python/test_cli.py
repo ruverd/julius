@@ -40,6 +40,7 @@ def test_cli_lifecycle(tmp_path):
     target = tmp_path / "report.html"
     run("dashboard", *window, "--output", str(target))
     assert target.read_text().startswith("<!doctype html>")
+    assert "id='filter-model'" in target.read_text()
     assert '"group"' in run("export", *window, "--format", "csv")
     run("run", success=False)
 
