@@ -15,12 +15,14 @@ The CLI accepts an explicitly prepared JSON record with the fields above, checks
 ```sh
 julius memory put record.json --project app --snapshot '<revision-id>'
 julius memory search compiler --project app --snapshot '<revision-id>'
-julius memory invalidate '<record-id>' --project app
+julius memory history --project app --limit 100 --offset 0
+julius memory history '<record-id>' --project app
+julius memory invalidate '<record-id>' --project app --invalidation-reason source_changed --source manual-review
 julius memory purge --project app
 julius mcp recovery --project app --memory-search
 ```
 
-`put` validates the supplied hash, provenance, expiry, and optional snapshot match. `purge` removes only expired records. The MCP command exposes `search_memory` only for its fixed project; the default recovery server advertises no memory search tool. The CLI does not infer memories or inject search results into a model request.
+`put` validates the supplied hash, provenance, expiry, and optional snapshot match. `history` returns metadata-only JSON with `records`, `limit`, `offset`, and `nextOffset`; request successive pages until `nextOffset` is `null`. Offset pagination is not a transaction across pages, so concurrent memory writes may shift rows. `purge` removes only expired records. The MCP command exposes `search_memory` only for its fixed project; the default recovery server advertises no memory search tool. The CLI does not infer memories or inject search results into a model request.
 
 ## Code symbols
 

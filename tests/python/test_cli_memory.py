@@ -43,6 +43,38 @@ def test_memory_cli_put_search_invalidate_and_project_boundary(tmp_path: Path):
     ).stdout) == []
 
 
+def test_memory_cli_history_is_project_scoped_metadata_and_paged(tmp_path: Path):
+    data_dir = tmp_path / "data"
+    for project in ("one", "other"):
+        item = memory(projectId=project)
+        record = tmp_path / f"{project}.json"
+        record.write_text(json.dumps(item))
+        assert _run(data_dir, "memory", "put", str(record), "--project", project).returncode == 0
+    invalidated = _run(
+        data_dir, "memory", "invalidate", "fact", "--project", "one",
+        "--invalidation-reason", "source_changed", "--source", "manual-review",
+    )
+    assert invalidated.returncode == 0, invalidated.stderr
+    page = _run(data_dir, "memory", "history", "--project", "one", "--limit", "1")
+    assert page.returncode == 0, page.stderr
+    data = json.loads(page.stdout)
+    assert data["limit"] == 1 and data["offset"] == 0 and data["nextOffset"] == 1
+    assert len(data["records"]) == 1
+    record = data["records"][0]
+    assert record["projectId"] == "one"
+    assert record["invalidated"] is True
+    assert record["invalidationReason"] == "source_changed"
+    assert record["invalidationSource"] == "manual-review"
+    assert record["invalidatedAt"] is not None
+    assert "content" not in record
+    next_page = json.loads(_run(
+        data_dir, "memory", "history", "--project", "one", "--limit", "1",
+        "--offset", "1",
+    ).stdout)
+    assert next_page["records"] == [] and next_page["nextOffset"] is None
+    assert _run(data_dir, "memory", "history", "--project", "one", "--limit", "0").returncode == 1
+
+
 def test_mcp_memory_search_requires_explicit_flag(tmp_path: Path):
     data_dir = tmp_path / "data"
     record = tmp_path / "record.json"

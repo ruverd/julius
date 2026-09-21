@@ -92,6 +92,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
     for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
         parser.add_argument(f"--{option}")
+    parser.add_argument("--invalidation-reason", help="Reason recorded when invalidating memory")
+    parser.add_argument("--limit", type=int, default=100, help="Memory history page size, 1-100")
+    parser.add_argument("--offset", type=int, default=0, help="Memory history starting row")
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence", "max-budget-usd", "timeout-seconds"):
         parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--max-turns", type=int, default=4)
@@ -299,9 +302,10 @@ def run(argv: list[str] | None = None) -> int:
     if command == "memory":
         project_id = _required(args.project, "--project")
         action = argument
-        if action not in ("put", "search", "invalidate", "purge"):
-            raise ValueError("Use memory put <json-file>|search <query>|invalidate <id>|purge --project <id>")
-        if len(args.arguments) != (1 if action == "purge" else 2):
+        if action not in ("put", "search", "invalidate", "history", "purge"):
+            raise ValueError("Use memory put <json-file>|search <query>|invalidate <id>|history [id]|purge --project <id>")
+        if (len(args.arguments) != (1 if action == "purge" else 2)
+                and not (action == "history" and len(args.arguments) == 1)):
             raise ValueError("Invalid memory arguments")
         memory = MemoryStore(Path(args.data_dir).absolute() / "memory.sqlite3")
         try:
@@ -318,7 +322,19 @@ def run(argv: list[str] | None = None) -> int:
                     project_id, args.arguments[1], snapshot=_required(args.snapshot, "--snapshot"),
                 ))
             elif action == "invalidate":
-                _json({"invalidated": memory.invalidate(args.arguments[1], project_id)})
+                _json({"invalidated": memory.invalidate(
+                    args.arguments[1], project_id,
+                    reason=(args.invalidation_reason if args.invalidation_reason is not None
+                            else "explicit_invalidation"),
+                    source=args.source,
+                )})
+            elif action == "history":
+                records = memory.history(
+                    project_id, args.arguments[1] if len(args.arguments) == 2 else None,
+                    limit=args.limit, offset=args.offset,
+                )
+                _json({"records": records, "limit": args.limit, "offset": args.offset,
+                       "nextOffset": args.offset + len(records) if len(records) == args.limit else None})
             else:
                 _json({"removed": memory.purge_expired(project_id)})
         finally:
