@@ -66,6 +66,7 @@ uv run --no-sync julius savings --since 7d --by model
 uv run --no-sync julius usage --since 7d --by category
 uv run --no-sync julius savings --task DEV-123 --json
 uv run --no-sync julius export --format csv --since 7d > usage.csv
+uv run --no-sync julius export --format events-jsonl --project app --since 7d > events.jsonl
 uv run --no-sync julius dashboard --output ./julius-report.html
 uv run --no-sync julius models list
 uv run --no-sync julius models list --runtime lmstudio
@@ -74,6 +75,7 @@ uv run --no-sync julius models record --state-file ./model-snapshot.json
 uv run --no-sync julius models history --endpoint http://127.0.0.1:11434 --model '<model-id>'
 uv run --no-sync julius symbols index src/module.py --project app --project-root ./project --snapshot '<revision-id>'
 uv run --no-sync julius symbols search process_request --project app --project-root ./project --snapshot '<revision-id>'
+uv run --no-sync julius mcp recovery --project app --project-root ./project
 uv run --no-sync julius prices record --state-file ./price-snapshot.json
 uv run --no-sync julius prices lookup --endpoint https://api.example.test --provider example \
   --model '<model-id>' --currency USD --tier standard --cache-regime default \
@@ -85,6 +87,8 @@ Transcript importers are experimental and fixture-tested, reading only explicitl
 `7d` means a rolling window, with inclusive start and exclusive end. Local date inputs convert to UTC; the report names its timezone. Unknown values stay unavailable. Negative reductions remain signed. Provider usage does not establish the cost of a counterfactual trajectory. Financial savings remain unavailable in CLI reports until an explicit comparable baseline is integrated. Subscription refunds and proprietary limits are never inferred.
 
 Aggregate exports omit prompts and raw payloads. Project/model/source labels may still be private. The [dashboard](docs/dashboard.md) is self-contained HTML with no listener or external resources; it supports system light/dark appearance, accessible tables, and local filters by the selected model or client grouping. Existing output files are not overwritten.
+
+Explicit `events-jsonl` export preserves original events, aliases, and later reconciliations for replay, while replacing `rawUsage` with `null` by default. `--include-raw` restores that field for a full sensitive audit export. Event metadata and free-text reasons can still contain private information, so review this file before sharing it. The [event contract](docs/events.md) explains filtering and replay limits.
 
 ## SDK
 

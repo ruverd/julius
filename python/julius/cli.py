@@ -99,6 +99,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--format")
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--include-raw", action="store_true", help="Include original rawUsage in explicit event JSONL export")
     parser.add_argument("--explain", action="store_true")
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
@@ -210,6 +211,8 @@ def run(argv: list[str] | None = None) -> int:
     if not command:
         parser.print_help()
         return 0
+    if args.include_raw and (command != "export" or args.format != "events-jsonl"):
+        raise ValueError("--include-raw requires export --format events-jsonl")
     if command == "probe":
         if args.arguments != ["codex"]:
             raise ValueError("Use probe codex --project <id> [--task <id>]")
@@ -274,7 +277,18 @@ def run(argv: list[str] | None = None) -> int:
         if args.arguments != ["recovery"]:
             raise ValueError("Use mcp recovery --project <id>")
         root = Path(args.data_dir).absolute() / "artifacts"
-        serve_recovery_stdio(ArtifactStore(root), _required(args.project, "--project"))
+        project_id = _required(args.project, "--project")
+        if args.project_root:
+            memory = MemoryStore(Path(args.data_dir).absolute() / "memory.sqlite3")
+            try:
+                serve_recovery_stdio(
+                    ArtifactStore(root), project_id, symbol_memory=memory,
+                    project_root=args.project_root,
+                )
+            finally:
+                memory.close()
+        else:
+            serve_recovery_stdio(ArtifactStore(root), project_id)
         return 0
     if command == "hook":
         if args.arguments != ["claude-post-tool-use"]:
@@ -782,6 +796,14 @@ def run(argv: list[str] | None = None) -> int:
                     if value
                 }
             )
+            if command == "export" and args.format == "events-jsonl":
+                for event in julius.ledger.export_history(filters):
+                    exported = event
+                    if not args.include_raw and event["eventType"] == "usage":
+                        exported = {**event, "payload": {**event["payload"], "rawUsage": None}}
+                    print(json.dumps(exported, ensure_ascii=False, allow_nan=False,
+                                     separators=(",", ":")))
+                return 0
             if command == "savings" and args.explain:
                 _required(args.task, "--task")
                 if args.model:
@@ -824,7 +846,7 @@ def run(argv: list[str] | None = None) -> int:
                 elif args.format in (None, "csv"):
                     print(render_csv(data), end="")
                 else:
-                    raise ValueError("Export --format must be csv or json")
+                    raise ValueError("Export --format must be csv, json, or events-jsonl")
             elif args.json:
                 _json(data)
             else:

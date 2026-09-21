@@ -26,6 +26,8 @@ The pure optimizer and CLI preview are not evidence that a request was sent. Har
 
 A reconciliation targets a usage event within matching ownership boundaries. The latest appended correction supplies effective values while history remains available. Query dates select the original usage occurrence; later corrections can update that historical view.
 
+`julius export --format events-jsonl` emits the immutable event history selected by project/task/model and time. It includes later reconciliations targeting selected events, required earlier transform ancestors, and matching source aliases, so the stream can be imported into a fresh ledger. Alias rows follow canonical events because the database does not store a cross-table insertion order. This export differs from reports, which use reconciled effective values. `rawUsage` is null by default; `--include-raw` preserves it. Event labels and free-text reasons may still be sensitive, so the explicit event export should be reviewed before sharing. Original artifact contents live separately and are not included.
+
 Budget reservations are SQLite transactions shared by processes. IDs are idempotent, releases and expiry leave inactive records, settlement cannot exceed a reservation, and incompatible reuse is rejected. Reservations are admission control, not a provider-side spend cap: callers must reserve conservatively and prevent dispatch after expiry. A crash releases capacity only after reservation expiry.
 
 ## Privacy and limits
