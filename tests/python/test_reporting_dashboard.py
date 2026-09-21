@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+from julius.ledger import Ledger
 from julius.reporting import render_html, report
 
 
@@ -100,3 +101,59 @@ def test_daily_categories_cache_unknown_and_signed_reduction():
     assert "Daily observed usage (UTC)" in page
     assert "-20" in page
     assert "known subtotal 0; 1 unknown" in page
+
+
+def test_task_cost_bases_categories_and_unknown_price():
+    template = json.loads(FIXTURE.read_text().splitlines()[-1])
+    events = []
+    for index, (category, provenance, cost) in enumerate((
+        ("primary", {"estimateSource": "client_result"}, 0.02),
+        ("primary", {"priceSource": "fixture"}, None),
+        ("auxiliary", {"priceSource": "fixture"}, -0.01),
+        ("auxiliary", {"chargeSource": "provider_usage"}, 0.03),
+    )):
+        event = {**template, "eventId": f"usage-{index}", "taskId": "task-cost"}
+        event["payload"] = {
+            "callId": f"call-{index}", "observationScope": "call", "complete": True,
+            "category": category, "inputTokens": 10, "outputTokens": 2,
+            "cacheReadTokens": 0, "cacheWriteTokens": 0,
+            "costUsd": cost, "costProvenance": provenance,
+        }
+        events.append(event)
+    window = {"since": "2026-09-21T00:00:00Z", "until": "2026-09-22T00:00:00Z", "timezone": "UTC"}
+    data = report(events, window)
+    task = data["tasks"][0]
+    assert task["observedCalls"] == data["observedCalls"] == 4
+    assert task["modeledCostUsd"]["total"] is None
+    assert task["modeledCostUsd"]["known"] == 0.01
+    assert task["clientEstimatedCostUsd"]["total"] == 0.02
+    assert task["priceModeledCostUsd"]["unknownRecords"] == 1
+    assert task["providerChargedUsd"]["total"] == 0.03
+    assert task["costByCategory"]["primary"]["modeled"]["total"] is None
+    assert task["costByCategory"]["auxiliary"]["modeled"]["total"] == -0.01
+    assert task["costByCategory"]["auxiliary"]["provider"]["total"] == 0.03
+    assert data["financialSavingsUsd"] is None
+    page = render_html(data)
+    for heading in ("Modeled cost USD", "Client estimate USD", "Price modeled USD",
+                    "Provider charge USD", "Primary modeled USD", "Auxiliary modeled USD"):
+        assert f">{heading}</th>" in page
+    assert "known subtotal 0.02; 1 unknown" in page
+
+
+def test_task_cost_uses_deduplicated_effective_ledger_usage(tmp_path):
+    event = json.loads(FIXTURE.read_text().splitlines()[-1])
+    event["payload"]["costUsd"] = 0.04
+    event["payload"]["costProvenance"] = {
+        "priceSource": "fixture", "priceDate": "2026-09-21",
+        "priceModelId": "fixture-model",
+    }
+    ledger = Ledger(tmp_path / "report.db")
+    try:
+        ledger.record(event)
+        ledger.record(event)
+        window = {"since": "2026-09-21T00:00:00Z", "until": "2026-09-22T00:00:00Z", "timezone": "UTC"}
+        data = report(ledger.events(), window)
+        assert data["usageRecords"] == data["tasks"][0]["usageRecords"] == 1
+        assert data["modeledCostUsd"]["known"] == data["tasks"][0]["modeledCostUsd"]["known"] == 0.04
+    finally:
+        ledger.close()

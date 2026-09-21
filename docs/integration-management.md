@@ -1,4 +1,18 @@
-# Opt-in Claude project integration management
+# Opt-in project integration management
+
+Codex project hooks can be managed with
+`julius setup --integration codex --project-root ./project`. The project's
+`.codex` directory must already exist. Preview prints a `hooksDiff` and
+`planHash`; apply requires `--apply-plan '<planHash>'`. The manager adds one
+`UserPromptSubmit` command in `.codex/hooks.json`, preserves other hook groups,
+and backs up the exact original bytes and mode outside the project. Use
+`julius integrations remove codex --project-root ./project` to restore it.
+Removal refuses drift. The hook returns `{}` by default and cannot rewrite
+prompt/tool content or demonstrate savings. Codex's [project trust and hook
+review](https://developers.openai.com/codex/hooks) remain mandatory; Julius
+does not bypass them. The setup command itself does not call a model.
+
+## Claude
 
 `ClaudeIntegrationManager(project_root, state_root)` manages only `project_root/.claude/settings.json` and `project_root/.mcp.json`. The project `.claude` directory must already exist, and the separate state directory must satisfy `ManagedConfig`'s private-directory checks. No global Claude configuration is touched.
 

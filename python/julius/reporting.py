@@ -134,6 +134,19 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     for event in events:
         if event.get("taskId"):
             task_events[(event["projectId"], event["taskId"])].append(event)
+    def task_costs(items: list[dict], basis: str) -> dict[str, Any]:
+        def matches(event: dict) -> bool:
+            provenance = event["payload"].get("costProvenance") or {}
+            provider = provenance.get("chargeSource") == "provider_usage"
+            client = provenance.get("estimateSource") == "client_result" and not provider
+            return (basis == "provider" and provider or
+                    basis == "client" and client or
+                    basis == "price" and not provider and not client or
+                    basis == "modeled" and not provider)
+
+        return _sum([event["payload"].get("costUsd") if event.get("modelId") else None
+                     for event in items if matches(event)])
+
     task_rows = []
     for (project_id, task_id), items in sorted(task_events.items()):
         task_usage = [item for item in items if item["eventType"] == "usage"]
@@ -143,6 +156,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         task_transforms = [item for item in items if item["eventType"] == "transform" and item["payload"]["sent"]]
         if not (task_usage or outcomes or task_transforms):
             continue
+        primary = [item for item in task_usage if item["payload"]["category"] == "primary"]
+        auxiliary = [item for item in task_usage if item["payload"]["category"] != "primary"]
         task_rows.append({
             "projectId": project_id, "taskId": task_id, "outcome": outcome,
             "resolved": outcome == "resolved",
@@ -154,6 +169,15 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             "cacheRead": _sum([item["payload"]["cacheReadTokens"] for item in task_usage]),
             "cacheWrite": _sum([item["payload"]["cacheWriteTokens"] for item in task_usage]),
             "auxiliaryUsageRecords": sum(item["payload"]["category"] != "primary" for item in task_usage),
+            "modeledCostUsd": task_costs(task_usage, "modeled"),
+            "clientEstimatedCostUsd": task_costs(task_usage, "client"),
+            "priceModeledCostUsd": task_costs(task_usage, "price"),
+            "providerChargedUsd": task_costs(task_usage, "provider"),
+            "costByCategory": {
+                category: {basis: task_costs(category_items, basis)
+                           for basis in ("modeled", "client", "price", "provider")}
+                for category, category_items in (("primary", primary), ("auxiliary", auxiliary))
+            },
             "directInputReduction": _reduction([
                 item for item in task_transforms if item["payload"]["scope"] == "request"
             ]),
@@ -456,6 +480,14 @@ def render_html(data: dict) -> str:
             f"<td>{measure(task['input'])}</td><td>{measure(task['output'])}</td>"
             f"<td>{measure(task['cacheRead'])}</td><td>{measure(task['cacheWrite'])}</td>"
             f"<td>{cell(task['auxiliaryUsageRecords'])}</td>"
+            f"<td>{measure(task['modeledCostUsd'])}</td>"
+            f"<td>{measure(task['clientEstimatedCostUsd'])}</td>"
+            f"<td>{measure(task['priceModeledCostUsd'])}</td>"
+            f"<td>{measure(task['providerChargedUsd'])}</td>"
+            f"<td>{measure(task['costByCategory']['primary']['modeled'])}</td>"
+            f"<td>{measure(task['costByCategory']['auxiliary']['modeled'])}</td>"
+            f"<td>{measure(task['costByCategory']['primary']['provider'])}</td>"
+            f"<td>{measure(task['costByCategory']['auxiliary']['provider'])}</td>"
             f"<td>{measure(task['directInputReduction'])}</td>"
             f"<td>{measure(task['toolOutputReduction'])}</td></tr>"
         )
@@ -515,11 +547,18 @@ def render_html(data: dict) -> str:
         f"<div class='filters' aria-label='Filter task table'>{task_filters}"
         "<button type='button' id='export-tasks'>Export visible tasks as CSV</button></div>"
         "<p id='task-row-count' role='status' aria-live='polite'></p>"
-        "<div class='table-wrap'><table id='task-table'><caption>Task usage and sent transformations</caption>"
+        "<p>Costs are observed USD amounts by evidence source. Modeled includes client and price estimates; "
+        "provider charges are separate. Primary and auxiliary modeled or provider subtotals partition those amounts. "
+        "Unavailable totals show known subtotals; no financial savings are inferred.</p>"
+        "<div class='table-wrap'><table id='task-table'><caption>Task usage, costs, and sent transformations</caption>"
         "<thead><tr><th scope='col'>Task</th><th scope='col'>Project</th><th scope='col'>Outcome</th>"
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
         "<th scope='col'>Cache write</th><th scope='col'>Auxiliary records</th>"
+        "<th scope='col'>Modeled cost USD</th><th scope='col'>Client estimate USD</th>"
+        "<th scope='col'>Price modeled USD</th><th scope='col'>Provider charge USD</th>"
+        "<th scope='col'>Primary modeled USD</th><th scope='col'>Auxiliary modeled USD</th>"
+        "<th scope='col'>Primary provider USD</th><th scope='col'>Auxiliary provider USD</th>"
         "<th scope='col'>Direct request input reduction</th>"
         "<th scope='col'>Tool-output reduction</th></tr></thead>"
         f"<tbody>{''.join(task_rows)}</tbody></table></div></section>"

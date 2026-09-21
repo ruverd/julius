@@ -44,6 +44,7 @@ from .memory import MemoryStore
 from .symbols import SymbolStore
 from .evaluation_runner import Attempt, FrozenFixture, replay_paired_fixtures
 from .integration_manager import ClaudeIntegrationManager
+from .codex_integration_manager import CodexIntegrationManager
 from .quality_guard import GuardPolicy, ManualAction, Scope, TaskOutcome, decide_suspension
 from .quality_store import QualityStore
 
@@ -110,6 +111,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--runtime", choices=["ollama", "lmstudio"], default="ollama")
     parser.add_argument("--format")
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
+    parser.add_argument("--integration", choices=["claude", "codex"], default="claude")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--include-raw", action="store_true", help="Include original rawUsage in explicit event JSONL export")
     parser.add_argument("--include-originals", action="store_true", help="Include original artifact text in explicit artifact export")
@@ -705,15 +707,17 @@ def run(argv: list[str] | None = None) -> int:
             recovery_verified=args.recovery_verified,
         )
     if command == "integrations":
-        if args.arguments != ["remove", "claude"]:
-            raise ValueError("Use integrations remove claude --project-root <directory>")
-        manager = ClaudeIntegrationManager(
+        if args.arguments not in (["remove", "claude"], ["remove", "codex"]):
+            raise ValueError("Use integrations remove claude|codex --project-root <directory>")
+        integration = args.arguments[1]
+        manager_class = ClaudeIntegrationManager if integration == "claude" else CodexIntegrationManager
+        manager = manager_class(
             _required(args.project_root, "--project-root"),
             _integration_state_root(
                 Path(args.data_dir).absolute(), Path(args.project_root).absolute()
             ),
         )
-        _json({"removed": manager.remove(), "integration": "claude"})
+        _json({"removed": manager.remove(), "integration": integration})
         return 0
     if command == "jev" and argument != "shadow":
         raise ValueError("Use jev shadow --state-file <json> --project <id> --post-call-threshold-usd <amount>")
@@ -721,6 +725,35 @@ def run(argv: list[str] | None = None) -> int:
     if command == "setup" and args.project_root:
         if args.arguments:
             raise ValueError("Setup does not accept positional arguments")
+        if args.integration == "codex":
+            if args.profile != "observe" or args.recovery_verified:
+                raise ValueError("Codex project hook supports observe profile only")
+            project_root = Path(args.project_root).resolve()
+            command_parts = [sys.executable, "-m", "julius.cli", "--data-dir", str(directory),
+                             "hook", "codex-user-prompt-submit"]
+            if args.trusted_context_file:
+                command_parts.extend(["--trusted-context-file", str(Path(args.trusted_context_file).resolve())])
+            manager = CodexIntegrationManager(
+                project_root, _integration_state_root(directory, project_root),
+            )
+            codex_plan = manager.preview(hook_command=shlex.join(command_parts))
+            digest = codex_plan.hooks.desired_sha256
+            if args.apply_plan is not None:
+                if args.apply_plan != digest:
+                    raise ValueError("Setup plan changed; preview again before applying")
+                applied = manager.apply(codex_plan)
+            else:
+                applied = False
+            _json({
+                "integration": "codex", "projectRoot": str(project_root),
+                "planHash": digest, "applied": applied,
+                "hookProfile": "observe" if not args.trusted_context_file else "trusted_context",
+                "backupState": str(_integration_state_root(directory, project_root)),
+                "hooksDiff": codex_plan.hooks.diff,
+                "trustRequired": True,
+                "doctor": doctor(),
+            })
+            return 0
         if args.profile == "safe" and not args.recovery_verified:
             raise ValueError("Persistent safe hook requires --recovery-verified")
         project_root = Path(args.project_root).resolve()

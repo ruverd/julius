@@ -63,6 +63,34 @@ def test_default_project_local_data_keeps_config_backups_outside_project(
     assert not state.is_relative_to(project)
 
 
+def test_cli_codex_setup_preview_apply_and_restore(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    codex = project / ".codex"
+    codex.mkdir(parents=True)
+    hooks = codex / "hooks.json"
+    original = b'{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"true"}]}]}}\n'
+    hooks.write_bytes(original)
+    args = ("setup", "--integration", "codex", "--project-root", str(project))
+    preview = _cli(tmp_path, *args)
+    assert isinstance(preview, dict)
+    assert preview["integration"] == "codex"
+    assert preview["trustRequired"] is True
+    assert preview["applied"] is False
+    assert "codex-user-prompt-submit" in preview["hooksDiff"]
+    assert hooks.read_bytes() == original
+    _cli(tmp_path, *args, "--apply-plan", "wrong", success=False)
+    applied = _cli(tmp_path, *args, "--apply-plan", preview["planHash"])
+    assert isinstance(applied, dict) and applied["applied"] is True
+    repeated = _cli(tmp_path, *args, "--apply-plan", preview["planHash"])
+    assert isinstance(repeated, dict) and repeated["applied"] is False
+    installed = json.loads(hooks.read_bytes())
+    assert installed["hooks"]["SessionStart"][0]["hooks"][0]["command"] == "true"
+    assert "UserPromptSubmit" in installed["hooks"]
+    removed = _cli(tmp_path, "integrations", "remove", "codex", "--project-root", str(project))
+    assert removed == {"removed": True, "integration": "codex"}
+    assert hooks.read_bytes() == original
+
+
 def test_cli_model_snapshot_history_keeps_unknown(tmp_path: Path) -> None:
     snapshot = {
         "endpoint": "http://127.0.0.1:11434", "provider": "ollama",

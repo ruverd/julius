@@ -9,8 +9,25 @@ The file is explicitly selected by the operator; do not point it at a prompt,
 transcript, tool output, retrieved document, or other untrusted text. The
 endpoint reads at most 65,536 input bytes and 32,000 note bytes, returns `{}`
 for malformed or oversized input, and writes no logs, settings, or credentials.
-It does not install a hook or call a model. Keep the command in a trusted Codex
-hook configuration if you choose to enable it.
+It does not call a model. For project-local installation, first create the
+project's `.codex` directory, then preview the exact change:
+
+```sh
+julius setup --integration codex --project-root ./project
+julius setup --integration codex --project-root ./project --apply-plan '<planHash>'
+julius integrations remove codex --project-root ./project
+```
+
+The first command prints a `hooksDiff` and `planHash` without changing the
+project. Review the diff before applying. Julius appends a `UserPromptSubmit`
+command to `.codex/hooks.json`, preserving other hook groups. It stores an exact
+backup outside the project and refuses removal if the managed file changed.
+The installed command returns `{}` by default, so it does not reduce tokens.
+Codex must trust the project and the exact hook definition before the command
+runs; review it with Codex's `/hooks` UI. Julius does not bypass trust.
+`--trusted-context-file` is an explicit option for an operator-reviewed note;
+it adds developer context and may increase input tokens. This is not a
+replacement or compression path.
 
 `julius.codex_hooks.additive_context_output(event, context, trusted_context=True)` is a pure adapter
 for the documented `SessionStart` and `UserPromptSubmit` Codex hook events. It
@@ -25,9 +42,10 @@ trusted local instructions or metadata. Never pass raw user prompts, tool
 results, transcripts, retrieved documents, or other untrusted source content:
 the hook output is promoted to developer context.
 
-Julius does not install or enable a hook, edit Codex settings, read a
-transcript, send a model request, or perform network access through this
-adapter. A caller must supply trusted, locally prepared text. On September 21,
+The pure adapter does not install a hook, edit Codex settings, read a
+transcript, send a model request, or perform network access. Project setup
+only edits the reviewed local hook file after a hash-gated apply. A caller
+must supply trusted, locally prepared text. On September 21,
 2026, one bounded synthetic Codex CLI 0.154.0 turn used the actual `julius hook
 codex-user-prompt-submit` command with an ephemeral inline hook configuration
 and a reviewed temporary note. The final answer matched the note's marker;

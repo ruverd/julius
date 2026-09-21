@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 427 Python tests passed on macOS arm64 and Linux arm64 in a Debian Bookworm container. Rust workspace tests, Ruff, and mypy (56 source files) passed in both environments. A freshly rebuilt macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10. A PyInstaller macOS arm64 standalone executable passed its CLI, hook/MCP, Codex observe hook, frozen Jev replay, restoration, memory search, and memory audit smoke. Its archive passed preview, temporary managed install, launch, removal, and repeated-removal checks. The optional Linux arm64 container run passed the source checks, standalone smoke, and archive checks. Both builds include the frozen tiny-repository and Jev corpora, Codex hook command and probe, plus the earlier bounded Claude pilot, xAI attempt evidence, tokenizer provenance, cost attribution, artifact export, benchmark adherence, capability manifest, task dashboard, and journaled installer.
+Current local result: 441 Python tests, Rust workspace tests, Ruff, and mypy (58 source files) passed on macOS arm64 and Linux arm64 in a Debian Bookworm container. A freshly rebuilt macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10, including reversible Codex and Claude project setup. Rebuilt PyInstaller macOS arm64 and Linux arm64 standalone executables passed CLI, hook/MCP, Codex observe hook, frozen Jev replay, restoration, memory search, and memory audit smoke. Both archives passed temporary managed install/remove and repeated-remove checks. Both builds include the frozen tiny-repository and Jev corpora, Codex hook command and probe, plus the earlier bounded Claude pilot, xAI attempt evidence, tokenizer provenance, cost attribution, artifact export, benchmark adherence, capability manifest, task dashboard, and journaled installer.
 
 ## Active Python/Rust validation
 
@@ -13,7 +13,7 @@ sh scripts/dev.sh build
 uv run --no-sync python scripts/wheel_smoke.py dist/wheels/<matching-wheel>.whl
 ```
 
-The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native and optional-module imports, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, HTML/CSV export, the Codex hook no-op, and packaged Jev and repository corpora.
+The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native and optional-module imports, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, HTML/CSV export, the Codex hook no-op, reversible Claude/Codex setup, and packaged Jev and repository corpora.
 
 An installed-wheel test loads the packaged frozen repository corpus. A macOS standalone dry run selected `bug-en` with `/usr/bin/false` as the client executable: both arms correctly remained incomplete with null usage and cost, proving the bundled corpus and CLI path load without making a model call. The separate bundled gate command accepted one fixed read and denied a repeat. These checks do not show that a real client run from the standalone binary succeeds.
 

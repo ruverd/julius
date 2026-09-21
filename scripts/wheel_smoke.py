@@ -42,6 +42,7 @@ def main() -> None:
             "from julius.claude_probe import probe_local_protocol; "
             "from julius.claude_config import plan_claude_project_config; "
             "from julius.integration_manager import ClaudeIntegrationManager; "
+            "from julius.codex_integration_manager import CodexIntegrationManager; "
             "from julius.model_registry import ModelRegistry; "
             "from julius.evaluation_runner import replay_paired_fixtures; "
             "from julius.model_scan import scan_models; "
@@ -111,10 +112,24 @@ def main() -> None:
         assert json.loads(run(
             "-m", "julius", "integrations", "remove", "claude", "--project-root", str(project),
         ))["removed"] is True
+        (project / ".codex").mkdir()
+        codex_preview = json.loads(run(
+            "-m", "julius", "setup", "--integration", "codex", "--project-root", str(project),
+        ))
+        assert codex_preview["applied"] is False
+        assert codex_preview["trustRequired"] is True
+        assert json.loads(run(
+            "-m", "julius", "setup", "--integration", "codex", "--project-root", str(project),
+            "--apply-plan", codex_preview["planHash"],
+        ))["applied"] is True
+        assert json.loads(run(
+            "-m", "julius", "integrations", "remove", "codex", "--project-root", str(project),
+        ))["removed"] is True
+        assert not (project / ".codex" / "hooks.json").exists()
         print(
             "Isolated wheel smoke passed: native and optional imports, event idempotency, "
             "7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV, model snapshots, "
-            "Codex hook, packaged evaluation corpora, and reversible Claude setup."
+            "Codex hook, packaged evaluation corpora, and reversible Claude/Codex setup."
         )
 
 

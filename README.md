@@ -12,7 +12,7 @@ An explicit, experimental xAI Responses command can send an authorized Grok requ
 
 ## Develop and run
 
-Requirements: Python 3.11+, uv, and a Rust toolchain for building from source. Installed native wheels do not require Rust. Native validation currently covers macOS arm64 with Python 3.12; Linux CI is configured but not yet certified.
+Requirements: Python 3.11+, uv, and a Rust toolchain for building from source. Installed native wheels do not require Rust. Validation covers macOS arm64 with Python 3.12, Linux arm64 in a Debian container, and hosted macOS ARM64/Linux X64 CI. Broader native Linux and WSL certification remain open.
 
 ```sh
 sh scripts/dev.sh setup
@@ -31,7 +31,7 @@ For an existing local wheel, install into your chosen virtual environment:
 uv pip install --python /path/to/venv/bin/python ./dist/wheels/<matching-wheel>.whl
 ```
 
-Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Plain `setup` initializes storage and probes client versions. Project-specific `setup --project-root` previews a Claude configuration change and requires a matching plan hash before applying it. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
+Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Plain `setup` initializes storage and probes client versions. Project-specific `setup --project-root` previews a Claude configuration change; `--integration codex` selects a Codex hook. Both require a matching plan hash before applying. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
 
 `julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request. The [capability matrix](docs/doctor.md) separates bounded historical exact-version evidence from checks made during the current invocation.
 
@@ -120,7 +120,7 @@ Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-s
 
 `julius prices record/history/lookup` manages [local dated price evidence](docs/price-store.md) without contacting a provider. Lookup requires the endpoint, provider, model, currency, tier, cache regime, and timestamp; overlapping snapshots remain ambiguous. Task explanations can resolve a stored USD price only when a usage event or explicit baseline links its exact snapshot ID and model identity.
 
-The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. A [live synthetic test](docs/live-claude-validation.md) confirmed Claude Code 2.1.278 consumed a Bash hook candidate and restored its matching original through MCP; it did not establish sent-request token savings or task quality. The [Codex hook command](docs/codex-hooks.md) adds only explicitly trusted context; one bounded Codex CLI 0.154.0 turn accepted the real Julius command. It cannot rewrite tool output or prove savings. [Managed Claude project configuration](docs/integration-management.md) supports a reviewable opt-in preview, hash-gated apply, and exact backup restoration on removal.
+The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. A [live synthetic test](docs/live-claude-validation.md) confirmed Claude Code 2.1.278 consumed a Bash hook candidate and restored its matching original through MCP; it did not establish sent-request token savings or task quality. The [Codex hook command](docs/codex-hooks.md) adds only explicitly trusted context; one bounded Codex CLI 0.154.0 turn accepted the real Julius command. It cannot rewrite tool output or prove savings. [Managed project configuration](docs/integration-management.md) supports reviewable opt-in preview, hash-gated apply, and exact backup restoration on removal for Claude and Codex.
 
 ```sh
 uv run --no-sync julius setup --project-root ./project --project app
@@ -130,6 +130,8 @@ uv run --no-sync julius integrations remove claude --project-root ./project
 ```
 
 The project must already contain a `.claude` directory. Default project setup installs an observe-only hook; persistent safe mode requires `--profile safe --recovery-verified` after checking the recovery tool in that client session. The attestation is not automatic certification. Setup changes only that project. Configuration backups live outside the project when the default `.julius` data directory is inside it; `setup` prints their path. Removal refuses drifted configuration instead of overwriting edits made afterward.
+
+For Codex, create `.codex` in the project first. Preview `julius setup --integration codex --project-root ./project`, then apply its printed hash with `--apply-plan '<planHash>'`. Remove with `julius integrations remove codex --project-root ./project`. Codex must trust the project and the exact hook definition before it runs. This observe-only command returns `{}` by default and does not save tokens.
 
 ```sh
 uv run --no-sync julius run --agent claude --project app --profile observe
@@ -169,6 +171,6 @@ An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline 
 
 Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery and append-only model snapshots, reports/exports/HTML with task and daily usage counters, separate request/tool-output reductions, replayable event export, optional pricing, lexical memory with paged metadata audit and snapshot-scoped code symbols, offline tokenizer-safe route recommendations, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, frozen benchmark registration, fixture replay and trusted-check runner, scoped quality checks, ephemeral Claude launcher, managed project configuration, local hook/MCP probe, native wheels, macOS/Linux arm64 development archives, and tests.
 
-Pending: broad Claude/Codex/xAI compatibility validation beyond narrow synthetic probes, confirmed sent-request interception, client-connected routing, exact tokenizers, automatic pricing/baselines, automatic symbol indexing in client workflows, structured memory integration, automatic cache-aware policy, measured production quality-based suspension, representative isolated task benchmarks, full task-level dashboard, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
+Pending: broad Claude/Codex/xAI compatibility validation beyond narrow synthetic probes, confirmed sent-request interception, client-connected routing, exact tokenizers, automatic pricing/baselines, automatic symbol indexing in client workflows, structured memory integration, automatic cache-aware policy, measured production quality-based suspension, representative isolated task benchmarks, broader dashboard/accessibility validation, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 
 The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [current product status](docs/product-status.md), [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [product completion plan](docs/plans/2026-09-21-product-completion.md), [event contract](docs/events.md), and [validation](docs/validation.md).
