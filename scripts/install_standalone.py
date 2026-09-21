@@ -14,6 +14,7 @@ import tempfile
 
 STATE_NAME = ".julius-install.json"
 BACKUP_NAME = ".julius-backups"
+JOURNAL_NAME = ".julius-install-pending.json"
 MAX_BINARY_BYTES = 250_000_000
 MAX_INSTALLER_BYTES = 200_000
 MAX_MANIFEST_BYTES = 65_536
@@ -64,6 +65,70 @@ def regular_or_absent(path: Path) -> None:
         raise ValueError(f"refusing symlink or non-file: {path}")
 
 
+def validate_entry(entry: object) -> bool:
+    return (isinstance(entry, dict) and set(entry) == {"version", "hash"}
+            and isinstance(entry["version"], str) and bool(entry["version"])
+            and isinstance(entry["hash"], str) and len(entry["hash"]) == 64
+            and all(char in "0123456789abcdef" for char in entry["hash"]))
+
+
+def validate_state(state: object) -> bool:
+    return (isinstance(state, dict) and set(state) == {"schema", "current", "history"}
+            and state["schema"] == 1 and validate_entry(state["current"])
+            and isinstance(state["history"], list)
+            and all(validate_entry(item) for item in state["history"]))
+
+
+def state_bytes(state: dict) -> bytes:
+    return (json.dumps(state, sort_keys=True, indent=2) + "\n").encode()
+
+
+def validate_parents(prefix: Path) -> None:
+    for parent in (prefix, *prefix.parents):
+        if parent.is_symlink():
+            raise ValueError(f"refusing symlink in prefix path: {parent}")
+
+
+def complete_pending(journal_path: Path, state_path: Path, binary_path: Path,
+                     backups: Path, apply: bool) -> str | None:
+    regular_or_absent(journal_path)
+    if not journal_path.exists():
+        return None
+    journal = json.loads(journal_path.read_text())
+    if (not isinstance(journal, dict) or set(journal) != {"action", "before", "after"}
+            or journal["action"] not in ("install", "update", "rollback", "remove")
+            or (journal["before"] is not None and not validate_state(journal["before"]))
+            or (journal["after"] is not None and not validate_state(journal["after"]))):
+        raise ValueError("invalid pending transaction")
+    before, after = journal["before"], journal["after"]
+    actual_state = json.loads(state_path.read_text()) if state_path.exists() else None
+    actual_hash = digest(binary_path.read_bytes()) if binary_path.exists() else None
+    old_hash = before["current"]["hash"] if before else None
+    new_hash = after["current"]["hash"] if after else None
+    if actual_state not in (before, after) or actual_hash not in (old_hash, new_hash):
+        raise ValueError("pending transaction has unexpected files; refusing recovery")
+    if not apply:
+        return f"Preview: recover interrupted {journal['action']} transaction. Re-run with --apply."
+    if actual_hash == old_hash and actual_state == before:
+        journal_path.unlink()
+        return None
+    if actual_hash != new_hash:
+        raise ValueError("pending transaction cannot be recovered")
+    if after is None:
+        if state_path.exists():
+            state_path.unlink()
+        for backup in backups.iterdir():
+            regular_or_absent(backup)
+            if not backup.is_file() or digest(backup.read_bytes()) != backup.name:
+                raise ValueError("unrecognized or modified file in managed backup directory")
+            backup.unlink()
+        backups.rmdir()
+    else:
+        write_atomic(state_path, state_bytes(after), 0o600)
+    journal_path.unlink()
+    return "Recovered interrupted managed operation."
+
+
 def write_atomic(path: Path, data: bytes, mode: int) -> None:
     regular_or_absent(path)
     fd, temp = tempfile.mkstemp(prefix=".julius-", dir=path.parent)
@@ -80,20 +145,25 @@ def write_atomic(path: Path, data: bytes, mode: int) -> None:
 
 
 def execute(action: str, prefix: Path, archive: Path | None, apply: bool) -> str:
+    validate_parents(prefix)
     if prefix.is_symlink() or (prefix.exists() and not prefix.is_dir()):
         raise ValueError("prefix must be a directory, not a symlink")
     bin_dir = prefix / "bin"
     backups = prefix / BACKUP_NAME
     state_path = prefix / STATE_NAME
+    journal_path = prefix / JOURNAL_NAME
     binary_path = bin_dir / "julius"
     for item in (bin_dir, backups):
         if item.is_symlink() or (item.exists() and not item.is_dir()):
             raise ValueError(f"refusing symlink or non-directory: {item}")
     regular_or_absent(state_path)
     regular_or_absent(binary_path)
+    recovery = complete_pending(journal_path, state_path, binary_path, backups, apply)
+    if recovery is not None:
+        return recovery
     state = json.loads(state_path.read_text()) if state_path.exists() else None
     if state is not None:
-        if state.get("schema") != 1 or state.get("current", {}).get("hash") is None or not isinstance(state.get("history"), list):
+        if not validate_state(state):
             raise ValueError("invalid managed state")
         if not binary_path.exists() or digest(binary_path.read_bytes()) != state["current"]["hash"]:
             raise ValueError("managed binary was modified; refusing operation")
@@ -101,6 +171,11 @@ def execute(action: str, prefix: Path, archive: Path | None, apply: bool) -> str
         raise ValueError("unmanaged Julius binary exists; refusing operation")
     elif backups.exists():
         raise ValueError("unmanaged backup directory exists; refusing operation")
+    if state is not None:
+        for backup in backups.iterdir() if backups.exists() else ():
+            regular_or_absent(backup)
+            if not backup.is_file() or digest(backup.read_bytes()) != backup.name:
+                raise ValueError("unrecognized or modified file in managed backup directory")
     manifest = None
     payload = None
     if action in ("install", "update"):
@@ -131,7 +206,7 @@ def execute(action: str, prefix: Path, archive: Path | None, apply: bool) -> str
     else:
         raise ValueError("unknown action")
     if not apply:
-        return f"Preview: {description}. Re-run with --apply."
+        return f"Preview: {description}; update managed state and backups at {prefix}. Re-run with --apply."
     prefix.mkdir(parents=True, exist_ok=True)
     bin_dir.mkdir(exist_ok=True)
     backups.mkdir(exist_ok=True)
@@ -151,18 +226,22 @@ def execute(action: str, prefix: Path, archive: Path | None, apply: bool) -> str
         next_current = state["history"][-1]
         history = state["history"][:-1]
     else:
-        for backup in backups.iterdir():
-            regular_or_absent(backup)
-            if not backup.is_file() or digest(backup.read_bytes()) != backup.name:
-                raise ValueError("unrecognized or modified file in managed backup directory")
+        next_current = None
+        history = []
+    next_state = ({"schema": 1, "current": next_current, "history": history}
+                  if next_current is not None else None)
+    write_atomic(journal_path, state_bytes({"action": action, "before": state, "after": next_state}), 0o600)
+    if action == "remove":
         binary_path.unlink()
         state_path.unlink()
         for backup in backups.iterdir():
             backup.unlink()
         backups.rmdir()
+        journal_path.unlink()
         return f"Applied: {description}."
     write_atomic(binary_path, payload, 0o755)
-    write_atomic(state_path, (json.dumps({"schema": 1, "current": next_current, "history": history}, sort_keys=True, indent=2) + "\n").encode(), 0o600)
+    write_atomic(state_path, state_bytes(next_state), 0o600)
+    journal_path.unlink()
     return f"Applied: {description}."
 
 

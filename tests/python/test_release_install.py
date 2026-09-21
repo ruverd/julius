@@ -96,3 +96,67 @@ def test_duplicate_archive_member_is_rejected(tmp_path: Path, monkeypatch: pytes
                 target.addfile(member, io.BytesIO(content))
     with pytest.raises(ValueError, match="unexpected archive contents"):
         installer.load_archive(duplicate)
+
+
+def test_recovers_after_binary_replacement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    first = archive(tmp_path, monkeypatch, "0.2.0", b"first")
+    second = archive(tmp_path, monkeypatch, "0.3.0", b"second")
+    prefix = tmp_path / "prefix"
+    installer.execute("install", prefix, first, True)
+    original = installer.write_atomic
+
+    def fail_state(path: Path, data: bytes, mode: int) -> None:
+        if path.name == installer.STATE_NAME:
+            raise OSError("simulated crash")
+        original(path, data, mode)
+
+    monkeypatch.setattr(installer, "write_atomic", fail_state)
+    with pytest.raises(OSError, match="simulated crash"):
+        installer.execute("update", prefix, second, True)
+    monkeypatch.setattr(installer, "write_atomic", original)
+    assert "recover interrupted update" in installer.execute("rollback", prefix, None, False)
+    assert "Recovered" in installer.execute("rollback", prefix, None, True)
+    assert (prefix / "bin" / "julius").read_bytes() == b"second"
+    assert json.loads((prefix / installer.STATE_NAME).read_text())["current"]["version"] == "0.3.0"
+    installer.execute("rollback", prefix, None, True)
+    assert (prefix / "bin" / "julius").read_bytes() == b"first"
+
+
+def test_rejects_symlink_parent_and_invalid_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    release = archive(tmp_path, monkeypatch, "0.2.0", b"first")
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlink in prefix path"):
+        installer.execute("install", link / "nested", release, True)
+    installer.execute("install", real, release, True)
+    state_path = real / installer.STATE_NAME
+    state = json.loads(state_path.read_text())
+    state["history"] = ["invalid"]
+    state_path.write_text(json.dumps(state))
+    with pytest.raises(ValueError, match="invalid managed state"):
+        installer.execute("remove", real, None, True)
+    assert (real / "bin" / "julius").read_bytes() == b"first"
+
+
+def test_recovers_interrupted_removal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    release = archive(tmp_path, monkeypatch, "0.2.0", b"first")
+    prefix = tmp_path / "prefix"
+    installer.execute("install", prefix, release, True)
+    original = installer.Path.unlink
+
+    def fail_state_unlink(path: Path, *args, **kwargs) -> None:
+        if path.name == installer.STATE_NAME:
+            raise OSError("simulated crash")
+        original(path, *args, **kwargs)
+
+    monkeypatch.setattr(installer.Path, "unlink", fail_state_unlink)
+    with pytest.raises(OSError, match="simulated crash"):
+        installer.execute("remove", prefix, None, True)
+    monkeypatch.setattr(installer.Path, "unlink", original)
+    assert "recover interrupted remove" in installer.execute("remove", prefix, None, False)
+    assert "Recovered" in installer.execute("remove", prefix, None, True)
+    assert not (prefix / "bin" / "julius").exists()
+    assert not (prefix / installer.STATE_NAME).exists()
+    assert not (prefix / installer.BACKUP_NAME).exists()
