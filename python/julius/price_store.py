@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sqlite3
 import stat
 from datetime import date, datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -141,6 +142,72 @@ class PriceStore:
             (endpoint, provider, model),
         ).fetchall()
         return [json.loads(row["body"]) for row in rows]
+
+    def get_by_id(self, snapshot_id: str) -> dict[str, Any] | None:
+        """Return exactly one recorded snapshot, without selecting by date or recency."""
+        if not isinstance(snapshot_id, str) or not snapshot_id:
+            raise ValueError("Snapshot ID is required")
+        row = self.db.execute(
+            "SELECT body FROM price_snapshots WHERE snapshot_id=?", (snapshot_id,)
+        ).fetchone()
+        return json.loads(row["body"]) if row is not None else None
+
+    def pricing_snapshot(
+        self, snapshot_id: str, *, provider_id: str, model_id: str,
+    ) -> dict[str, Any] | None:
+        """Convert selected USD evidence for offline pricing, or leave it unavailable.
+
+        The caller supplies the usage identity. An absent ID, different identity,
+        non-USD currency, or rate that cannot be represented by pricing.py is
+        never inferred from another snapshot or rounded to zero.
+        """
+        record = self.get_by_id(snapshot_id)
+        if record is None or (
+            record.get("snapshotId") != snapshot_id
+            or record.get("provider") != provider_id
+            or record.get("model") != model_id
+            or record.get("currency") != "USD"
+        ):
+            return None
+        stored_rates = record.get("rates_per_million")
+        if not isinstance(stored_rates, dict) or set(stored_rates) != RATE_KEYS:
+            return None
+        rates: dict[str, float | None] = {}
+        for key in RATE_KEYS:
+            raw = stored_rates[key]
+            if raw is None:
+                rates[key] = None
+                continue
+            try:
+                decimal_rate = Decimal(str(raw))
+                rate = float(decimal_rate)
+            except (InvalidOperation, ValueError, OverflowError):
+                return None
+            if (
+                not decimal_rate.is_finite() or decimal_rate < 0
+                or not math.isfinite(rate) or (decimal_rate > 0 and rate == 0)
+            ):
+                return None
+            rates[key] = rate
+        snapshot: dict[str, Any] = {
+            "id": snapshot_id,
+            "modelId": model_id,
+            "providerId": provider_id,
+            "currency": "USD",
+            "source": record["source"],
+            "sourceDate": record["source_date"],
+            "recordedAt": record["recordedAt"],
+            "effectiveAt": record["effective_at"],
+            "tier": record["tier"],
+            "endpoint": record["endpoint"],
+            "cacheRegime": record["cache_regime"],
+            "ratesPerMillion": rates,
+        }
+        if record.get("expires_at") is not None:
+            snapshot["expiresAt"] = record["expires_at"]
+        # Contracted rates are evidence, not a fallback for unknown categories.
+        snapshot["contractedRatePerMillion"] = record.get("contracted_rate_per_million")
+        return snapshot
 
     def lookup(
         self, *, endpoint: str, provider: str, model: str, currency: str,
