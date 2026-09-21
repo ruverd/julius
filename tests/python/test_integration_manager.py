@@ -36,6 +36,10 @@ def test_preview_apply_remove_preserves_existing_bytes(tmp_path):
     assert mcp.read_bytes() == old_mcp
     assert managed.apply(planned)
     assert not managed.apply(planned)
+    repeat = preview(managed)
+    assert repeat.settings.diff == ""
+    assert repeat.mcp.diff == ""
+    assert not managed.apply(repeat)
     assert json.loads(settings.read_bytes())["permissions"]["deny"] == ["Bash(rm *)"]
     assert json.loads(mcp.read_bytes())["mcpServers"]["other"] == {"command": "other"}
     assert managed.remove()
@@ -93,4 +97,20 @@ def test_partial_managed_state_is_refused_before_more_writes(tmp_path):
     managed.managed.apply(planned.settings)
     with pytest.raises(ValueError, match="Incomplete"):
         managed.apply(planned)
+    with pytest.raises(ValueError, match="Incomplete"):
+        preview(managed)
     assert not (project / ".mcp.json").exists()
+
+
+def test_repeat_preview_refuses_changed_commands_or_drift(tmp_path):
+    managed, project = manager(tmp_path)
+    planned = preview(managed)
+    managed.apply(planned)
+    with pytest.raises(ValueError, match="changed"):
+        managed.preview(
+            hook_command="different hook", mcp_command="julius",
+            mcp_args=["mcp", "recovery", "--project", "p"],
+        )
+    (project / ".mcp.json").write_text("{}")
+    with pytest.raises(ValueError, match="changed"):
+        preview(managed)

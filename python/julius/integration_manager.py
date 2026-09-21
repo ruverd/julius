@@ -6,7 +6,9 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 
-from .claude_config import ClaudeConfigPlan, plan_claude_project_config
+from .claude_config import (
+    ClaudeConfigPlan, plan_claude_project_config, unmerge_claude_project_config,
+)
 from .managed_config import ConfigPlan, ManagedConfig, _read, _safe_path
 
 
@@ -37,6 +39,26 @@ class ClaudeIntegrationManager:
             raise ValueError("Recovery flag requires a verified client-accessible recovery tool")
         current_settings, _ = _read(_safe_path(self.settings_path, self.project_root))
         current_mcp, _ = _read(_safe_path(self.mcp_path, self.project_root))
+        records = [self.managed._manifest(path) for path in (self.settings_path, self.mcp_path)]
+        if any(record is None for record in records) and any(record is not None for record in records):
+            raise ValueError("Incomplete managed integration; manual review required")
+        if all(record is not None for record in records):
+            if current_settings is None or current_mcp is None:
+                raise ValueError("Managed configuration missing; refusing repeat plan")
+            for current, record in zip((current_settings, current_mcp), records, strict=True):
+                assert record is not None
+                if hashlib.sha256(current).hexdigest() != record["managed_sha256"]:
+                    raise ValueError("Managed configuration changed; refusing repeat plan")
+            requested = plan_claude_project_config(
+                None, None, hook_command=hook_command,
+                mcp_command=mcp_command, mcp_args=mcp_args,
+            )
+            unmerge_claude_project_config(current_settings, current_mcp, requested)
+            return IntegrationPlan(
+                self.managed.plan(self.settings_path, current_settings),
+                self.managed.plan(self.mcp_path, current_mcp),
+                ClaudeConfigPlan(current_settings, current_mcp, requested.hook_entry, requested.mcp_entry),
+            )
         entries = plan_claude_project_config(
             current_settings, current_mcp, hook_command=hook_command,
             mcp_command=mcp_command, mcp_args=mcp_args,
