@@ -24,6 +24,8 @@ Only `sent:true` transformations contribute direct input reduction. Scope, model
 
 The pure optimizer and CLI preview are not evidence that a request was sent. Harnesses record sending separately. Provider usage cannot establish what an alternative trajectory would have cost. Reported coverage applies only to observed request IDs.
 
+An embedded harness may record one caller-attested complete model-input pair after an attempt via `Julius.record_embedded_request`. Its `tokenizer_counted` event includes an actual-model identity, tokenizer ID, response ID, before/after SHA-256 hashes, and byte lengths without storing input text. Exact sent-input equality, matching model identity, and caller-declared completeness are required. Those claims remain caller attestations, not independent proof of provider-side tokenization or response delivery. The stable attempt identity makes identical replays idempotent and rejects changed attestations. Hashes can still reveal whether known low-entropy text was used; treat raw event exports as sensitive.
+
 ## Corrections and budgets
 
 A reconciliation targets a usage event within matching ownership boundaries. Corrections apply in append order while original history remains available; the latest correction supplies current counters. A correction may add a paired `effectiveTokenizerId` and `effectiveTokenizerSource`; absent values preserve the tokenizer identity from an earlier usage or reconciliation event. Query dates select the original usage occurrence; later corrections can update that historical view.

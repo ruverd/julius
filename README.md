@@ -116,6 +116,8 @@ with Julius('./.julius') as julius:
 
 Public Python functions use snake_case; versioned event and receipt dictionaries retain camelCase JSON fields. Strict Pydantic schemas reject invalid counters, booleans used as integers, unknown envelope fields, and invalid timestamps. SQLite WAL preserves event history, explicit duplicate aliases, corrections, and atomic shared budgets. Batch import is atomic. Budget participants must use one ledger and one immutable budget definition.
 
+An embedded harness that observes complete model-visible input and the actual response can call [`record_embedded_request`](docs/request-measurement.md) after sending. It counts before/after input with the harness's pinned tokenizer, requires exact sent-input and model identity agreement, and records signed request-scope reduction without retaining prompt text. Evidence is caller-attested `tokenizer_counted`, not provider-reported usage or causal task savings. This does not make the xAI CLI a verified full-input counter.
+
 `julius serve --data-dir <path>` exposes the same four SDK operations over bounded, versioned JSON Lines on stdin/stdout for a future Bulma harness. It does not run a model or own the harness workflow. See [stdio contract](docs/bulma-stdio.md).
 
 Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-scoped FTS5 memory](docs/memory.md), and a [cache-aware decision helper](docs/cache-policy.md). They do not automatically change agent requests or create financial baselines in CLI reports.

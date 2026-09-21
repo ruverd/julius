@@ -93,6 +93,19 @@ class Ledger:
         with self._write():
             return [self._record_validated(event) for event in validated]
 
+    def record_generated_event(self, input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Atomically reuse the first timestamp for an internally generated source ID."""
+        event = validate_event(input)
+        with self._write():
+            existing = self.db.execute(
+                "SELECT body FROM events WHERE source_id=? AND source_event_id=?",
+                (event["sourceId"], event["sourceEventId"]),
+            ).fetchone()
+            if existing:
+                prior = validate_event(json.loads(existing["body"]))
+                event = {**event, "occurredAt": prior["occurredAt"]}
+            return event, self._record_validated(event)
+
     def _record_validated(self, event: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(event, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
         existing = self.db.execute(

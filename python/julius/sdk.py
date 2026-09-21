@@ -18,6 +18,7 @@ from .xai import XAIAdapter, XAIResult, Transport
 from .xai_tool_loop import run_restore_loop
 from .xai_optimization import prepare_optimized_request
 from .request_measurement import TokenCounter, TokenCountingBasis
+from .embedded_request import record_embedded_request
 from .jev import Action, JevGateway, ShadowPolicy, shadow_decide
 from dataclasses import asdict
 from datetime import date
@@ -94,6 +95,27 @@ class Julius:
         if event["eventType"] != "outcome":
             raise ValueError("record_outcome requires an outcome event")
         return self.ledger.record(event)
+
+    def record_embedded_request(
+        self, *, project_id: str, session_id: str, request_id: str,
+        attempt_id: str, client_id: str, model_id: str, actual_model_id: str,
+        response_id: str, before_input: str, after_input: str, sent_input: str,
+        token_counter: TokenCounter, tokenizer_id: str, complete_model_input: bool,
+        task_id: str | None = None, input_artifact_id: str | None = None,
+        output_artifact_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Record a caller-attested complete model-input reduction."""
+        return record_embedded_request(
+            self.ledger, project_id=project_id, session_id=session_id,
+            request_id=request_id, attempt_id=attempt_id, client_id=client_id,
+            model_id=model_id, actual_model_id=actual_model_id,
+            response_id=response_id, before_input=before_input,
+            after_input=after_input, sent_input=sent_input,
+            token_counter=token_counter, tokenizer_id=tokenizer_id,
+            complete_model_input=complete_model_input, task_id=task_id,
+            input_artifact_id=input_artifact_id,
+            output_artifact_id=output_artifact_id,
+        )
 
     def send_xai(
         self,
@@ -508,6 +530,7 @@ class Julius:
         return report(
             self.ledger.events({**query, "since": window["since"], "until": window["until"]}),
             window,
+            by=query.get("by", "model"),
         )
 
     def close(self) -> None:

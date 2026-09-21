@@ -93,6 +93,33 @@ class TransformPayload(StrictModel):
     outputArtifactId: str | None
     strategy: str
     sent: bool
+    responseId: str | None = None
+    beforeSha256: str | None = None
+    afterSha256: str | None = None
+    beforeBytes: TokenCount | None = None
+    afterBytes: TokenCount | None = None
+
+    @field_validator("responseId")
+    @classmethod
+    def response_name(cls, value: str | None) -> str | None:
+        return _nonempty(value) if value is not None else None
+
+    @field_validator("beforeSha256", "afterSha256")
+    @classmethod
+    def digest(cls, value: str | None) -> str | None:
+        if value is not None and not re.fullmatch(r"[0-9a-f]{64}", value):
+            raise ValueError("SHA-256 digest must be lowercase hexadecimal")
+        return value
+
+    @model_validator(mode="after")
+    def attestation_fields(self) -> TransformPayload:
+        fields = (self.responseId, self.beforeSha256, self.afterSha256,
+                  self.beforeBytes, self.afterBytes)
+        if any(value is not None for value in fields) and not all(
+            value is not None for value in fields
+        ):
+            raise ValueError("Embedded attestation fields must be supplied together")
+        return self
 
     @field_validator("transformId", "strategy")
     @classmethod

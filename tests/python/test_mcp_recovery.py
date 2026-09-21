@@ -8,6 +8,7 @@ import pytest
 
 from julius.artifacts import ArtifactStore
 from julius.memory import MemoryStore
+import julius.mcp_recovery as mcp_recovery
 from julius.mcp_recovery import MAX_MESSAGE_BYTES, PROTOCOL_VERSION, serve_stdio
 from julius.symbols import SymbolStore
 
@@ -131,6 +132,40 @@ def test_bounded_messages_and_preinitialization(tmp_path: Path):
     sink = BytesIO()
     serve_stdio(store, "project", BytesIO(b"x" * (MAX_MESSAGE_BYTES + 2) + b"\n"), sink)
     assert sink.getvalue() == b""
+
+
+def test_oversized_restore_returns_complete_error_without_original(tmp_path: Path, monkeypatch):
+    store = ArtifactStore(tmp_path)
+    original = "secret marker " + "é" * 200
+    item = store.put("project", original)
+    monkeypatch.setattr(mcp_recovery, "MAX_RESPONSE_BYTES", 200)
+    sink = BytesIO()
+    source = BytesIO(b"".join(
+        (json.dumps(message) + "\n").encode() for message in session(call(item["id"]))
+    ))
+    serve_stdio(store, "project", source, sink)
+    lines = sink.getvalue().splitlines(keepends=True)
+    assert all(len(line) <= 200 for line in lines)
+    replies = [json.loads(line) for line in lines]
+    assert replies[1]["error"] == {"code": -32000, "message": "Response exceeds size limit"}
+    assert original.encode() not in sink.getvalue()
+    assert store.get("project", item["id"]) == original
+
+
+def test_oversized_search_fails_closed_and_keeps_project_scope(tmp_path: Path, monkeypatch):
+    class LargeMemory:
+        def search(self, project_id, query, *, snapshot, limit):
+            assert project_id == "project"
+            return [{"content": "secret marker " + "x" * 500}]
+
+    monkeypatch.setattr(mcp_recovery, "MAX_RESPONSE_BYTES", 200)
+    replies = exchange(ArtifactStore(tmp_path), "project", session(
+        memory_call({"query": "secret", "snapshot": "rev"}),
+        memory_call({"query": "secret", "snapshot": "rev", "projectId": "other"}, 4),
+    ), memory_store=LargeMemory())
+    assert replies[1]["error"] == {"code": -32000, "message": "Response exceeds size limit"}
+    assert replies[2]["error"]["code"] == -32602
+    assert "secret marker" not in json.dumps(replies)
 
 
 def test_symbol_tool_requires_explicit_project_root_and_snapshot(tmp_path: Path):

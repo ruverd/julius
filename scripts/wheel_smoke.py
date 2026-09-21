@@ -49,6 +49,7 @@ def main() -> None:
             "from julius.quality_guard import decide_suspension; "
             "from julius.quality_store import QualityStore; "
             "from julius.request_measurement import measure_request_pair; "
+            "from julius.embedded_request import record_embedded_request; "
             "from julius.price_store import PriceStore; "
             "from julius.claude_print_runner import run_claude_print; "
             "from julius.claude_pilot import run_claude_pilot; "
@@ -65,6 +66,20 @@ def main() -> None:
             "print(len(load_frozen_registration().cases), CORPUS_PATH.is_file())",
         ).strip() == "6 True"
         assert "0.2.0" in run("-m", "julius", "--version")
+        assert run("-c", """from julius.sdk import Julius
+with Julius('embedded') as julius:
+    result = julius.record_embedded_request(
+        project_id='wheel', session_id='session', request_id='request',
+        attempt_id='attempt', client_id='fixture', model_id='model',
+        actual_model_id='model', response_id='response',
+        before_input='complete longer input', after_input='complete input',
+        sent_input='complete input', token_counter=len,
+        tokenizer_id='fixture-counter', complete_model_input=True,
+    )
+    assert result['deltaTokens'] > 0
+    assert julius.report({'by': 'client'})['groupBy'] == 'client'
+    print(result['event']['evidence'])
+""").strip() == "tokenizer_counted"
         hook = subprocess.run(
             [str(python), "-m", "julius", "hook", "codex-user-prompt-submit"],
             input=json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "smoke",
@@ -140,7 +155,7 @@ def main() -> None:
         print(
             "Isolated wheel smoke passed: native and optional imports, event idempotency, "
             "7,000 marginal reduction, unknown money, exact-block optimize/restore, HTML/CSV, model snapshots, "
-            "Codex hook, packaged evaluation corpora, and reversible Claude/Codex setup."
+            "embedded request evidence, Codex hook, packaged evaluation corpora, and reversible Claude/Codex setup."
         )
 
 

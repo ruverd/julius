@@ -12,6 +12,7 @@ from .symbols import SymbolStore
 
 PROTOCOL_VERSION = "2025-06-18"
 MAX_MESSAGE_BYTES = 64 * 1024
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 TOOL_NAME = "restore_artifact"
 TOOL = {
     "name": TOOL_NAME,
@@ -265,7 +266,13 @@ def serve_stdio(
             else:
                 response = server.handle(message)
             if response is not None:
-                sink.write((json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8"))
+                encoded = (json.dumps(response, ensure_ascii=False) + "\n").encode("utf-8")
+                if len(encoded) > MAX_RESPONSE_BYTES:
+                    # Send a complete error instead of a partial original or search result.
+                    encoded = (json.dumps(_error(
+                        response.get("id"), -32000, "Response exceeds size limit",
+                    )) + "\n").encode("utf-8")
+                sink.write(encoded)
                 sink.flush()
     finally:
         server.close()
