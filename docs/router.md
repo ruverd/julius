@@ -1,0 +1,7 @@
+# Offline model routing
+
+`decide_route` produces a recommendation at a caller-declared safe task boundary. It does not invoke a model, discover services, change a client, or perform a fallback. The caller must explicitly apply any selected model. An unsafe boundary always keeps the current model.
+
+The caller supplies current and candidate identities, including endpoint, requested name, observed actual name, digest, and quantization. Evidence from one endpoint or quantization cannot price another. The router requires explicit endpoint authorization, service state, context capacity, requested capabilities, concurrency headroom, and any latency limit. Local candidates additionally need an observed loaded state and explicit hardware admission; file size is never treated as hardware evidence. Missing facts make a candidate ineligible.
+
+Price evidence is dated, sourced, and scoped to the full identity. The current and candidate both need fresh prices for a savings recommendation. Input and expected output token counts yield a predicted cost using the supplied price rates. A candidate must satisfy the spend limit and clear the configured minimum savings fraction. The decision preserves the requested and actual model names, evidence IDs, price sources, and reason. Predicted savings are estimates, never provider measurements. If evidence is incomplete or no eligible candidate clears the risk margin, the result keeps the current model.
