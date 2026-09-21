@@ -58,6 +58,9 @@ def gate_hook_event(event: Any, *, once_file: Path | None = None) -> dict[str, A
                     and isinstance(inputs["artifactId"], str)
                     and _ARTIFACT_ID.fullmatch(inputs["artifactId"]) is not None
                 )
+            elif name == "EndConversation":
+                # Claude Code keeps this completion tool while other tools remain.
+                allowed = True
     if allowed and once_file is not None and event["tool_name"] == "Bash":
         try:
             descriptor = os.open(

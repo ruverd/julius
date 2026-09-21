@@ -38,6 +38,7 @@ def test_gate_only_allows_exact_fixed_command_and_recovery():
                                                                     "run_in_background": True}})
     assert gate_hook_event({"tool_name": "mcp__julius-recovery__restore_artifact",
                             "tool_input": {"artifactId": "12345678-1234-1234-1234-123456789abc"}}) is None
+    assert gate_hook_event({"tool_name": "EndConversation", "tool_input": {}}) is None
     assert gate_hook_event({"tool_name": "mcp__other__tool", "tool_input": {}})
 
 
