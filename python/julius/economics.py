@@ -87,6 +87,11 @@ def analyze_task(
             and isinstance(call["costProvenance"], dict)
             and call["costProvenance"].get("chargeSource") == "provider_usage"
         )
+        client_estimate = (
+            call["reportedCostUsd"] is not None
+            and isinstance(call["costProvenance"], dict)
+            and call["costProvenance"].get("estimateSource") == "client_result"
+        )
         cost = (
             call["reportedCostUsd"] if call["costProvenance"] else _cost(call, prices)
         ) if call["callId"] is not None else None
@@ -95,7 +100,7 @@ def analyze_task(
             "costUsd": cost,
             "modeledCostUsd": cost if cost is not None and not provider_charge else None,
             "providerChargedUsd": cost if provider_charge else None,
-            "costBasis": "provider_charge" if provider_charge else "modeled_price" if cost is not None else None,
+            "costBasis": "provider_charge" if provider_charge else "client_estimate" if client_estimate else "modeled_price" if cost is not None else None,
         })
     baseline_calls = baseline["calls"] if baseline else []
     baseline_ids = [call.get("callId") for call in baseline_calls]
@@ -189,7 +194,7 @@ def analyze_task(
         "outputSavingsScope": "task_comparison" if comparative_output is not None else None,
         "baselineModeledCostUsd": baseline_total,
         "currentCostUsd": current_total,
-        "currentModeledCostUsd": current_total if all(c["costBasis"] == "modeled_price" for c in priced) else None,
+        "currentModeledCostUsd": current_total if all(c["costBasis"] in ("modeled_price", "client_estimate") for c in priced) else None,
         "currentProviderChargeUsd": current_total if all(c["costBasis"] == "provider_charge" for c in priced) else None,
         "auxiliaryAndRetryCostIncludedUsd": _sum_known([c["costUsd"] for c in priced if c["category"] != "primary"], complete=complete),
         "extraOverheadUsd": overhead_total,

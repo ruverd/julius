@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 203 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 38 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests, including imports of the new modules.
+Current local result: 239 Python tests passed, Rust workspace tests passed, Ruff passed, and mypy checked 43 source files without errors. A freshly built macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10.
 
 ## Active Python/Rust validation
 
@@ -25,9 +25,9 @@ Local environment: macOS arm64, Python 3.12.10, Rust 1.98.1, PyO3 0.29.2, SQLite
 
 Linux and macOS CI jobs are configured but have not run remotely in this task. WSL and native Windows remain uncertified. Wheels are unsigned development artifacts. Standalone executables, clean-machine signed installers, updates, and rollback remain release work.
 
-Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. The `doctor` local protocol probe passed hook candidate, MCP initialize, tool listing, and exact artifact restore in Julius subprocesses. That result does not certify Claude's session-level use of the hook or tool. Ollama at `127.0.0.1:11434` and LM Studio at `127.0.0.1:1234` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
+Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. The `doctor` local protocol probe passed hook candidate, MCP initialize, tool listing, and exact artifact restore in Julius subprocesses. Separate [live Claude fixtures](live-claude-validation.md) confirmed Claude called recovery, consumed a Bash hook candidate and restored its matching original, and produced one task-attributed session usage event through bounded print mode. A [live Codex probe](codex-live-probe.md) confirmed one synthetic `turn.completed.usage` JSONL record in a read-only temporary directory. These verify narrow capabilities on exact versions; they do not provide sent-request savings, task-quality evidence, or universal client coverage. Ollama at `127.0.0.1:11434` and LM Studio at `127.0.0.1:1234` did not respond.
 
-A read-only `claude --mcp-config <temporary-file> mcp get julius-recovery` probe on this installation returned `not configured` (exit 1). The subcommand may list only persisted servers; this does not establish whether a normal Claude session would load the temporary server. Session-level connection and restoration remain unverified. No Claude model call was made.
+A prior read-only `claude --mcp-config <temporary-file> mcp get julius-recovery` probe returned `not configured` (exit 1). The later live session superseded that inconclusive check: it connected to the temporary MCP server and called its recovery tool. Four bounded Claude model calls were made with synthetic input; one failed with a provider safeguard error and is retained in the [live evidence](live-claude-validation.md).
 
 No live xAI request was made during this validation. A single live TypeSafe Choice gateway request with synthetic state succeeded: it returned `compress`, confidence `0.77`, 373 input tokens, 31 output tokens, and actual model `jev-1.13.0`. No price was configured, so dollar cost remained unavailable. This verifies the gateway's current wire shape for that one account and request, not task quality, calibrated confidence, or active Jev decisions. Jev remains shadow-only in Julius. The xAI adapter has no measured input or output savings; its provider charge field is recognized from the documented response shape, but actual account billing has not been reconciled. Safe xAI dispatch remains experimental pending a live function-call, restoration, and quality test.
 

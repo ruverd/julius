@@ -17,6 +17,7 @@ from .reporting import report
 from .xai import XAIAdapter, XAIResult, Transport
 from .xai_tool_loop import run_restore_loop
 from .xai_optimization import prepare_optimized_request
+from .request_measurement import TokenCounter
 from .jev import Action, JevGateway, ShadowPolicy, shadow_decide
 from dataclasses import asdict
 from datetime import date
@@ -39,6 +40,8 @@ class Julius:
         if quality_scope is not None and quality_policy is not None:
             if context.get("projectId") != quality_scope.project_id:
                 raise ValueError("Quality scope does not match optimization project")
+            if context.get("modelId") != quality_scope.model_id:
+                raise ValueError("Quality scope requires the matching model ID")
             try:
                 with QualityStore(self.directory / "quality.sqlite") as store:
                     decision = store.decision(quality_scope, quality_policy)
@@ -206,6 +209,9 @@ class Julius:
         task_id: str | None = None,
         transport: Transport | None = None,
         max_calls: int = 4,
+        token_counter: TokenCounter | None = None,
+        tokenizer_model_id: str | None = None,
+        tokenizer_id: str | None = None,
     ) -> dict[str, Any]:
         """Explicitly prepare, send, and account for a recoverable xAI candidate."""
         if not project_id or not session_id:
@@ -223,6 +229,8 @@ class Julius:
         prepared = prepare_optimized_request(
             request, project_id=project_id, policy=policy, artifacts=self.artifacts,
             recovery_handler_available=True,
+            token_counter=token_counter, tokenizer_model_id=tokenizer_model_id,
+            tokenizer_id=tokenizer_id,
         )
         outcome = self.send_xai_with_restores(
             prepared.request, api_key=api_key, project_id=project_id,
@@ -237,6 +245,50 @@ class Julius:
             and first_response.get("id") == first_event["payload"]["callId"]
             and first_event["payload"]["complete"]
         )
+        transformed = any(receipt["applied"] for receipt in prepared.receipts)
+        measurement = dict(prepared.measurement or {})
+        actual_model = first_event["modelId"] if first_event is not None else None
+        valid_token_count = bool(
+            measurement.get("beforeTokens") is not None
+            and measurement.get("afterTokens") is not None
+            and measurement.get("modelId") == actual_model
+        )
+        measurement["sent"] = bool(accepted and transformed)
+        measurement["actualModelId"] = actual_model
+        measurement["tokenComparisonValid"] = valid_token_count
+        request_event_id = str(uuid4())
+        request_event = {
+            "schemaVersion": 1,
+            "eventId": request_event_id,
+            "occurredAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            "sourceId": "julius-xai-request-measurement",
+            "sourceEventId": request_event_id,
+            "projectId": project_id,
+            "taskId": task_id,
+            "sessionId": session_id,
+            "requestId": first_event["requestId"] if first_event is not None else str(uuid4()),
+            "attemptId": first_event["attemptId"] if first_event is not None else str(uuid4()),
+            "clientId": "julius-xai",
+            "adapterVersion": "0.1.0-experimental",
+            "modelId": actual_model,
+            "providerId": "xai",
+            "executionLocation": "remote" if accepted else "unknown",
+            "eventType": "transform",
+            "evidence": "tokenizer_counted" if valid_token_count else "heuristic_estimate",
+            "payload": {
+                "scope": "request",
+                "inputTokens": measurement.get("beforeTokens") if valid_token_count else None,
+                "outputTokens": measurement.get("afterTokens") if valid_token_count else None,
+                "tokenizer": measurement.get("tokenizerId") if valid_token_count else None,
+                "transformId": request_event_id,
+                "parentTransformId": None,
+                "inputArtifactId": None,
+                "outputArtifactId": None,
+                "strategy": "full_request_candidate",
+                "sent": measurement["sent"],
+            },
+        }
+        request_ledger_receipt = self.ledger.record(validate_event(request_event))
         transforms: list[dict[str, Any]] = []
         for receipt in prepared.receipts:
             event_id = str(uuid4())
@@ -275,6 +327,9 @@ class Julius:
             transforms.append({"receipt": receipt, "event": event,
                                "ledgerReceipt": self.ledger.record(validate_event(event))})
         return {**outcome, "candidateReceipts": list(prepared.receipts),
+                "requestMeasurement": measurement,
+                "requestTransformEvent": request_event,
+                "requestTransformReceipt": request_ledger_receipt,
                 "transformEvents": transforms}
 
     def evaluate_jev_shadow(

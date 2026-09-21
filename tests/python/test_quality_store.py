@@ -47,7 +47,7 @@ def test_sdk_guard_blocks_before_artifact_and_allows_explicitly_enabled_scope(tm
     text = "\n".join([
         "ordinary neutral line with enough characters for deterministic reduction and more detail"
     ] * 6)
-    context = {"projectId": "p", "content": text, "category": "tool_output"}
+    context = {"projectId": "p", "modelId": "m", "content": text, "category": "tool_output"}
     policy = {"mode": "safe", "approved": True, "version": "1.0.0"}
     with Julius(tmp_path) as julius:
         with pytest.raises(RuntimeError, match="insufficient_evidence"):
@@ -81,11 +81,22 @@ def test_sdk_guard_store_access_error_blocks_before_artifact(tmp_path, monkeypat
     with Julius(tmp_path) as julius:
         with pytest.raises(RuntimeError, match="guard unavailable"):
             julius.optimize(
-                {"projectId": "p", "content": "short", "category": "tool_output"},
+                {"projectId": "p", "modelId": "m", "content": "short", "category": "tool_output"},
                 {"mode": "observe", "version": "1.0.0"},
                 quality_scope=SCOPE, quality_policy=POLICY,
             )
     assert list((tmp_path / "artifacts").rglob("*.txt")) == []
+
+
+def test_sdk_guard_rejects_missing_or_wrong_model_identity(tmp_path):
+    with Julius(tmp_path) as julius:
+        for model_id in (None, "other"):
+            with pytest.raises(ValueError, match="matching model ID"):
+                julius.optimize(
+                    {"projectId": "p", "modelId": model_id, "content": "short", "category": "tool_output"},
+                    {"mode": "safe", "approved": True, "version": "1.0.0"},
+                    quality_scope=SCOPE, quality_policy=POLICY,
+                )
 
 
 def test_store_file_and_wal_are_owner_only(tmp_path):

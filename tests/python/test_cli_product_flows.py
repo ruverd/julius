@@ -134,3 +134,43 @@ def test_cli_policy_check_suspends_negative_net_without_model_call(tmp_path: Pat
     assert isinstance(decision, dict)
     assert decision["status"] == "suspended"
     assert decision["reasons"] == ["below_min_total_net_savings_usd"]
+
+
+def test_cli_persistent_quality_guard_blocks_later_optimization(tmp_path: Path) -> None:
+    scope = {
+        "project_id": "p", "model_id": "m", "strategy_id": "compress",
+        "strategy_version": "1",
+    }
+    policy = {
+        "version": "1", "minimum_samples": 1,
+        "max_error_rate": 1.0, "max_recovery_rate": 1.0,
+        "max_rework_rate": 1.0, "max_mean_latency_ms": 1000.0,
+        "min_total_net_savings_usd": 0.0,
+    }
+    config = tmp_path / "guard.json"
+    config.write_text(json.dumps({"scope": scope, "policy": policy}))
+    content = tmp_path / "content.txt"
+    content.write_text(("neutral repeated content " + "x" * 160 + "\n") * 8)
+
+    def record(sequence: int, task: str, net: float) -> dict:
+        payload = {"scope": scope, "policy": policy, "recordType": "outcome", "record": {
+            "scope": scope, "sequence": sequence, "task_id": task,
+            "error": False, "recovery_used": False, "rework_needed": False,
+            "latency_ms": 10.0, "net_savings_usd": net,
+        }}
+        source = tmp_path / f"record-{sequence}.json"
+        source.write_text(json.dumps(payload))
+        result = _cli(tmp_path, "policy", "record", "--state-file", str(source))
+        assert isinstance(result, dict)
+        return result
+
+    assert record(0, "task-1", 0.01)["status"] == "enabled"
+    first = _cli(tmp_path, "optimize", str(content), "--project", "p", "--model", "m", "--profile", "safe",
+                 "--guard-file", str(config))
+    assert isinstance(first, dict) and first["receipt"]["applied"] is True
+    assert record(1, "task-2", -0.02)["status"] == "suspended"
+    status = _cli(tmp_path, "policy", "status", "--state-file", str(config))
+    assert isinstance(status, dict) and status["status"] == "suspended"
+    blocked = _cli(tmp_path, "optimize", str(content), "--project", "p", "--model", "m", "--profile", "safe",
+                   "--guard-file", str(config), success=False)
+    assert "Quality guard blocked optimization: suspended" in blocked

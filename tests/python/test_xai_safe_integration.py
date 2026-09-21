@@ -42,13 +42,18 @@ def test_safe_send_records_transform_and_provider_attempt(tmp_path):
         )
         events = julius.ledger.events()
         assert len(calls) == len(result["attempts"]) == 1
-        assert len(events) == 2
-        transform = next(event for event in events if event["eventType"] == "transform")
+        assert len(events) == 3
+        transform = next(event for event in events if event["eventType"] == "transform" and event["payload"]["scope"] == "tool_output")
+        request_transform = next(event for event in events if event["eventType"] == "transform" and event["payload"]["scope"] == "request")
         usage = next(event for event in events if event["eventType"] == "usage")
         assert transform["payload"]["scope"] == "tool_output"
         assert transform["evidence"] == "heuristic_estimate"
         assert transform["payload"]["tokenizer"] is None
         assert transform["payload"]["sent"] is result["candidateReceipts"][0]["applied"]
+        assert request_transform["payload"]["inputTokens"] is None
+        assert request_transform["payload"]["sent"] is True
+        assert result["requestMeasurement"]["deltaBytes"] > 0
+        assert result["requestMeasurement"]["tokenComparisonValid"] is False
         assert usage["payload"]["costUsd"] == pytest.approx(0.00001)
         assert julius.report()["financialSavingsUsd"] is None
         assert source["input"][0]["output"] == "\n".join([LINE] * 8)
@@ -69,10 +74,32 @@ def test_failed_send_keeps_candidate_unsent_and_usage_unknown(tmp_path):
         events = julius.ledger.events()
         assert len(calls) == len(result["attempts"]) == 1
         assert result["complete"] is False
-        transform = next(event for event in events if event["eventType"] == "transform")
+        transform = next(event for event in events if event["eventType"] == "transform" and event["payload"]["scope"] == "tool_output")
+        request_transform = next(event for event in events if event["eventType"] == "transform" and event["payload"]["scope"] == "request")
         usage = next(event for event in events if event["eventType"] == "usage")
         assert transform["payload"]["sent"] is False
+        assert request_transform["payload"]["sent"] is False
         assert usage["payload"]["costUsd"] is None
+
+
+def test_pinned_counter_only_counts_when_actual_model_matches(tmp_path):
+    def transport(body, headers):
+        return json.dumps({"id": "resp_1", "model": "grok-requested", "status": "completed",
+                           "usage": {"input_tokens": 30, "output_tokens": 3},
+                           "output": [{"type": "message", "content": []}]}).encode()
+
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport, token_counter=lambda text: len(text.split()),
+            tokenizer_model_id="grok-requested", tokenizer_id="fixture-counter-v1",
+        )
+        event = result["requestTransformEvent"]
+        assert event["payload"]["scope"] == "request"
+        assert event["payload"]["sent"] is True
+        assert event["evidence"] == "tokenizer_counted"
+        assert event["payload"]["inputTokens"] > event["payload"]["outputTokens"]
+        assert result["requestMeasurement"]["tokenComparisonValid"] is True
 
 
 @pytest.mark.parametrize("bad_request", [

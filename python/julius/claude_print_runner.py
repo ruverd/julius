@@ -82,6 +82,7 @@ def parse_stream_json(stdout: str, *, exit_code: int) -> dict[str, Any]:
         "usage": totals,
         "cost_usd": float(cost) if cost is not None else None,
         "cost_scope": "client_reported_session_total" if cost is not None else None,
+        "output": final.get("result") if final and isinstance(final.get("result"), str) else None,
     }
 
 
@@ -89,6 +90,7 @@ def run_claude_print(
     *, prompt: str, project_id: str, data_dir: Path,
     max_turns: int, max_budget_usd: float, timeout_seconds: float,
     task_id: str | None = None,
+    model: str | None = None,
     python_executable: str = sys.executable,
     claude_executable: str = "claude",
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
@@ -104,6 +106,8 @@ def run_claude_print(
     if (type(timeout_seconds) not in (int, float) or not math.isfinite(timeout_seconds)
             or timeout_seconds <= 0):
         raise ValueError("timeout_seconds must be positive and finite")
+    if model is not None and (not isinstance(model, str) or not model.strip() or "\x00" in model):
+        raise ValueError("Model must be a non-empty name")
     with tempfile.TemporaryDirectory(prefix="julius-claude-print-") as directory:
         settings_path = Path(directory) / "settings.json"
         mcp_path = Path(directory) / "mcp.json"
@@ -116,6 +120,9 @@ def run_claude_print(
                 "--print", "--output-format", "stream-json", "--verbose",
                 "--no-session-persistence", "--max-turns", str(max_turns),
                 "--max-budget-usd", str(max_budget_usd),
+                "--restricted", "--strict-mcp-config", "--permission-prompts", "none",
+                "--tools", "",
+                *(["--model", model] if model is not None else []),
             ),
         )
         settings_path.write_text(json.dumps(plan.settings), encoding="utf-8")

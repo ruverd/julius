@@ -19,13 +19,14 @@ def test_parser_uses_final_session_totals_without_nested_double_count():
         {"type": "result", "subtype": "success", "is_error": False,
          "session_id": "session", "usage": {"input_tokens": 12, "output_tokens": 4,
          "cache_read_input_tokens": 3, "cache_creation_input_tokens": 2},
-         "total_cost_usd": 0.02},
+         "total_cost_usd": 0.02, "result": "synthetic answer"},
     ), exit_code=0)
     assert parsed["complete"] is True
     assert parsed["usage"]["input_tokens"] == 12
     assert parsed["usage"]["output_tokens"] == 4
     assert parsed["actual_model"] == "claude-one"
     assert parsed["scope"] == "claude_session_delta"
+    assert parsed["output"] == "synthetic answer"
 
 
 def test_multi_model_unknown_and_incomplete_usage_stays_unknown():
@@ -59,7 +60,7 @@ def test_runner_uses_stdin_ephemeral_config_and_bounded_flags(tmp_path):
 
     result = run_claude_print(
         prompt="synthetic prompt", project_id="p", data_dir=tmp_path,
-        max_turns=2, max_budget_usd=0.1, timeout_seconds=3, runner=fake_run,
+        max_turns=2, max_budget_usd=0.1, timeout_seconds=3, model="haiku", runner=fake_run,
     )
     assert result["complete"] is True
     assert observed["kwargs"]["input"] == "synthetic prompt"
@@ -68,6 +69,7 @@ def test_runner_uses_stdin_ephemeral_config_and_bounded_flags(tmp_path):
     assert "--no-session-persistence" in observed["argv"]
     assert "--max-turns" in observed["argv"]
     assert "--max-budget-usd" in observed["argv"]
+    assert observed["argv"][observed["argv"].index("--model") + 1] == "haiku"
     assert observed["settings"] == {}
     assert "julius-recovery" in observed["mcp"]["mcpServers"]
     assert not Path(observed["argv"][2]).exists()

@@ -63,7 +63,19 @@ class ProviderChargeProvenance(StrictModel):
         return _nonempty(value)
 
 
-CostProvenance = PriceProvenance | ProviderChargeProvenance
+class ClientEstimateProvenance(StrictModel):
+    estimateSource: Literal["client_result"]
+    estimateField: Literal["total_cost_usd"]
+    estimateScope: Literal["session_delta"]
+    estimateClientId: str
+
+    @field_validator("estimateClientId")
+    @classmethod
+    def client_name(cls, value: str) -> str:
+        return _nonempty(value)
+
+
+CostProvenance = PriceProvenance | ProviderChargeProvenance | ClientEstimateProvenance
 
 
 TokenCount = Annotated[int, Field(ge=0, le=9007199254740991)]
@@ -207,6 +219,12 @@ class EventBase(StrictModel):
                 payload, "effectiveCostProvenance", None
             )
             if provenance is not None:
+                if isinstance(provenance, ClientEstimateProvenance):
+                    if provenance.estimateClientId != self.clientId:
+                        raise ValueError("Cost estimate client does not match event client")
+                    if isinstance(payload, UsagePayload) and payload.observationScope != "session_delta":
+                        raise ValueError("Client session estimate requires session delta scope")
+                    return self
                 provenance_model = (
                     provenance.priceModelId
                     if isinstance(provenance, PriceProvenance)

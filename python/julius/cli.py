@@ -28,12 +28,16 @@ from .artifacts import ArtifactStore
 from .claude_hooks import post_tool_use
 from .mcp_recovery import serve_stdio as serve_recovery_stdio
 from .claude_runner import run_claude
+from .claude_print_runner import run_claude_print
+from .codex_live_probe import probe_codex_usage
 from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
+from .price_store import PriceSnapshot, PriceStore
 from .model_scan import scan_models
 from .evaluation_runner import Attempt, FrozenFixture, replay_paired_fixtures
 from .integration_manager import ClaudeIntegrationManager
 from .quality_guard import GuardPolicy, ManualAction, Scope, TaskOutcome, decide_suspension
+from .quality_store import QualityStore
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -56,6 +60,7 @@ def _parser() -> argparse.ArgumentParser:
             "setup",
             "doctor",
             "models",
+            "prices",
             "import",
             "optimize",
             "restore",
@@ -72,6 +77,7 @@ def _parser() -> argparse.ArgumentParser:
             "mcp",
             "evaluate",
             "policy",
+            "probe",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -80,10 +86,11 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "project-root", "apply-plan", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
+    for option in ("project", "project-root", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
         parser.add_argument(f"--{option}")
-    for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence"):
+    for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence", "max-budget-usd", "timeout-seconds"):
         parser.add_argument(f"--{option}", type=float)
+    parser.add_argument("--max-turns", type=int, default=4)
     parser.add_argument("--by", choices=["model", "category", "client"])
     parser.add_argument("--runtime", choices=["ollama", "lmstudio"], default="ollama")
     parser.add_argument("--format")
@@ -159,6 +166,63 @@ def run(argv: list[str] | None = None) -> int:
     if not command:
         parser.print_help()
         return 0
+    if command == "probe":
+        if args.arguments != ["codex"]:
+            raise ValueError("Use probe codex --project <id> [--task <id>]")
+        project_id = _required(args.project, "--project")
+        probe_result = probe_codex_usage(confirmed=True)
+        usage = probe_result["usage"]
+        input_tokens = usage["inputTokens"] if usage is not None else None
+        output_tokens = usage["outputTokens"] if usage is not None else None
+        cache_read_tokens = usage["cachedInputTokens"] if usage is not None else None
+        complete = bool(
+            probe_result["status"] == "complete"
+            and input_tokens is not None
+            and output_tokens is not None
+        )
+        event_id = str(uuid4())
+        thread_id = usage["threadId"] if usage is not None else None
+        event = {
+            "schemaVersion": 1,
+            "eventId": event_id,
+            "occurredAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+            "sourceId": "julius-codex-probe",
+            "sourceEventId": event_id,
+            "projectId": project_id,
+            "taskId": args.task,
+            "sessionId": thread_id or event_id,
+            "requestId": None,
+            "attemptId": None,
+            "clientId": "codex-cli",
+            "adapterVersion": "codex-cli-jsonl-1",
+            "modelId": None,
+            "providerId": None,
+            "executionLocation": "unknown",
+            "eventType": "usage",
+            "evidence": "runtime_reported",
+            "payload": {
+                "inputTokens": input_tokens,
+                "outputTokens": output_tokens,
+                "cacheReadTokens": cache_read_tokens,
+                "cacheWriteTokens": None,
+                "complete": complete,
+                "category": "primary",
+                "callId": None,
+                "costUsd": None,
+                "observationScope": "session_delta",
+                "rawUsage": {
+                    "probeStatus": probe_result["status"],
+                    "reasoningOutputTokens": usage["reasoningOutputTokens"] if usage is not None else None,
+                    "turnCompleted": usage["turnCompleted"] if usage is not None else False,
+                    "failed": usage["failed"] if usage is not None else None,
+                },
+                "normalizerVersion": "codex-cli-jsonl-1",
+            },
+        }
+        with Julius(Path(args.data_dir).absolute()) as julius:
+            receipt = julius.record_usage(event)
+        _json({"result": probe_result, "usageEvent": event, "usageReceipt": receipt})
+        return 0 if complete else 2
     if command == "doctor":
         _json(doctor())
         return 0
@@ -271,6 +335,38 @@ def run(argv: list[str] | None = None) -> int:
         else:
             raise ValueError("Use models list, record, history, or scan")
         return 0
+    if command == "prices":
+        if args.arguments not in (["record"], ["history"], ["lookup"]):
+            raise ValueError("Use prices record, history, or lookup")
+        if argument == "record":
+            price_snapshot = PriceSnapshot.model_validate_json(
+                _read(_required(args.state_file, "--state-file"), 1_000_000)
+            )
+        else:
+            price_endpoint = _required(args.endpoint, "--endpoint")
+            price_provider = _required(args.provider, "--provider")
+            price_model = _required(args.model, "--model")
+            if argument == "lookup":
+                price_currency = _required(args.currency, "--currency")
+                price_tier = _required(args.tier, "--tier")
+                price_cache_regime = _required(args.cache_regime, "--cache-regime")
+                price_at = datetime.fromisoformat(_required(args.at, "--at").replace("Z", "+00:00"))
+        directory = Path(args.data_dir).absolute()
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with PriceStore(directory / "prices.sqlite3") as price_store:
+            if argument == "record":
+                _json(price_store.record(price_snapshot))
+            elif argument == "history":
+                _json(price_store.history(
+                    endpoint=price_endpoint, provider=price_provider, model=price_model,
+                ))
+            else:
+                _json(price_store.lookup(
+                    endpoint=price_endpoint, provider=price_provider, model=price_model,
+                    currency=price_currency, tier=price_tier,
+                    cache_regime=price_cache_regime, at=price_at,
+                ))
+        return 0
     if command == "evaluate":
         if args.arguments != ["replay"]:
             raise ValueError("Use evaluate replay --state-file <json>")
@@ -290,18 +386,40 @@ def run(argv: list[str] | None = None) -> int:
         ))
         return 0
     if command == "policy":
-        if args.arguments != ["check"]:
-            raise ValueError("Use policy check --state-file <json>")
+        if args.arguments not in (["check"], ["record"], ["status"]):
+            raise ValueError("Use policy check, record, or status --state-file <json>")
         payload = _json_file(_required(args.state_file, "--state-file"))
         if not isinstance(payload, dict):
             raise ValueError("Policy input must be a JSON object")
+        scope = Scope.model_validate(payload.get("scope"))
+        policy = GuardPolicy.model_validate(payload.get("policy"))
+        if args.arguments == ["record"]:
+            kind = payload.get("recordType")
+            record_data = payload.get("record")
+            record: TaskOutcome | ManualAction
+            if kind == "outcome":
+                record = TaskOutcome.model_validate(record_data)
+            elif kind == "manual":
+                record = ManualAction.model_validate(record_data)
+            else:
+                raise ValueError("Policy recordType must be outcome or manual")
+            if record.scope != scope:
+                raise ValueError("Policy record scope mismatch")
+            directory = Path(args.data_dir).absolute()
+            with QualityStore(directory / "quality.sqlite") as store:
+                _json(store.append(record, policy))
+            return 0
+        if args.arguments == ["status"]:
+            directory = Path(args.data_dir).absolute()
+            with QualityStore(directory / "quality.sqlite") as store:
+                _json(store.decision(scope, policy))
+            return 0
         outcomes = payload.get("outcomes")
         actions = payload.get("actions", [])
         if not isinstance(outcomes, list) or not isinstance(actions, list):
             raise ValueError("Policy check requires outcomes and actions arrays")
         _json(decide_suspension(
-            Scope.model_validate(payload.get("scope")),
-            GuardPolicy.model_validate(payload.get("policy")),
+            scope, policy,
             [TaskOutcome.model_validate(item) for item in outcomes],
             [ManualAction.model_validate(item) for item in actions],
         ))
@@ -309,13 +427,74 @@ def run(argv: list[str] | None = None) -> int:
     if command == "run" and args.agent not in ("grok", "xai", "claude"):
         raise ValueError("Run requires --agent grok or --agent claude")
     if command == "run" and args.agent == "claude":
-        if args.arguments or args.request or args.task or args.restore_loop:
-            raise ValueError("Claude runner does not yet accept request files, positional arguments, or task attribution")
+        if args.arguments or args.request or args.restore_loop:
+            raise ValueError("Claude runner does not accept request files or positional arguments")
+        if args.prompt_file:
+            if args.profile != "observe" or args.recovery_verified:
+                raise ValueError("Bounded Claude print mode currently supports observe profile only")
+            if args.max_budget_usd is None:
+                raise ValueError("Claude print mode requires --max-budget-usd")
+            prompt = _read(args.prompt_file, 32 * 1024)
+            result = run_claude_print(
+                prompt=prompt,
+                project_id=_required(args.project, "--project"),
+                task_id=args.task,
+                data_dir=Path(args.data_dir).absolute(),
+                model=args.model,
+                max_turns=args.max_turns,
+                max_budget_usd=args.max_budget_usd,
+                timeout_seconds=args.timeout_seconds if args.timeout_seconds is not None else 90.0,
+            )
+            usage = result["usage"]
+            input_parts = (
+                usage["input_tokens"], usage["cache_read_input_tokens"],
+                usage["cache_creation_input_tokens"],
+            )
+            input_total = sum(input_parts) if all(part is not None for part in input_parts) else None
+            event_id = str(uuid4())
+            known_model = result["actual_model"]
+            cost = result["cost_usd"] if known_model is not None else None
+            event = {
+                "schemaVersion": 1, "eventId": event_id,
+                "occurredAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+                "sourceId": "julius-claude-print", "sourceEventId": event_id,
+                "projectId": _required(args.project, "--project"),
+                "taskId": args.task, "sessionId": result["session_id"] or str(uuid4()),
+                "requestId": None, "attemptId": None,
+                "clientId": "claude-code", "adapterVersion": "0.1.0-experimental",
+                "modelId": known_model, "providerId": "anthropic",
+                "executionLocation": "remote", "eventType": "usage",
+                "evidence": "runtime_reported",
+                "payload": {
+                    "inputTokens": input_total,
+                    "outputTokens": usage["output_tokens"],
+                    "cacheReadTokens": usage["cache_read_input_tokens"],
+                    "cacheWriteTokens": usage["cache_creation_input_tokens"],
+                    "complete": bool(result["complete"] and input_total is not None
+                                     and usage["output_tokens"] is not None),
+                    "category": "primary", "callId": None,
+                    "costUsd": cost,
+                    "costProvenance": {
+                        "estimateSource": "client_result",
+                        "estimateField": "total_cost_usd",
+                        "estimateScope": "session_delta",
+                        "estimateClientId": "claude-code",
+                    } if cost is not None else None,
+                    "observationScope": "session_delta",
+                    "rawUsage": usage,
+                    "normalizerVersion": "claude-print-final-1",
+                },
+            }
+            with Julius(Path(args.data_dir).absolute()) as julius:
+                receipt = julius.record_usage(event)
+            _json({"result": result, "usageEvent": event, "usageReceipt": receipt})
+            return 0 if result["complete"] else 2
         if args.profile == "safe" and not args.recovery_verified:
             raise ValueError("Claude safe profile requires --recovery-verified after checking session recovery")
         return run_claude(
             project_id=_required(args.project, "--project"),
             data_dir=Path(args.data_dir).absolute(),
+            task_id=args.task,
             enable_safe_hook=args.profile == "safe",
             recovery_verified=args.recovery_verified,
         )
@@ -484,14 +663,25 @@ def run(argv: list[str] | None = None) -> int:
             )
         elif command == "optimize":
             content = _read(_required(argument, "input file"), 1024 * 1024)
+            quality_scope = None
+            quality_policy = None
+            if args.guard_file:
+                _required(args.model, "--model with --guard-file")
+                guard_data = _json_file(args.guard_file)
+                if not isinstance(guard_data, dict):
+                    raise ValueError("Guard file must be a JSON object")
+                quality_scope = Scope.model_validate(guard_data.get("scope"))
+                quality_policy = GuardPolicy.model_validate(guard_data.get("policy"))
             _json(
                 julius.optimize(
                     {
                         "projectId": _required(args.project, "--project"),
+                        "modelId": args.model,
                         "content": content,
                         "category": "tool_output",
                     },
                     {"mode": args.profile, "version": "1.0.0", "approved": args.profile == "safe"},
+                    quality_scope=quality_scope, quality_policy=quality_policy,
                 )
             )
         elif command == "restore":

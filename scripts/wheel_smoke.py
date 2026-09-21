@@ -46,6 +46,11 @@ def main() -> None:
             "from julius.evaluation_runner import replay_paired_fixtures; "
             "from julius.model_scan import scan_models; "
             "from julius.quality_guard import decide_suspension; "
+            "from julius.quality_store import QualityStore; "
+            "from julius.request_measurement import measure_request_pair; "
+            "from julius.price_store import PriceStore; "
+            "from julius.claude_print_runner import run_claude_print; "
+            "from julius.codex_live_probe import probe_codex_usage; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")
