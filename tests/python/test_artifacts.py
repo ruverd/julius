@@ -6,6 +6,7 @@ import time
 import pytest
 
 from julius.artifacts import ArtifactStore
+import julius.artifacts as artifact_module
 
 
 def test_artifact_recovery_project_isolation_and_integrity(tmp_path: Path):
@@ -103,3 +104,38 @@ def test_export_rejects_expired_tampered_and_unsafe_destinations(tmp_path: Path)
         store.export("one", tmp_path / "linked", [valid["id"]], authorized=True)
     with pytest.raises(ValueError, match="selection"):
         store.export("one", tmp_path / "empty", [], authorized=True)
+
+
+def test_export_rejects_parent_symlink_and_traversal(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "original")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlink"):
+        store.export("one", link / "export", [item["id"]], authorized=True)
+    assert not (outside / "export").exists()
+    with pytest.raises(ValueError, match="traversal"):
+        store.export("one", tmp_path / "outside" / ".." / "export", [item["id"]], authorized=True)
+
+
+def test_failed_export_only_removes_its_own_files(tmp_path: Path, monkeypatch):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "original")
+    destination = tmp_path / "export"
+    original_open = artifact_module.os.open
+
+    def interrupt_raw_file(path, flags, *args, **kwargs):
+        if path == f"{item['id']}.txt":
+            (destination / "other.txt").write_text("keep")
+            raise OSError("simulated write failure")
+        return original_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(artifact_module.os, "open", interrupt_raw_file)
+    with pytest.raises(OSError, match="simulated"):
+        store.export(
+            "one", destination, [item["id"]], authorized=True, include_raw=True
+        )
+    assert (destination / "other.txt").read_text() == "keep"
+    assert not (destination / "manifest.json").exists()

@@ -193,25 +193,61 @@ class ArtifactStore:
             "includesRaw": include_raw,
             "artifacts": entries,
         }
-        target = Path(destination).absolute()
-        if target.is_symlink():
-            raise ValueError("Export destination is a symlink")
-        target.mkdir(mode=0o700, parents=False, exist_ok=False)
+        requested = Path(destination)
+        if ".." in requested.parts:
+            raise ValueError("Export destination contains traversal")
+        target = requested.absolute()
+        if any(path.is_symlink() for path in (target, *target.parents)):
+            raise ValueError("Export destination contains a symlink")
+        directory_flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+        parent_fd = os.open(target.anchor, directory_flags)
+        try:
+            for part in target.parent.parts[1:]:
+                next_fd = os.open(part, directory_flags, dir_fd=parent_fd)
+                os.close(parent_fd)
+                parent_fd = next_fd
+            os.mkdir(target.name, mode=0o700, dir_fd=parent_fd)
+            try:
+                directory_fd = os.open(target.name, directory_flags, dir_fd=parent_fd)
+            except Exception:
+                os.rmdir(target.name, dir_fd=parent_fd)
+                raise
+        except Exception:
+            os.close(parent_fd)
+            raise
+        created: list[tuple[str, int, int]] = []
         try:
             for name, data in [
                 ("manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8")),
                 *contents,
             ]:
                 fd = os.open(
-                    target / name,
+                    name,
                     os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
                     0o600,
+                    dir_fd=directory_fd,
                 )
+                info = os.fstat(fd)
+                created.append((name, info.st_dev, info.st_ino))
                 with os.fdopen(fd, "wb") as stream:
                     stream.write(data)
         except Exception:
-            for path in target.iterdir():
-                path.unlink()
-            target.rmdir()
+            for name, device, inode in created:
+                try:
+                    info = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                    if stat.S_ISREG(info.st_mode) and (info.st_dev, info.st_ino) == (
+                        device,
+                        inode,
+                    ):
+                        os.unlink(name, dir_fd=directory_fd)
+                except FileNotFoundError:
+                    pass
+            try:
+                os.rmdir(target.name, dir_fd=parent_fd)
+            except OSError:
+                pass
             raise
+        finally:
+            os.close(directory_fd)
+            os.close(parent_fd)
         return manifest

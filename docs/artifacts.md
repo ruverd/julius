@@ -19,5 +19,7 @@ Before writing anything, export checks project membership, expiration, stored
 file permissions, size, and SHA-256 integrity. It accepts 1–32 distinct artifact
 IDs and at most 16 MiB total original content. Missing or invalid artifacts
 abort the export. The destination must not be a symlink, and created files use
-owner-only permissions. Treat raw exports as sensitive data; remove them when
+owner-only permissions. Parent symlinks and `..` path traversal are rejected.
+On a write failure, cleanup removes only files created by that export. Treat
+raw exports as sensitive data; remove them when
 they are no longer needed.
