@@ -10,6 +10,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+from .claude_probe import probe_local_protocol
+
 
 _CAPABILITIES = {
     "canObserveUsage": False,
@@ -70,7 +72,7 @@ def doctor() -> dict[str, Any]:
                 "detail": detail,
             }
         )
-    return {"clients": clients}
+    return {"clients": clients, "localProtocolProbe": probe_local_protocol()}
 
 
 class _NoRedirect(HTTPRedirectHandler):

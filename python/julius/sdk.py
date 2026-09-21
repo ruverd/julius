@@ -11,7 +11,9 @@ from .ledger import Ledger
 from .optimizer import optimize
 from .query import query_window
 from .reporting import report
-from .xai import XAIAdapter, Transport
+from .xai import XAIAdapter, XAIResult, Transport
+from .xai_tool_loop import run_restore_loop
+from .xai_optimization import prepare_optimized_request
 from .jev import Action, JevGateway, ShadowPolicy, shadow_decide
 from dataclasses import asdict
 from datetime import date
@@ -70,6 +72,27 @@ class Julius:
         request_id = str(uuid4())
         attempt_id = str(uuid4())
         result = adapter.send_once(request, api_key, transport=transport)
+        event, receipt = self._record_xai_attempt(
+            result, project_id=project_id, session_id=session_id, task_id=task_id,
+            request_id=request_id, attempt_id=attempt_id,
+        )
+        return {
+            "requestedModel": result.requested_model,
+            "actualModel": result.actual_model,
+            "responseId": result.response_id,
+            "complete": result.complete,
+            "error": result.error,
+            "usageEvent": event,
+            "usageReceipt": receipt,
+            "response": result.raw_response,
+        }
+
+    def _record_xai_attempt(
+        self, result: XAIResult, *, project_id: str, session_id: str,
+        task_id: str | None, request_id: str, attempt_id: str,
+        category: str = "primary",
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Record one actual attempted Responses call, including incomplete calls."""
         provider_charge = (
             result.cost_ticks / 10_000_000_000
             if result.cost_ticks is not None and result.actual_model is not None
@@ -100,7 +123,7 @@ class Julius:
                 "cacheReadTokens": result.cached_input_tokens,
                 "cacheWriteTokens": None,
                 "complete": result.complete,
-                "category": "primary",
+                "category": category,
                 "callId": result.response_id,
                 "costUsd": provider_charge,
                 "costProvenance": {
@@ -114,17 +137,125 @@ class Julius:
                 "normalizerVersion": "xai-responses-1",
             },
         }
-        receipt = self.record_usage(event)
+        return event, self.record_usage(event)
+
+    def send_xai_with_restores(
+        self,
+        request: Mapping[str, Any],
+        *,
+        api_key: str,
+        project_id: str,
+        session_id: str,
+        task_id: str | None = None,
+        transport: Transport | None = None,
+        max_calls: int = 4,
+    ) -> dict[str, Any]:
+        """Explicitly send and serve Julius restores; record each provider attempt."""
+        if not project_id or not session_id:
+            raise ValueError("Project and session identity are required")
+        records: list[dict[str, Any]] = []
+
+        def record_attempt(result: XAIResult, index: int) -> None:
+            event, receipt = self._record_xai_attempt(
+                result, project_id=project_id, session_id=session_id, task_id=task_id,
+                request_id=str(uuid4()), attempt_id=str(uuid4()),
+                category="primary" if index == 0 else "restoration",
+            )
+            records.append({"usageEvent": event, "usageReceipt": receipt})
+
+        outcome = run_restore_loop(
+            request, api_key=api_key, project_id=project_id, artifacts=self.artifacts,
+            transport=transport, max_calls=max_calls, on_attempt=record_attempt,
+        )
         return {
-            "requestedModel": result.requested_model,
-            "actualModel": result.actual_model,
-            "responseId": result.response_id,
-            "complete": result.complete,
-            "error": result.error,
-            "usageEvent": event,
-            "usageReceipt": receipt,
-            "response": result.raw_response,
+            "complete": outcome.completed,
+            "error": outcome.error,
+            "attempts": records,
+            "responses": [attempt.raw_response for attempt in outcome.attempts],
+            "restoredArtifactIds": list(outcome.restored_artifact_ids),
         }
+
+    def send_xai_optimized(
+        self,
+        request: Mapping[str, Any],
+        *,
+        api_key: str,
+        project_id: str,
+        session_id: str,
+        policy: dict[str, Any],
+        task_id: str | None = None,
+        transport: Transport | None = None,
+        max_calls: int = 4,
+    ) -> dict[str, Any]:
+        """Explicitly prepare, send, and account for a recoverable xAI candidate."""
+        if not project_id or not session_id:
+            raise ValueError("Project and session identity are required")
+        if not api_key or any(character in api_key for character in "\r\n"):
+            raise ValueError("A valid dedicated xAI API key is required")
+        if type(max_calls) is not int or not 1 <= max_calls <= 32:
+            raise ValueError("max_calls must be between 1 and 32")
+        if not isinstance(request, Mapping):
+            raise ValueError("Responses request must be an object")
+        if request.get("store") is False:
+            raise ValueError("Continuation with store=false is not verified")
+        # Validate the complete request before creating recoverable artifacts.
+        XAIAdapter().prepare(request)
+        prepared = prepare_optimized_request(
+            request, project_id=project_id, policy=policy, artifacts=self.artifacts,
+            recovery_handler_available=True,
+        )
+        outcome = self.send_xai_with_restores(
+            prepared.request, api_key=api_key, project_id=project_id,
+            session_id=session_id, task_id=task_id, transport=transport,
+            max_calls=max_calls,
+        )
+        first = outcome["attempts"][0] if outcome["attempts"] else None
+        first_event = first["usageEvent"] if first is not None else None
+        first_response = outcome["responses"][0] if outcome["responses"] else None
+        accepted = bool(
+            first_event is not None and isinstance(first_response, dict)
+            and first_response.get("id") == first_event["payload"]["callId"]
+            and first_event["payload"]["complete"]
+        )
+        transforms: list[dict[str, Any]] = []
+        for receipt in prepared.receipts:
+            event_id = str(uuid4())
+            artifact_id = receipt["lineage"]["originalArtifactId"]
+            event = {
+                "schemaVersion": 1,
+                "eventId": event_id,
+                "occurredAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+                "sourceId": "julius-xai-optimization",
+                "sourceEventId": event_id,
+                "projectId": project_id,
+                "taskId": task_id,
+                "sessionId": session_id,
+                "requestId": first_event["requestId"] if first_event is not None else str(uuid4()),
+                "attemptId": first_event["attemptId"] if first_event is not None else str(uuid4()),
+                "clientId": "julius-xai",
+                "adapterVersion": "0.1.0-experimental",
+                "modelId": first_event["modelId"] if first_event is not None else None,
+                "providerId": "xai",
+                "executionLocation": "remote" if accepted else "unknown",
+                "eventType": "transform",
+                "evidence": "heuristic_estimate",
+                "payload": {
+                    "scope": "tool_output",
+                    "inputTokens": receipt["beforeTokens"],
+                    "outputTokens": receipt["afterTokens"],
+                    "tokenizer": None,
+                    "transformId": event_id,
+                    "parentTransformId": None,
+                    "inputArtifactId": artifact_id,
+                    "outputArtifactId": None,
+                    "strategy": receipt["reason"],
+                    "sent": bool(accepted and receipt["applied"]),
+                },
+            }
+            transforms.append({"receipt": receipt, "event": event,
+                               "ledgerReceipt": self.ledger.record(validate_event(event))})
+        return {**outcome, "candidateReceipts": list(prepared.receipts),
+                "transformEvents": transforms}
 
     def evaluate_jev_shadow(
         self,

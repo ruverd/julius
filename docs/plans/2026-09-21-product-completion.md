@@ -14,6 +14,7 @@ Status: active. Existing Python/Rust repository is a foundation, not the deliver
 - Follow-up: offline Claude `PostToolUse` replacement helper and CLI entry point, project-scoped MCP artifact recovery over stdio, additive-only Codex hook helper, reversible managed-config primitives, and cache-aware decision helper. The Claude hook and MCP server pass a local subprocess round trip; client acceptance and sent-request coverage remain unverified.
 - Evaluation follow-up: paired bootstrap confidence intervals for measured trial differences. No causal product result is claimed from these fixtures.
 - Current follow-up: ephemeral Claude Code launcher with observe default and a guarded safe hook, read-only LM Studio discovery, offline xAI recoverable tool-output candidates, and task-level output difference only for explicit comparable baselines with complete coverage. None establishes live client compatibility or automatic xAI input savings.
+- Latest follow-up: local `doctor` hook/MCP subprocess probe, candidate-only Claude hook receipts, and a bounded xAI restore loop with per-attempt ledger accounting. Explicit xAI safe mode can send recoverable tool-output candidates; it reports heuristic candidate counts and no direct whole-request savings. Live acceptance, task quality, and economic benefit remain unverified.
 
 ## Scope decisions
 

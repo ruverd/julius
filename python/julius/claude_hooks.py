@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from copy import deepcopy
 from typing import Any
 
 from .artifacts import ArtifactStore
@@ -17,11 +18,14 @@ def post_tool_use(
     store: ArtifactStore,
     project_id: str,
     recovery_available: bool = False,
+    candidate_receipt: Callable[[dict[str, Any], dict[str, Any]], None] | None = None,
 ) -> dict[str, Any] | None:
     """Return a hook response, or None to leave Claude Code's result untouched.
 
     The caller controls installation and supplies an explicitly approved policy and
-    project-scoped local artifact store. No client settings or network are touched.
+    project-scoped local artifact store. A supplied callback receives copies of the
+    artifact metadata and optimizer receipt before a replacement is returned.
+    No client settings or network are touched by this adapter.
     """
     if recovery_available is not True:
         return None
@@ -65,7 +69,9 @@ def post_tool_use(
         if store.get(project_id, artifact["id"]) != stdout:
             store.delete(project_id, artifact["id"])
             return None
-    except (OSError, ValueError, TypeError, ImportError):
+        if candidate_receipt is not None:
+            candidate_receipt(deepcopy(artifact), deepcopy(result["receipt"]))
+    except Exception:
         if artifact_id is not None:
             try:
                 store.delete(project_id, artifact_id)

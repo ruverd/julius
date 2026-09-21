@@ -36,6 +36,9 @@ def main() -> None:
             "from julius.claude_runner import build_launch_plan; "
             "from julius.lmstudio import discover_lmstudio; "
             "from julius.xai_optimization import prepare_optimized_request; "
+            "from julius.xai_tool_loop import run_restore_loop; "
+            "from julius.claude_probe import probe_local_protocol; "
+            "from julius.claude_config import plan_claude_project_config; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")

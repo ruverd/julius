@@ -4,6 +4,9 @@ from julius.models import doctor
 
 
 def test_doctor_classifies_exact_observed_versions(monkeypatch):
+    monkeypatch.setattr("julius.models.probe_local_protocol", lambda: {
+        "scope": "local_protocol", "available": True,
+    })
     class Completed:
         returncode = 0
         stderr = ""
@@ -19,7 +22,9 @@ def test_doctor_classifies_exact_observed_versions(monkeypatch):
         return Completed(observed[argv[0]])
 
     monkeypatch.setattr("julius.models.subprocess.run", probe)
-    clients = doctor()["clients"]
+    diagnosis = doctor()
+    clients = diagnosis["clients"]
+    assert diagnosis["localProtocolProbe"]["scope"] == "local_protocol"
     for client in clients:
         assert client["capability"] == "experimental"
         assert client["featureStatus"] == {
@@ -32,6 +37,9 @@ def test_doctor_classifies_exact_observed_versions(monkeypatch):
 
 
 def test_doctor_unknown_version_has_no_import_claim(monkeypatch):
+    monkeypatch.setattr("julius.models.probe_local_protocol", lambda: {
+        "scope": "local_protocol", "available": False,
+    })
     class Completed:
         returncode = 0
         stdout = "codex-cli 0.155.0\n"

@@ -103,10 +103,17 @@ def analyze_task(
         raise ValueError("Baseline requires unique call IDs")
     baseline_costs = [_cost(call, prices) for call in baseline_calls]
     current_costs = [call["costUsd"] for call in priced]
+    if any(not isinstance(item, dict) for item in overhead):
+        raise ValueError("Invalid overhead")
     overhead_ids = [item.get("id") for item in overhead]
-    if len(set(overhead_ids)) != len(overhead_ids) or any(
+    if any(
         not isinstance(item.get("id"), str)
         or not item["id"]
+        or item["id"] in seen_calls
+        or (item.get("sourceCallId") is not None and (
+            not isinstance(item["sourceCallId"], str)
+            or item["sourceCallId"] in seen_calls
+        ))
         or item.get("kind") not in ("local", "external")
         or item.get("costUsd") is None
         or isinstance(item["costUsd"], bool)
@@ -114,7 +121,7 @@ def analyze_task(
         or not math.isfinite(item["costUsd"])
         or item["costUsd"] < 0
         for item in overhead
-    ):
+    ) or len(set(overhead_ids)) != len(overhead_ids):
         raise ValueError("Invalid overhead")
     overhead_total = sum(item["costUsd"] for item in overhead)
     current_total = _sum_known(current_costs, complete=complete and bool(calls))

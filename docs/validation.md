@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 148 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 30 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests, including imports of the new modules.
+Current local result: 173 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 33 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests, including imports of the new modules.
 
 ## Active Python/Rust validation
 
@@ -15,7 +15,7 @@ uv run --no-sync python scripts/wheel_smoke.py dist/wheels/<matching-wheel>.whl
 
 The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native and optional-module imports, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, and HTML/CSV export.
 
-Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior. New fixtures exercise xAI Responses request preservation, both documented usage shapes, provider charge ticks, incomplete responses, Jev Choice shadow fallback and auxiliary accounting, task economics with interrupted calls and chained transforms, read-only client capability reporting, the versioned stdio interface, paired bootstrap intervals, Claude/Codex hook responses, project-scoped MCP recovery, managed-config reversal, and cache-aware policy. A local subprocess test connects the Claude hook CLI to the recovery CLI. These are fixture tests, not live provider calls or an agent benchmark.
+Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior. New fixtures exercise xAI Responses request preservation, both documented usage shapes, provider charge ticks, incomplete responses, a bounded restore function loop with each provider attempt recorded, safe candidate preparation, Jev Choice shadow fallback and auxiliary accounting, task economics with interrupted calls and chained transforms, read-only client capability reporting, the versioned stdio interface, paired bootstrap intervals, Claude/Codex hook responses, project-scoped MCP recovery, managed-config reversal, and cache-aware policy. A local subprocess test connects the Claude hook CLI to the recovery CLI. These are fixture tests, not live provider calls or an agent benchmark.
 
 `tests/fixtures` freezes event and optimization contracts from the initial TypeScript checkpoint `3616024`. Python and native Rust match its optimization receipts and aggregate report for the selected corpus. The historical TypeScript suite passed 51 tests before cutover; this is reference evidence, not an active second implementation.
 
@@ -25,11 +25,11 @@ Local environment: macOS arm64, Python 3.12.10, Rust 1.98.1, PyO3 0.29.2, SQLite
 
 Linux and macOS CI jobs are configured but have not run remotely in this task. WSL and native Windows remain uncertified. Wheels are unsigned development artifacts. Standalone executables, clean-machine signed installers, updates, and rollback remain release work.
 
-Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. Ollama at `127.0.0.1:11434` and LM Studio at `127.0.0.1:1234` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
+Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. The `doctor` local protocol probe passed hook candidate, MCP initialize, tool listing, and exact artifact restore in Julius subprocesses. That result does not certify Claude's session-level use of the hook or tool. Ollama at `127.0.0.1:11434` and LM Studio at `127.0.0.1:1234` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
 
 A read-only `claude --mcp-config <temporary-file> mcp get julius-recovery` probe on this installation returned `not configured` (exit 1). The subcommand may list only persisted servers; this does not establish whether a normal Claude session would load the temporary server. Session-level connection and restoration remain unverified. No Claude model call was made.
 
-No live xAI or Jev request was made during this validation. The xAI adapter has no measured input or output savings; Jev remains shadow-only. xAI's provider charge field is recognized from its documented response shape, but actual account billing has not been reconciled.
+No live xAI or Jev request was made during this validation. The xAI adapter has no measured input or output savings; Jev remains shadow-only. xAI's provider charge field is recognized from its documented response shape, but actual account billing has not been reconciled. Safe xAI dispatch remains experimental pending a live function-call, restoration, and quality test.
 
 ## Open quality gates
 

@@ -1,4 +1,5 @@
 from julius.economics import analyze_task
+import pytest
 
 
 PRICE = {
@@ -130,3 +131,11 @@ def test_output_difference_needs_comparable_complete_task() -> None:
                         coverage_complete=True)["outputSavingsTokens"] is None
     assert analyze_task([usage("current", 900, 150)], reference,
                         coverage_complete=False)["outputSavingsTokens"] is None
+
+
+def test_extra_overhead_cannot_charge_observed_call_twice() -> None:
+    event = usage("aux", 100, category="auxiliary")
+    for extra in ({"id": "aux", "kind": "external", "costUsd": 0.01},
+                  {"id": "item", "sourceCallId": "aux", "kind": "external", "costUsd": 0.01}):
+        with pytest.raises(ValueError, match="Invalid overhead"):
+            analyze_task([event], overhead=[extra], coverage_complete=True)

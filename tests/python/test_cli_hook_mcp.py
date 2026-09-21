@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 from julius.mcp_recovery import PROTOCOL_VERSION
+from julius.sdk import Julius
 
 
 def _command(tmp_path, *arguments, input_text):
@@ -22,6 +23,8 @@ def test_hook_cli_requires_recovery_and_mcp_restores_original(tmp_path):
     original = "\n".join([line] * 6)
     event = {
         "hook_event_name": "PostToolUse",
+        "session_id": "session-1",
+        "tool_use_id": "tool-1",
         "tool_name": "Bash",
         "tool_input": {"command": "printf fixture"},
         "tool_response": {
@@ -41,6 +44,13 @@ def test_hook_cli_requires_recovery_and_mcp_restores_original(tmp_path):
     assert len(replacement) < len(original)
     artifact_id = next(tmp_path.rglob("*.txt")).stem
     assert artifact_id in replacement
+    with Julius(tmp_path) as julius:
+        recorded = julius.ledger.events()
+    assert len(recorded) == 1
+    assert recorded[0]["eventType"] == "transform"
+    assert recorded[0]["payload"]["sent"] is False
+    assert recorded[0]["payload"]["inputArtifactId"] == artifact_id
+    assert recorded[0]["evidence"] == "heuristic_estimate"
 
     messages = [
         {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {

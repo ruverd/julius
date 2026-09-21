@@ -4,7 +4,7 @@ Local context optimization with evidence you can inspect.
 
 Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
 
-An explicit, experimental xAI Responses command can send one authorized Grok request and record provider-reported input/output usage. Optional Jev shadow decisions can be requested separately. Neither path proves token savings or live client compatibility; both have fixture tests only.
+An explicit, experimental xAI Responses command can send an authorized Grok request and record provider-reported input/output usage. A guarded safe mode prepares recoverable tool-output candidates and handles Julius-only restore calls. Optional Jev shadow decisions can be requested separately. None of these paths proves measured savings or live client compatibility; they have fixture tests only.
 
 ## Develop and run
 
@@ -28,6 +28,8 @@ uv pip install --python /path/to/venv/bin/python ./dist/wheels/<matching-wheel>.
 ```
 
 Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Setup initializes storage and probes client versions; it does not change client configuration. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
+
+`julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request.
 
 ## Offline example
 
@@ -96,20 +98,28 @@ Public Python functions use snake_case; versioned event and receipt dictionaries
 
 Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-scoped FTS5 memory](docs/memory.md), and a [cache-aware decision helper](docs/cache-policy.md). They do not automatically change agent requests or create financial baselines in CLI reports.
 
-The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. The [Codex hook adapter](docs/codex-hooks.md) provides trusted additive context only. Local tests verify protocol shapes and recovery; neither client has passed a live rewrite test. [Managed configuration primitives](docs/managed-config.md) are not yet connected to setup/remove commands.
+The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. The [Codex hook adapter](docs/codex-hooks.md) provides trusted additive context only. Local tests verify protocol shapes and recovery; neither client has passed a live rewrite test. [Managed configuration primitives](docs/managed-config.md) and a [Claude project-config planner](docs/claude-config.md) are not yet connected to setup/remove commands.
+
+```sh
+uv run --no-sync julius run --agent claude --project app --profile observe
+# Enable safe rewriting only after verifying this project's recovery tool in Claude:
+uv run --no-sync julius run --agent claude --project app --profile safe --recovery-verified
+```
 
 ## Explicit remote calls and task economics
 
 ```sh
 XAI_API_KEY=<dedicated-key> uv run --no-sync julius run --agent grok \
   --request ./xai-request.json --project app --task DEV-123 --profile observe
+XAI_API_KEY=<dedicated-key> uv run --no-sync julius run --agent grok \
+  --request ./xai-tool-result.json --project app --task DEV-123 --profile safe
 TYPESAFE_API_KEY=<dedicated-key> uv run --no-sync julius jev shadow \
   --state-file ./decision-state.json --project app --task DEV-123 --post-call-threshold-usd 0.01
 ```
 
-The xAI request file must contain an explicit Responses API `model` and `input`. This command forwards caller-supplied request fields to xAI once; review any requested server-side tools for effects before sending. xAI documents `store=true` by default; `"store": false` disables stateful response storage, but is not a zero-retention guarantee. It records actual response model, input, output, and cache counters when supplied; provider-billed cost is recorded separately when `cost_in_usd_ticks` is present. Missing counters or charges stay unknown. It does not compress model output, automatically optimize a request, or intercept Grok in another client. See [xAI adapter](docs/xai.md).
+The observe-mode xAI request file must contain an explicit Responses API `model` and `input`. It forwards caller-supplied fields once; review requested server-side tools for effects before sending. Safe mode is a narrower, opt-in path for array input containing eligible `function_call_output` text, with a declared Julius restore function and `store` not set to `false`. It may send bounded continuation calls only when the model requests restoration. Each attempted call is recorded once, including incomplete attempts; tool-output candidate counts remain heuristic and do not prove whole-request savings. xAI documents `store=true` by default; `"store": false` disables stateful response storage, but is not a zero-retention guarantee. Actual response model, input, output, cache, and provider-billed cost are recorded when supplied. Missing counters or charges stay unknown. Julius does not compress generated output or intercept Grok in another client. See [xAI adapter](docs/xai.md).
 
-An offline [xAI optimization helper](docs/xai-optimization.md) can prepare recoverable tool-output candidates for a future function-calling loop. Safe-mode xAI dispatch remains disabled until Julius can serve restoration calls and continue a Responses session reliably.
+An offline [xAI optimization helper](docs/xai-optimization.md) prepares recoverable tool-output candidates. The [restore loop](docs/xai-tool-loop.md) now serves only Julius originals and records each provider attempt. These flows have fixture tests; real account behavior and quality remain unverified.
 
 Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, or `compress`. Shadow mode always applies `keep` to production content and records any auxiliary call. Its budget is a post-call threshold, not a guaranteed pre-call charge cap; use only with a separately authorized spending limit. No live Jev account has been tested. See [Jev boundary](docs/jev.md).
 
@@ -119,7 +129,7 @@ An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline 
 
 ## Delivery status
 
-Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send and Jev shadow gateways, offline task economics, ephemeral Claude launcher, native wheels, and tests.
+Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, ephemeral Claude launcher, local hook/MCP probe, native wheels, and tests.
 
 Pending: verified live Claude/Codex/xAI/Jev integrations, confirmed sent-request interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, client-verified recovery registration, structured memory, automatic cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed setup/remove, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 

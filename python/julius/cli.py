@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
@@ -81,6 +82,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
     parser.add_argument("--recovery-verified", action="store_true", help="Attest that Claude can invoke the matching project recovery tool in this session")
+    parser.add_argument("--restore-loop", action="store_true", help="Explicitly serve only Julius restore function calls in xAI Responses")
+    parser.add_argument("--max-restore-calls", type=int, default=4)
     return parser
 
 
@@ -158,13 +161,58 @@ def run(argv: list[str] | None = None) -> int:
             return 0
         if args.profile != "safe" or not args.recovery_available:
             return 0
-        result = post_tool_use(
-            event,
-            policy={"mode": "safe", "approved": True, "version": "1.0.0"},
-            store=ArtifactStore(Path(args.data_dir).absolute() / "artifacts"),
-            project_id=project_id,
-            recovery_available=True,
+        session_id = event.get("session_id")
+        session_id = session_id if isinstance(session_id, str) and session_id else str(uuid4())
+        tool_use_id = event.get("tool_use_id")
+        source_event_id = (
+            f"{session_id}:{tool_use_id}"
+            if isinstance(tool_use_id, str) and tool_use_id else str(uuid4())
         )
+        with Julius(Path(args.data_dir).absolute()) as julius:
+            def record_candidate(artifact: dict, receipt: dict) -> None:
+                event_id = str(uuid4())
+                julius.ledger.record({
+                    "schemaVersion": 1,
+                    "eventId": event_id,
+                    "occurredAt": datetime.now(timezone.utc).isoformat(
+                        timespec="milliseconds"
+                    ).replace("+00:00", "Z"),
+                    "sourceId": "claude-posttooluse-v1",
+                    "sourceEventId": source_event_id,
+                    "projectId": project_id,
+                    "taskId": args.task,
+                    "sessionId": session_id,
+                    "requestId": None,
+                    "attemptId": None,
+                    "clientId": "claude-code",
+                    "adapterVersion": "0.1.0-experimental",
+                    "modelId": None,
+                    "providerId": None,
+                    "executionLocation": "unknown",
+                    "eventType": "transform",
+                    "evidence": "heuristic_estimate",
+                    "payload": {
+                        "scope": "tool_output",
+                        "inputTokens": receipt["beforeTokens"],
+                        "outputTokens": receipt["afterTokens"],
+                        "tokenizer": None,
+                        "transformId": event_id,
+                        "parentTransformId": None,
+                        "inputArtifactId": artifact["id"],
+                        "outputArtifactId": None,
+                        "strategy": receipt["reason"],
+                        "sent": False,
+                    },
+                })
+
+            result = post_tool_use(
+                event,
+                policy={"mode": "safe", "approved": True, "version": "1.0.0"},
+                store=julius.artifacts,
+                project_id=project_id,
+                recovery_available=True,
+                candidate_receipt=record_candidate,
+            )
         if result is not None:
             print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0
@@ -180,7 +228,7 @@ def run(argv: list[str] | None = None) -> int:
     if command == "run" and args.agent not in ("grok", "xai", "claude"):
         raise ValueError("Run requires --agent grok or --agent claude")
     if command == "run" and args.agent == "claude":
-        if args.arguments or args.request or args.task:
+        if args.arguments or args.request or args.task or args.restore_loop:
             raise ValueError("Claude runner does not yet accept request files, positional arguments, or task attribution")
         if args.profile == "safe" and not args.recovery_verified:
             raise ValueError("Claude safe profile requires --recovery-verified after checking session recovery")
@@ -237,8 +285,6 @@ def run(argv: list[str] | None = None) -> int:
             _json(result)
             return 0
         if command == "run":
-            if args.profile != "observe":
-                raise ValueError("xAI execution supports observe profile only; no recovery tool is integrated")
             key = os.environ.get("XAI_API_KEY")
             if not key:
                 raise ValueError("XAI_API_KEY is required for explicit xAI execution")
@@ -246,13 +292,26 @@ def run(argv: list[str] | None = None) -> int:
             request = json.loads(_read(request_path, 2_000_000))
             if not isinstance(request, dict):
                 raise ValueError("xAI request must be a JSON object")
-            result = julius.send_xai(
-                request,
-                api_key=key,
-                project_id=_required(args.project, "--project"),
-                session_id=args.session or str(uuid4()),
-                task_id=args.task,
-            )
+            if args.profile == "safe" and args.restore_loop:
+                raise ValueError("Safe xAI profile already includes the restore loop")
+            common = {
+                "api_key": key,
+                "project_id": _required(args.project, "--project"),
+                "session_id": args.session or str(uuid4()),
+                "task_id": args.task,
+            }
+            if args.profile == "safe":
+                result = julius.send_xai_optimized(
+                    request, **common,
+                    policy={"mode": "safe", "approved": True, "version": "1.0.0"},
+                    max_calls=args.max_restore_calls,
+                )
+            elif args.restore_loop:
+                result = julius.send_xai_with_restores(
+                    request, **common, max_calls=args.max_restore_calls,
+                )
+            else:
+                result = julius.send_xai(request, **common)
             _json(result)
             return 0 if result["complete"] else 2
         if command == "setup":
