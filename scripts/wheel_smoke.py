@@ -31,7 +31,8 @@ def main() -> None:
         assert run(
             "-c",
             "from julius.xai import XAIAdapter; from julius.jev import shadow_decide; "
-            "from julius.economics import analyze_task; "
+            "from julius.economics import analyze_task; from julius.evaluation import analyze_paired_trials; "
+            "from julius.stdio_api import serve_stdio; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")

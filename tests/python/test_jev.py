@@ -105,6 +105,8 @@ def test_unknown_price_retains_provider_usage_and_falls_back():
         gateway=TypeSafeGateway("key", transport=transport),
     )
     assert receipt.reason == "cost_unknown"
+    assert receipt.proposed_action == "compress"
+    assert receipt.applied_action == "keep"
     assert receipt.input_tokens == 20 and receipt.output_tokens == 1
     assert receipt.cost_usd is None
 

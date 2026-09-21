@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -16,6 +17,28 @@ _CAPABILITIES = {
     "canImportUsage": False,
     "liveCompatibilityTested": False,
 }
+
+# Exact CLI versions observed locally. This is not a live integration certification.
+_CLIENT_MATRIX = {
+    "claude": {"2.1.278": "2.1.278 (Claude Code)"},
+    "codex": {"0.154.0": "codex-cli 0.154.0"},
+}
+
+
+def _client_capability(name: str, version: str | None) -> tuple[str, dict[str, str]]:
+    features = {
+        "versionDiscovery": "unsupported",
+        "manualUsageImport": "unsupported",
+        "liveUsageObservation": "unsupported",
+        "inputOptimization": "unsupported",
+    }
+    if version is None:
+        return "unsupported", features
+    features["versionDiscovery"] = "observe_only"
+    match = re.search(r"(?<![\d.])(\d+\.\d+\.\d+)(?![\d.])", version)
+    if match and _CLIENT_MATRIX[name].get(match.group(1)) == version:
+        features["manualUsageImport"] = "experimental"
+    return ("experimental" if features["manualUsageImport"] == "experimental" else "unsupported"), features
 
 
 def doctor() -> dict[str, Any]:
@@ -34,14 +57,16 @@ def doctor() -> dict[str, Any]:
                 detail = "Version probe failed"
         except (OSError, subprocess.TimeoutExpired):
             pass
+        capability, feature_status = _client_capability(name, version)
         clients.append(
             {
                 "name": name,
                 "executable": name,
                 "installed": installed,
                 "version": version,
-                "capability": "unsupported",
+                "capability": capability,
                 "capabilities": dict(_CAPABILITIES),
+                "featureStatus": feature_status,
                 "detail": detail,
             }
         )

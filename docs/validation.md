@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 92 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 20 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests.
+Current local result: 104 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 22 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests.
 
 ## Active Python/Rust validation
 
@@ -15,7 +15,7 @@ uv run --no-sync python scripts/wheel_smoke.py dist/wheels/<matching-wheel>.whl
 
 The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native and optional-module imports, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, and HTML/CSV export.
 
-Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior. New fixtures exercise xAI Responses request preservation, both documented usage shapes, provider charge ticks, incomplete responses, Jev Choice shadow fallback and auxiliary accounting, plus task economics with interrupted calls and chained transforms. These are fixture tests, not live provider calls.
+Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior. New fixtures exercise xAI Responses request preservation, both documented usage shapes, provider charge ticks, incomplete responses, Jev Choice shadow fallback and auxiliary accounting, task economics with interrupted calls and chained transforms, read-only client capability reporting, the versioned stdio interface, and offline paired-trial calculations. These are fixture tests, not live provider calls or an agent benchmark.
 
 `tests/fixtures` freezes event and optimization contracts from the initial TypeScript checkpoint `3616024`. Python and native Rust match its optimization receipts and aggregate report for the selected corpus. The historical TypeScript suite passed 51 tests before cutover; this is reference evidence, not an active second implementation.
 

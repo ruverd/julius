@@ -81,16 +81,27 @@ def analyze_task(
     priced: list[dict[str, Any]] = []
     for call in calls:
         # Provider-reported cost, when present with provenance, takes priority.
+        provider_charge = (
+            call["reportedCostUsd"] is not None
+            and isinstance(call["costProvenance"], dict)
+            and call["costProvenance"].get("chargeSource") == "provider_usage"
+        )
         cost = (
             call["reportedCostUsd"] if call["costProvenance"] else _cost(call, prices)
         ) if call["callId"] is not None else None
-        priced.append({**call, "modeledCostUsd": cost})
+        priced.append({
+            **call,
+            "costUsd": cost,
+            "modeledCostUsd": cost if cost is not None and not provider_charge else None,
+            "providerChargedUsd": cost if provider_charge else None,
+            "costBasis": "provider_charge" if provider_charge else "modeled_price" if cost is not None else None,
+        })
     baseline_calls = baseline["calls"] if baseline else []
     baseline_ids = [call.get("callId") for call in baseline_calls]
     if baseline and (any(not isinstance(x, str) or not x for x in baseline_ids) or len(set(baseline_ids)) != len(baseline_ids)):
         raise ValueError("Baseline requires unique call IDs")
     baseline_costs = [_cost(call, prices) for call in baseline_calls]
-    current_costs = [call["modeledCostUsd"] for call in priced]
+    current_costs = [call["costUsd"] for call in priced]
     overhead_ids = [item.get("id") for item in overhead]
     if len(set(overhead_ids)) != len(overhead_ids) or any(
         not isinstance(item.get("id"), str)
@@ -155,8 +166,10 @@ def analyze_task(
         "baselineOutputTokens": _sum_known([c.get("outputTokens") for c in baseline_calls], complete=bool(baseline_calls)),
         "outputSavingsTokens": None,
         "baselineModeledCostUsd": baseline_total,
-        "currentModeledCostUsd": current_total,
-        "auxiliaryAndRetryCostIncludedUsd": _sum_known([c["modeledCostUsd"] for c in priced if c["category"] != "primary"], complete=complete),
+        "currentCostUsd": current_total,
+        "currentModeledCostUsd": current_total if all(c["costBasis"] == "modeled_price" for c in priced) else None,
+        "currentProviderChargeUsd": current_total if all(c["costBasis"] == "provider_charge" for c in priced) else None,
+        "auxiliaryAndRetryCostIncludedUsd": _sum_known([c["costUsd"] for c in priced if c["category"] != "primary"], complete=complete),
         "extraOverheadUsd": overhead_total,
         "netModeledSavingsUsd": net,
         "currency": "USD",

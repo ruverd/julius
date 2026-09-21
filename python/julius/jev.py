@@ -199,7 +199,8 @@ def shadow_decide(
     elapsed = time.monotonic() - started
     cost = answer.cost_usd
     if cost is None or not math.isfinite(cost) or cost < 0:
-        return ShadowReceipt(SAFE_ACTION, None, "cost_unknown", elapsed, cost, answer.confidence, answer.input_tokens, answer.output_tokens, answer.actual_model)
+        proposal = answer.choice if answer.choice in eligible_actions else None
+        return ShadowReceipt(SAFE_ACTION, proposal, "cost_unknown", elapsed, cost, answer.confidence, answer.input_tokens, answer.output_tokens, answer.actual_model)
     if cost > policy.max_cost_usd:
         return ShadowReceipt(SAFE_ACTION, None, "budget_exceeded", elapsed, cost, answer.confidence, answer.input_tokens, answer.output_tokens, answer.actual_model)
     if elapsed > policy.timeout_seconds:

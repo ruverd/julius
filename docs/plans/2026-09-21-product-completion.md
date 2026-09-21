@@ -7,7 +7,10 @@ Status: active. Existing Python/Rust repository is a foundation, not the deliver
 - A1: experimental xAI Responses single-send command and SDK method, fixture-tested request preservation, two documented usage shapes, response model/ID, cache/output counters, provider charge ticks, and incomplete receipt behavior. No live xAI request or automatic compression.
 - A2: offline task economics API with explicit comparable baseline, price snapshots, overhead, retries, chained sent transforms, incomplete coverage, and signed net. CLI report still cannot claim task financial savings without baseline evidence.
 - D1: explicit TypeSafe Choice gateway and Jev shadow command. It records decision plus auxiliary usage and never applies the suggested action. The configured cost threshold is post-call, so active use needs enforceable pre-call budget control.
-- Validation: 92 Python tests, Rust tests, Ruff, mypy, wheel build, and isolated wheel smoke passed on macOS arm64. No live provider or agent quality benchmark ran.
+- E: versioned JSONL/stdio transport for the four requested SDK operations. Bulma adoption and shared process ownership remain untested.
+- A/B: read-only doctor feature statuses for two exact locally observed client versions, with live capture and rewriting still unsupported.
+- Validation: offline paired-trial analyzer with failed-run and retry denominators. No task runner, frozen corpus, non-inferiority test, confidence interval, or empirical result yet.
+- Verification: local Python/Rust tests, Ruff, mypy, wheel build, and isolated wheel smoke pass on macOS arm64. Exact count is recorded in [validation](../validation.md). No live provider or agent quality benchmark ran.
 
 ## Scope decisions
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.error import URLError
 
 from julius.cli import run
+from julius.economics import analyze_task
 from julius.reporting import render_csv
 from julius.sdk import Julius
 from julius.xai import XAIResult
@@ -54,6 +55,10 @@ def test_xai_sdk_records_input_output_and_actual_model_separately(tmp_path: Path
         assert julius.report()["providerChargedUsd"]["total"] == 0.0037756
         assert julius.report()["modeledCostUsd"]["total"] is None
         assert "provider_charged_usd" in render_csv(julius.report())
+        task = analyze_task(julius.ledger.events({"taskId": "TASK-1"}), coverage_complete=True)
+        assert task["currentCostUsd"] == 0.0037756
+        assert task["currentProviderChargeUsd"] == 0.0037756
+        assert task["currentModeledCostUsd"] is None
     assert observed == [request]
 
 

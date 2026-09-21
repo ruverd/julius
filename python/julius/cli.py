@@ -11,12 +11,14 @@ from uuid import uuid4
 
 from . import __version__
 from .events import validate_event
+from .economics import analyze_task
 from .importers import import_claude_transcript, import_codex_rollout
 from .models import discover_ollama, doctor
 from .query import query_window
 from .reporting import render_csv, render_html, render_text, report
 from .sdk import Julius
 from .jev import Action, ShadowPolicy, TypeSafeGateway
+from .stdio_api import serve_stdio
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -49,6 +51,7 @@ def _parser() -> argparse.ArgumentParser:
             "run",
             "integrations",
             "jev",
+            "serve",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -57,7 +60,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date"):
+    for option in ("project", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
         parser.add_argument(f"--{option}")
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence"):
         parser.add_argument(f"--{option}", type=float)
@@ -66,6 +69,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--explain", action="store_true")
+    parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     return parser
 
 
@@ -85,6 +89,30 @@ def _read(path: str, limit: int) -> str:
 
 def _json(value: object) -> None:
     print(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False))
+
+
+def _json_file(path: str, limit: int = 1_000_000) -> object:
+    return json.loads(_read(path, limit))
+
+
+def _task_explanation(data: dict) -> str:
+    def value(item: object) -> str:
+        return "unavailable" if item is None else str(item)
+
+    return "\n".join([
+        f"Task: {data['taskId']}",
+        f"Coverage complete: {data['coverageComplete']}",
+        f"Observed input tokens: {value(data['observedInputTokens'])}",
+        f"Observed output tokens: {value(data['observedOutputTokens'])}",
+        f"Direct sent-request input reduction: {value(data['directInputReductionTokens'])}",
+        "Output savings: unavailable; no comparable output analysis exists.",
+        f"Baseline: {value(data['baselineId'])}; evidence: {value(data['baselineEvidence'])}",
+        f"Baseline modeled cost USD: {value(data['baselineModeledCostUsd'])}",
+        f"Current cost USD (provider charge or modeled): {value(data['currentCostUsd'])}",
+        f"Extra overhead USD: {data['extraOverheadUsd']}",
+        f"Net financial savings USD: {value(data['netModeledSavingsUsd'])}",
+        f"Calls without ID: {data['usageRecordsWithoutCallId']}",
+    ])
 
 
 def run(argv: list[str] | None = None) -> int:
@@ -113,6 +141,11 @@ def run(argv: list[str] | None = None) -> int:
     if command == "jev" and argument != "shadow":
         raise ValueError("Use jev shadow --state-file <json> --project <id> --post-call-threshold-usd <amount>")
     directory = Path(args.data_dir).absolute()
+    if command == "serve":
+        if args.arguments:
+            raise ValueError("Use serve without positional arguments")
+        serve_stdio(directory, sys.stdin, sys.stdout)
+        return 0
     with Julius(directory) as julius:
         if command == "jev":
             key = os.environ.get("TYPESAFE_API_KEY")
@@ -243,6 +276,28 @@ def run(argv: list[str] | None = None) -> int:
                     if value
                 }
             )
+            if command == "savings" and args.explain:
+                _required(args.task, "--task")
+                if args.model:
+                    raise ValueError("Task economics cannot filter by model without losing call coverage")
+                baseline = _json_file(args.baseline) if args.baseline else None
+                prices = _json_file(args.prices) if args.prices else None
+                overhead = _json_file(args.overhead) if args.overhead else []
+                if baseline is not None and not isinstance(baseline, dict):
+                    raise ValueError("Baseline must be a JSON object")
+                if prices is not None and not isinstance(prices, dict):
+                    raise ValueError("Prices must be a JSON object keyed by snapshot ID")
+                if not isinstance(overhead, list):
+                    raise ValueError("Overhead must be a JSON array")
+                analysis = analyze_task(
+                    julius.ledger.events(filters), baseline=baseline, prices=prices,
+                    overhead=overhead, coverage_complete=args.coverage_complete,
+                )
+                if args.json:
+                    _json(analysis)
+                else:
+                    print(_task_explanation(analysis))
+                return 0
             data = report(
                 julius.ledger.events(filters),
                 window,
