@@ -182,7 +182,8 @@ class MemoryStore:
             return cursor.rowcount
 
     def history(
-        self, project_id: str, artifact_id: str | None = None, *, limit: int = 100
+        self, project_id: str, artifact_id: str | None = None, *, limit: int = 100,
+        offset: int = 0,
     ) -> list[dict]:
         if not isinstance(project_id, str) or not 0 < len(project_id) <= 256:
             raise ValueError("Project required")
@@ -192,13 +193,15 @@ class MemoryStore:
             raise ValueError("Invalid memory id")
         if type(limit) is not int or not 1 <= limit <= 100:
             raise ValueError("Invalid history limit")
+        if type(offset) is not int or offset < 0:
+            raise ValueError("Invalid history offset")
         rows = self.db.execute(
             """SELECT id,version,project_id,snapshot,content_sha256,created_at,
                 expires_at,provenance,origin,confidence,invalidation_condition,
                 invalidated,invalidated_at,invalidation_reason,invalidation_source
                 FROM memories WHERE project_id=? AND (? IS NULL OR id=?)
-                ORDER BY created_at DESC,id ASC,version DESC LIMIT ?""",
-            (project_id, artifact_id, artifact_id, limit),
+                ORDER BY created_at DESC,id ASC,version DESC LIMIT ? OFFSET ?""",
+            (project_id, artifact_id, artifact_id, limit, offset),
         ).fetchall()
         keys = (
             "id", "version", "projectId", "snapshot", "contentSha256", "createdAt",

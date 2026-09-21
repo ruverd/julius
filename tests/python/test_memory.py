@@ -208,5 +208,25 @@ def test_history_is_bounded_project_scoped_and_content_free():
         for invalid in (0, 101, True, 1.5):
             with pytest.raises(ValueError):
                 store.history("one", limit=invalid)
+        for invalid in (-1, True, 1.5, "0"):
+            with pytest.raises(ValueError):
+                store.history("one", offset=invalid)
+    finally:
+        store.close()
+
+
+def test_history_offset_pages_cover_more_than_one_hundred_records():
+    store = MemoryStore(":memory:")
+    try:
+        for index in range(205):
+            store.put(memory(id=f"fact-{index:03d}", content=f"secret {index}"))
+        store.put(memory(id="other-project", projectId="two"))
+        pages = [store.history("one", limit=100, offset=offset) for offset in (0, 100, 200)]
+        ids = [row["id"] for page in pages for row in page]
+        assert [len(page) for page in pages] == [100, 100, 5]
+        assert len(ids) == len(set(ids)) == 205
+        assert set(ids) == {f"fact-{index:03d}" for index in range(205)}
+        assert all(row["projectId"] == "one" and "content" not in row for page in pages for row in page)
+        assert store.history("one", offset=205) == []
     finally:
         store.close()
