@@ -13,6 +13,7 @@ Status: active. Existing Python/Rust repository is a foundation, not the deliver
 - Verification: local Python/Rust tests, Ruff, mypy, wheel build, and isolated wheel smoke pass on macOS arm64. Exact count is recorded in [validation](../validation.md). No live provider or agent quality benchmark ran.
 - Follow-up: offline Claude `PostToolUse` replacement helper and CLI entry point, project-scoped MCP artifact recovery over stdio, additive-only Codex hook helper, reversible managed-config primitives, and cache-aware decision helper. The Claude hook and MCP server pass a local subprocess round trip; client acceptance and sent-request coverage remain unverified.
 - Evaluation follow-up: paired bootstrap confidence intervals for measured trial differences. No causal product result is claimed from these fixtures.
+- Current follow-up: ephemeral Claude Code launcher with observe default and a guarded safe hook, read-only LM Studio discovery, offline xAI recoverable tool-output candidates, and task-level output difference only for explicit comparable baselines with complete coverage. None establishes live client compatibility or automatic xAI input savings.
 
 ## Scope decisions
 

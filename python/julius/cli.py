@@ -22,13 +22,16 @@ from .stdio_api import serve_stdio
 from .artifacts import ArtifactStore
 from .claude_hooks import post_tool_use
 from .mcp_recovery import serve_stdio as serve_recovery_stdio
+from .claude_runner import run_claude
+from .lmstudio import discover_lmstudio
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Julius: local evidence-aware context tools. No hidden model calls.",
         epilog=(
-            "Explicit network commands: run --agent grok --request request.json --project id "
+            "Explicit model commands: run --agent grok --request request.json --project id "
+            "or run --agent claude --project id. "
             "and jev shadow --state-file state.json --project id --post-call-threshold-usd amount. "
             "Reports never call a model."
         ),
@@ -70,12 +73,14 @@ def _parser() -> argparse.ArgumentParser:
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence"):
         parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--by", choices=["model", "category", "client"])
+    parser.add_argument("--runtime", choices=["ollama", "lmstudio"], default="ollama")
     parser.add_argument("--format")
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--explain", action="store_true")
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
+    parser.add_argument("--recovery-verified", action="store_true", help="Attest that Claude can invoke the matching project recovery tool in this session")
     return parser
 
 
@@ -111,7 +116,7 @@ def _task_explanation(data: dict) -> str:
         f"Observed input tokens: {value(data['observedInputTokens'])}",
         f"Observed output tokens: {value(data['observedOutputTokens'])}",
         f"Direct sent-request input reduction: {value(data['directInputReductionTokens'])}",
-        "Output savings: unavailable; no comparable output analysis exists.",
+        f"Comparative task output difference: {value(data['outputSavingsTokens'])}; evidence: {value(data['outputSavingsEvidence'])}",
         f"Baseline: {value(data['baselineId'])}; evidence: {value(data['baselineEvidence'])}",
         f"Baseline modeled cost USD: {value(data['baselineModeledCostUsd'])}",
         f"Current cost USD (provider charge or modeled): {value(data['currentCostUsd'])}",
@@ -166,10 +171,25 @@ def run(argv: list[str] | None = None) -> int:
     if command == "models":
         if argument != "list":
             raise ValueError("Use models list")
-        _json(discover_ollama(args.endpoint or "http://127.0.0.1:11434"))
+        _json(
+            discover_lmstudio(args.endpoint or "http://127.0.0.1:1234")
+            if args.runtime == "lmstudio"
+            else discover_ollama(args.endpoint or "http://127.0.0.1:11434")
+        )
         return 0
-    if command == "run" and args.agent not in ("grok", "xai"):
-        raise ValueError("Only explicit xAI/Grok API execution is available: --agent grok")
+    if command == "run" and args.agent not in ("grok", "xai", "claude"):
+        raise ValueError("Run requires --agent grok or --agent claude")
+    if command == "run" and args.agent == "claude":
+        if args.arguments or args.request or args.task:
+            raise ValueError("Claude runner does not yet accept request files, positional arguments, or task attribution")
+        if args.profile == "safe" and not args.recovery_verified:
+            raise ValueError("Claude safe profile requires --recovery-verified after checking session recovery")
+        return run_claude(
+            project_id=_required(args.project, "--project"),
+            data_dir=Path(args.data_dir).absolute(),
+            enable_safe_hook=args.profile == "safe",
+            recovery_verified=args.recovery_verified,
+        )
     if command == "integrations":
         if argument != "remove":
             raise ValueError("Use integrations remove <id>")

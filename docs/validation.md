@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 129 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 27 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests.
+Current local result: 148 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 30 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests, including imports of the new modules.
 
 ## Active Python/Rust validation
 
@@ -25,7 +25,9 @@ Local environment: macOS arm64, Python 3.12.10, Rust 1.98.1, PyO3 0.29.2, SQLite
 
 Linux and macOS CI jobs are configured but have not run remotely in this task. WSL and native Windows remain uncertified. Wheels are unsigned development artifacts. Standalone executables, clean-machine signed installers, updates, and rollback remain release work.
 
-Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. Ollama at `127.0.0.1:11434` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
+Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. Ollama at `127.0.0.1:11434` and LM Studio at `127.0.0.1:1234` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
+
+A read-only `claude --mcp-config <temporary-file> mcp get julius-recovery` probe on this installation returned `not configured` (exit 1). The subcommand may list only persisted servers; this does not establish whether a normal Claude session would load the temporary server. Session-level connection and restoration remain unverified. No Claude model call was made.
 
 No live xAI or Jev request was made during this validation. The xAI adapter has no measured input or output savings; Jev remains shadow-only. xAI's provider charge field is recognized from its documented response shape, but actual account billing has not been reconciled.
 
@@ -45,6 +47,7 @@ No live xAI or Jev request was made during this validation. The xAI adapter has 
 - [Codex hooks](https://developers.openai.com/codex/hooks)
 - [Ollama installed models](https://docs.ollama.com/api/tags)
 - [Ollama loaded models](https://docs.ollama.com/api/ps)
+- [LM Studio native model listing](https://lmstudio.ai/docs/developer/rest/list)
 - [Maturin configuration](https://www.maturin.rs/config)
 - [PyO3 guide](https://pyo3.rs/main/)
 - [xAI Responses API](https://docs.x.ai/developers/rest-api-reference/inference/responses)

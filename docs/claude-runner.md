@@ -1,0 +1,9 @@
+# Claude Code session launcher
+
+`julius run --agent claude --project PROJECT --profile observe` starts an interactive Claude Code session with a project-scoped Julius recovery MCP server and no rewriting hook. `--profile safe --recovery-verified` also enables Julius's Bash `PostToolUse` hook. Only use that flag after verifying that Claude can invoke the matching recovery tool in this session; Julius cannot infer MCP approval or connection from its configuration file. This CLI path does not yet attribute a `--task` or import session usage. It requires an installed `claude` executable and the Julius Python package. Claude Code handles sign-in and model requests; Julius does not copy OAuth data or make a model request itself.
+
+The launcher writes a small settings JSON and MCP JSON in a temporary directory, passes them through `claude --settings` and `--mcp-config`, and removes them when Claude exits. Claude's regular settings, hooks, MCP servers, managed policy, and permission prompts remain in effect. Julius does not edit `~/.claude`, project `.claude` files, or `.mcp.json`. The recovery server reads artifacts only for the selected Julius project. Julius's hook can replace successful Bash stdout only when safe policy and recovery are available; other output is left untouched.
+
+This integration has offline fixture tests. Those tests do not establish compatibility with every live Claude Code version or configuration. The launcher cannot guarantee that a separate preexisting hook will not alter the same tool result, or that Claude Code will approve or connect the MCP server. Do not treat a launch or hook output as proof that a full model request was shortened; downstream sent-request evidence is still needed.
+
+Claude Code documents [`--settings` and `--mcp-config`](https://code.claude.com/docs/en/cli-reference), [PostToolUse hooks](https://code.claude.com/docs/en/hooks), and [MCP JSON configuration](https://code.claude.com/docs/en/mcp).

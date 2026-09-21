@@ -45,6 +45,7 @@ def analyze_task(
         or not isinstance(baseline.get("id"), str)
         or not baseline["id"]
         or not isinstance(baseline.get("calls"), list)
+        or ("outputComparable" in baseline and type(baseline["outputComparable"]) is not bool)
     ):
         raise ValueError("Invalid comparable task baseline")
     usage = [e for e in events if e.get("eventType") == "usage"]
@@ -150,21 +151,35 @@ def analyze_task(
             "marginalInputReductionTokens": before - after if comparable else None,
         })
     request_reductions = [d["marginalInputReductionTokens"] for d in direct if d["scope"] == "request"]
+    observed_output = _sum_known(
+        [c["outputTokens"] for c in priced], complete=complete and bool(calls)
+    )
+    baseline_output = _sum_known(
+        [c.get("outputTokens") for c in baseline_calls], complete=bool(baseline_calls)
+    )
+    comparative_output = (
+        baseline_output - observed_output
+        if baseline is not None and baseline.get("outputComparable") is True
+        and baseline_output is not None and observed_output is not None
+        else None
+    )
     return {
         "taskId": task_id,
         "coverageComplete": complete,
         "usageRecordsWithoutCallId": sum(call["callId"] is None for call in calls),
         "calls": priced,
         "observedInputTokens": _sum_known([c["inputTokens"] for c in priced], complete=complete and bool(calls)),
-        "observedOutputTokens": _sum_known([c["outputTokens"] for c in priced], complete=complete and bool(calls)),
+        "observedOutputTokens": observed_output,
         "observedLocalTokens": _sum_known([c["inputTokens"] for c in priced if c["executionLocation"] == "local"], complete=complete),
         "observedRemoteTokens": _sum_known([c["inputTokens"] for c in priced if c["executionLocation"] == "remote"], complete=complete),
         "directInputReductionTokens": _sum_known(request_reductions, complete=bool(request_reductions)),
         "transforms": direct,
         "baselineId": baseline["id"] if baseline else None,
         "baselineEvidence": baseline["evidence"] if baseline else None,
-        "baselineOutputTokens": _sum_known([c.get("outputTokens") for c in baseline_calls], complete=bool(baseline_calls)),
-        "outputSavingsTokens": None,
+        "baselineOutputTokens": baseline_output,
+        "outputSavingsTokens": comparative_output,
+        "outputSavingsEvidence": baseline["evidence"] if comparative_output is not None and baseline is not None else None,
+        "outputSavingsScope": "task_comparison" if comparative_output is not None else None,
         "baselineModeledCostUsd": baseline_total,
         "currentCostUsd": current_total,
         "currentModeledCostUsd": current_total if all(c["costBasis"] == "modeled_price" for c in priced) else None,

@@ -33,6 +33,9 @@ def main() -> None:
             "from julius.xai import XAIAdapter; from julius.jev import shadow_decide; "
             "from julius.economics import analyze_task; from julius.evaluation import analyze_paired_trials; "
             "from julius.stdio_api import serve_stdio; "
+            "from julius.claude_runner import build_launch_plan; "
+            "from julius.lmstudio import discover_lmstudio; "
+            "from julius.xai_optimization import prepare_optimized_request; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")

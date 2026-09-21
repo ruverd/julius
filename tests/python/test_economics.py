@@ -112,3 +112,21 @@ def test_orphan_parent_cannot_be_treated_as_root() -> None:
     result = analyze_task([usage("c", 3000), orphan], coverage_complete=True)
     assert result["transforms"][0]["marginalInputReductionTokens"] is None
     assert result["directInputReductionTokens"] is None
+
+
+def test_output_difference_needs_comparable_complete_task() -> None:
+    reference = baseline(base_call("base", 1000, output=200))
+    assert analyze_task([usage("current", 900, 150)], reference,
+                        coverage_complete=True)["outputSavingsTokens"] is None
+    reference["outputComparable"] = True
+    result = analyze_task([usage("current", 900, 150)], reference,
+                          coverage_complete=True)
+    assert result["outputSavingsTokens"] == 50
+    assert result["outputSavingsEvidence"] == "controlled_experiment"
+    assert result["outputSavingsScope"] == "task_comparison"
+    assert analyze_task([usage("current", 900, 250)], reference,
+                        coverage_complete=True)["outputSavingsTokens"] == -50
+    assert analyze_task([usage("current", 900, None, complete=False)], reference,
+                        coverage_complete=True)["outputSavingsTokens"] is None
+    assert analyze_task([usage("current", 900, 150)], reference,
+                        coverage_complete=False)["outputSavingsTokens"] is None
