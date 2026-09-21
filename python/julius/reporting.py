@@ -423,10 +423,31 @@ def render_html(data: dict) -> str:
     )
     period = data["period"]
     task_summary = data.get("taskSummary", {})
+    tasks = data.get("tasks", [])
+    safe_projects = [safe_dimension(task.get("projectId")) for task in tasks]
+    project_filter = bool(tasks) and all(safe_projects)
+    outcome_values = sorted({_display(task.get("outcome")) for task in tasks})
+    task_filters = (
+        "<label for='task-outcome'>Outcome</label><select id='task-outcome'>"
+        "<option value=''>All outcomes</option>"
+        + "".join(f"<option value='{cell(value)}'>{cell(value)}</option>" for value in outcome_values)
+        + "</select>"
+    )
+    if project_filter:
+        task_filters += (
+            "<label for='task-project'>Project</label><select id='task-project'>"
+            "<option value=''>All projects</option>"
+            + "".join(f"<option value='{cell(value)}'>{cell(value)}</option>"
+                      for value in sorted(value for value in set(safe_projects)
+                                          if value is not None))
+            + "</select>"
+        )
     task_rows = []
-    for task in data.get("tasks", []):
+    for task in tasks:
         task_rows.append(
-            "<tr>"
+            f"<tr data-outcome='{cell(_display(task.get('outcome')))}'"
+            + (f" data-project='{cell(task['projectId'])}'" if project_filter else "")
+            + ">"
             f"<th scope='row'>{cell(public_label(task['taskId']))}</th>"
             f"<td>{cell(public_label(task['projectId']))}</td>"
             f"<td>{cell(task['outcome'])}</td>"
@@ -471,7 +492,7 @@ def render_html(data: dict) -> str:
         "main{display:grid;gap:1.5rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.8rem}"
         ".card{border:1px solid #888;border-radius:.5rem;padding:1rem}.card strong{display:block;font-size:1.5rem}"
         ".muted{opacity:.75;font-size:.9em}.filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}"
-        "select{font:inherit;padding:.35rem}select:focus-visible,th:focus-visible{outline:3px solid Highlight}"
+        "select,button{font:inherit;padding:.35rem}select:focus-visible,button:focus-visible{outline:3px solid Highlight}"
         ".table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:.65rem;text-align:left;border-bottom:1px solid #888;vertical-align:top}"
         "tbody tr:hover{background:CanvasText;color:Canvas}tr[hidden]{display:none}"
         "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}"
@@ -491,7 +512,10 @@ def render_html(data: dict) -> str:
         f"attempted: {cell(task_summary.get('attempted'))}; resolved: {cell(task_summary.get('resolved'))}; "
         f"with outcome: {cell(task_summary.get('withOutcome'))}. "
         "Attempted requires usage, an outcome, or a sent transform. Resolved requires an explicit resolved outcome. Full call coverage remains unknown.</p>"
-        "<div class='table-wrap'><table><caption>Task usage and sent transformations</caption>"
+        f"<div class='filters' aria-label='Filter task table'>{task_filters}"
+        "<button type='button' id='export-tasks'>Export visible tasks as CSV</button></div>"
+        "<p id='task-row-count' role='status' aria-live='polite'></p>"
+        "<div class='table-wrap'><table id='task-table'><caption>Task usage and sent transformations</caption>"
         "<thead><tr><th scope='col'>Task</th><th scope='col'>Project</th><th scope='col'>Outcome</th>"
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
@@ -527,6 +551,29 @@ def render_html(data: dict) -> str:
         "function update(){let shown=0;for(const row of rows){"
         "const match=selects.every(select=>!select.value||row.dataset[select.dataset.filter]===select.value);"
         "row.hidden=!match;if(match)shown++}count.textContent=`${shown} of ${rows.length} groups shown`;}"
-        "for(const select of selects)select.addEventListener('change',update);update()})();</script>"
+        "for(const select of selects)select.addEventListener('change',update);update();"
+        "const taskRows=[...document.querySelectorAll('#task-table tbody tr')];"
+        "const outcome=document.getElementById('task-outcome');"
+        "const project=document.getElementById('task-project');"
+        "const taskCount=document.getElementById('task-row-count');"
+        "function updateTasks(){let shown=0;for(const row of taskRows){"
+        "const match=(!outcome.value||row.dataset.outcome===outcome.value)"
+        "&&(!project||!project.value||row.dataset.project===project.value);"
+        "row.hidden=!match;if(match)shown++}taskCount.textContent=`${shown} of ${taskRows.length} tasks shown`; }"
+        "outcome.addEventListener('change',updateTasks);"
+        "if(project)project.addEventListener('change',updateTasks);updateTasks();"
+        "function csvCell(value){const safe=/^[+-]?\\d+(?:\\.\\d+)?$/.test(value)?value:"
+        "(/^[=+@\\t\\r\\n-]/.test(value)?String.fromCharCode(39)+value:value);"
+        "return String.fromCharCode(34)+safe.replaceAll(String.fromCharCode(34),String.fromCharCode(34,34))+String.fromCharCode(34)}"
+        "document.getElementById('export-tasks').addEventListener('click',()=>{"
+        "const table=document.getElementById('task-table');"
+        "const visible=[...table.tBodies[0].rows].filter(row=>!row.hidden);"
+        "const lines=[[...table.tHead.rows[0].cells].map(cell=>cell.textContent),"
+        "...visible.map(row=>[...row.cells].map(cell=>cell.textContent))];"
+        "const csv=lines.map(line=>line.map(csvCell).join(',')).join('\\r\\n')+'\\r\\n';"
+        "const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));"
+        "const link=document.createElement('a');link.href=url;link.download='julius-visible-tasks.csv';"
+        "link.click();setTimeout(()=>URL.revokeObjectURL(url),0);"
+        "});})();</script>"
         "</body></html>"
     )

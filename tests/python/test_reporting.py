@@ -181,3 +181,33 @@ def test_candidate_only_task_id_is_not_attempted():
     event["payload"]["sent"] = True
     sent = report([event], WINDOW)
     assert sent["taskSummary"]["attempted"] == 1
+
+
+def test_task_table_filters_and_local_visible_row_export():
+    event = json.loads(FIXTURE.read_text().splitlines()[-1])
+    event.update(taskId="task-1", projectId="safe-project")
+    other = {**event, "eventId": "other-usage", "sourceEventId": "other-usage",
+             "taskId": "task-2", "projectId": "another-project"}
+    outcome = {**event, "eventId": "task-outcome", "eventType": "outcome",
+               "payload": {"outcome": "resolved", "reason": None}}
+    page = render_html(report([event, other, outcome], WINDOW))
+    assert "id='task-table'" in page
+    assert "<label for='task-outcome'>Outcome</label>" in page
+    assert "<label for='task-project'>Project</label>" in page
+    assert "data-outcome='resolved' data-project='safe-project'" in page
+    assert "data-outcome='unavailable' data-project='another-project'" in page
+    assert "id='task-row-count' role='status' aria-live='polite'" in page
+    assert "row.hidden=!match" in page
+    assert "filter(row=>!row.hidden)" in page
+    assert "URL.createObjectURL(new Blob([csv]" in page
+    assert "URL.revokeObjectURL(url)" in page
+
+
+def test_unsafe_project_ids_are_not_filter_options_or_data_attributes():
+    event = json.loads(FIXTURE.read_text().splitlines()[-1])
+    event.update(taskId="task-1", projectId="/private/work")
+    page = render_html(report([event], WINDOW))
+    assert "[redacted path]" in page
+    assert "id='task-project'" not in page
+    assert "data-project=" not in page
+    assert "/private/work" not in page
