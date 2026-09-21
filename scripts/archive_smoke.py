@@ -19,7 +19,7 @@ def main() -> None:
     manifest, _ = load_archive(archive)
     installer = Path(__file__).with_name("install_standalone.py")
     with tempfile.TemporaryDirectory(prefix="julius-archive-smoke-") as directory:
-        prefix = Path(directory) / "managed"
+        prefix = Path(directory).resolve() / "managed"
 
         def install(action: str, *, apply: bool) -> str:
             command = [sys.executable, str(installer), action, "--prefix", str(prefix)]
