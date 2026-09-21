@@ -151,3 +151,111 @@ def assignment_plan(protocol: BenchmarkProtocol) -> dict[str, Any]:
         "quality_result": None,
         "efficacy_claim": None,
     }
+
+
+class ObservedExecution(BaseModel):
+    """Caller-recorded metadata for one actual attempt in a registered pair."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    task_id: StrictStr = Field(min_length=1)
+    snapshot_hash: StrictStr = Field(min_length=1)
+    candidate_arm_id: StrictStr = Field(min_length=1)
+    arm_id: StrictStr = Field(min_length=1)
+    attempt_index: StrictInt = Field(ge=0)
+    run_order_index: StrictInt = Field(ge=0, le=1)
+    seed: StrictInt = Field(ge=0)
+    manifest_sha256: StrictStr = Field(min_length=1)
+    assignment_sha256: StrictStr = Field(min_length=1)
+    client: StrictStr | None = None
+    client_version: StrictStr | None = None
+    model: StrictStr | None = None
+    model_version: StrictStr | None = None
+    runtime: StrictStr | None = None
+    runtime_version: StrictStr | None = None
+    implementation_version: StrictStr | None = None
+    configuration: dict[str, Any] | None = None
+    cache_state: dict[str, Any] | None = None
+    kind: ArmKind | None = None
+    components: tuple[OptimizerKind, ...] | None = None
+
+
+def audit_execution_adherence(
+    protocol: BenchmarkProtocol, observations: list[ObservedExecution],
+) -> dict[str, Any]:
+    """Audit supplied execution metadata without inferring outcomes or running tasks."""
+    plan = assignment_plan(protocol)
+    tasks = {task.fixture.task_id: task for task in protocol.tasks}
+    arms = {arm.arm_id: arm for arm in protocol.arms}
+    assignments = {(a["task_id"], a["candidate_arm_id"]): a
+                   for a in plan["assignments"]}
+    counts: dict[str, dict[str, int]] = {candidate: {} for candidate in
+                                         protocol.planned_pairs_by_candidate}
+    seen: dict[tuple[str, str, str], list[int]] = {}
+    issues: list[dict[str, Any]] = []
+
+    def issue(code: str, index: int | None, **details: Any) -> None:
+        issues.append({"code": code, "observation_index": index, **details})
+
+    for index, obs in enumerate(observations):
+        key = (obs.task_id, obs.candidate_arm_id)
+        assignment = assignments.get(key)
+        task = tasks.get(obs.task_id)
+        arm = arms.get(obs.arm_id)
+        if assignment is None or obs.arm_id not in (
+            protocol.baseline_arm_id, obs.candidate_arm_id
+        ):
+            issue("excess_observation", index, task_id=obs.task_id,
+                  candidate_arm_id=obs.candidate_arm_id, arm_id=obs.arm_id)
+            continue
+        seen.setdefault((obs.task_id, obs.candidate_arm_id, obs.arm_id), []).append(
+            obs.attempt_index)
+        if task is None or obs.snapshot_hash != task.fixture.fixture_id:
+            issue("snapshot_mismatch", index)
+        if obs.seed != protocol.seed or obs.run_order_index != assignment["run_order"].index(obs.arm_id):
+            issue("seed_or_order_mismatch", index)
+        if obs.manifest_sha256 != plan["manifest_sha256"] or obs.assignment_sha256 != plan["assignment_sha256"]:
+            issue("registration_hash_mismatch", index)
+        if arm is None:
+            issue("unknown_arm", index)
+            continue
+        for field in ("client", "client_version", "model", "model_version", "runtime",
+                      "runtime_version", "implementation_version", "configuration",
+                      "cache_state", "kind", "components"):
+            actual = getattr(obs, field)
+            expected = getattr(arm, field)
+            if actual is None:
+                issue("unknown_metadata", index, field=field)
+            elif actual != expected:
+                issue("arm_metadata_mismatch", index, field=field)
+
+    for (task_id, candidate), assignment in assignments.items():
+        for arm_id in assignment["run_order"]:
+            indices = seen.get((task_id, candidate, arm_id), [])
+            if not indices:
+                issue("missing_observation", None, task_id=task_id,
+                      candidate_arm_id=candidate, arm_id=arm_id)
+            elif sorted(indices) != list(range(len(indices))):
+                issue("attempt_sequence_invalid", None, task_id=task_id,
+                      candidate_arm_id=candidate, arm_id=arm_id)
+        if all(seen.get((task_id, candidate, arm_id)) for arm_id in assignment["run_order"]):
+            stratum = f"{assignment['locale']}/{assignment['stratum']}"
+            counts[candidate][stratum] = counts[candidate].get(stratum, 0) + 1
+    for candidate, planned in protocol.planned_pairs_by_candidate.items():
+        for stratum, denominator in planned.items():
+            if counts[candidate].get(stratum, 0) != denominator:
+                issue("denominator_mismatch", None, candidate_arm_id=candidate,
+                      stratum=stratum, planned=denominator,
+                      observed=counts[candidate].get(stratum, 0))
+    return {
+        "scope": "offline_execution_adherence_audit",
+        "protocol_id": protocol.protocol_id,
+        "manifest_sha256": plan["manifest_sha256"],
+        "assignment_sha256": plan["assignment_sha256"],
+        "valid": not issues,
+        "issues": issues,
+        "planned_pairs_by_candidate": protocol.planned_pairs_by_candidate,
+        "observed_complete_pairs_by_candidate": counts,
+        "quality_result": None,
+        "economy_result": None,
+        "efficacy_claim": None,
+    }

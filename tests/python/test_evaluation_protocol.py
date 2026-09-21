@@ -2,7 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from julius.evaluation_protocol import (
-    BenchmarkProtocol, ProtocolArm, ProtocolTask, SuccessCriterion, assignment_plan,
+    BenchmarkProtocol, ObservedExecution, ProtocolArm, ProtocolTask, SuccessCriterion,
+    assignment_plan, audit_execution_adherence,
 )
 from julius.evaluation_runner import FrozenFixture
 
@@ -136,3 +137,64 @@ def test_combination_components_are_validated():
                                   "components": ("headroom", "headroom")})
     with pytest.raises(ValidationError, match="Only combination"):
         type(arm).model_validate({**arm.model_dump(), "components": ("rtk",)})
+
+
+def observed(protocol):
+    plan = assignment_plan(protocol)
+    arms = {arm.arm_id: arm for arm in protocol.arms}
+    return [ObservedExecution(
+        task_id=assignment["task_id"], snapshot_hash=assignment["snapshot_hash"],
+        candidate_arm_id=assignment["candidate_arm_id"], arm_id=arm_id,
+        attempt_index=0, run_order_index=position, seed=protocol.seed,
+        manifest_sha256=plan["manifest_sha256"],
+        assignment_sha256=plan["assignment_sha256"],
+        **{field: getattr(arms[arm_id], field) for field in (
+            "client", "client_version", "model", "model_version", "runtime",
+            "runtime_version", "implementation_version", "configuration",
+            "cache_state", "kind", "components")},
+    ) for assignment in plan["assignments"]
+        for position, arm_id in enumerate(assignment["run_order"])]
+
+
+def test_complete_observed_execution_audits_without_claim():
+    protocol = registered()
+    result = audit_execution_adherence(protocol, observed(protocol))
+    assert result["valid"] is True
+    assert result["issues"] == []
+    assert result["observed_complete_pairs_by_candidate"] == protocol.planned_pairs_by_candidate
+    assert result["quality_result"] is None
+    assert result["economy_result"] is None
+
+
+def test_audit_finds_missing_excess_and_denominator_changes():
+    protocol = registered()
+    rows = observed(protocol)
+    rows.pop()
+    rows.append(rows[0].model_copy(update={"task_id": "unregistered"}))
+    result = audit_execution_adherence(protocol, rows)
+    codes = {item["code"] for item in result["issues"]}
+    assert result["valid"] is False
+    assert {"missing_observation", "excess_observation", "denominator_mismatch"} <= codes
+
+
+def test_audit_finds_snapshot_environment_order_and_unknowns():
+    protocol = registered()
+    rows = observed(protocol)
+    rows[0] = rows[0].model_copy(update={
+        "snapshot_hash": "wrong", "seed": 17, "run_order_index": 1 - rows[0].run_order_index,
+        "cache_state": {"state": "warm"}, "model_version": None,
+    })
+    result = audit_execution_adherence(protocol, rows)
+    codes = {item["code"] for item in result["issues"]}
+    assert {"snapshot_mismatch", "seed_or_order_mismatch", "arm_metadata_mismatch",
+            "unknown_metadata"} <= codes
+
+
+def test_audit_rejects_duplicate_attempt_indices_and_changed_registration():
+    protocol = registered()
+    rows = observed(protocol)
+    rows.append(rows[0])
+    rows[1] = rows[1].model_copy(update={"manifest_sha256": "wrong"})
+    codes = {item["code"] for item in audit_execution_adherence(protocol, rows)["issues"]}
+    assert "attempt_sequence_invalid" in codes
+    assert "registration_hash_mismatch" in codes
