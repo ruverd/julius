@@ -34,6 +34,19 @@ def test_cli_lifecycle(tmp_path):
     assert optimized["receipt"]["applied"] is True
     artifact = optimized["original"]["id"]
     assert run("restore", artifact, "--project", "p") == original
+    metadata_export = tmp_path / "metadata-export"
+    manifest = json.loads(run("artifacts", "export", artifact, "--project", "p",
+                              "--output", str(metadata_export)))
+    assert manifest["includesRaw"] is False
+    assert sorted(path.name for path in metadata_export.iterdir()) == ["manifest.json"]
+    raw_export = tmp_path / "raw-export"
+    raw_manifest = json.loads(run("artifacts", "export", artifact, "--project", "p",
+                                  "--output", str(raw_export), "--include-originals"))
+    assert raw_manifest["includesRaw"] is True
+    assert (raw_export / f"{artifact}.txt").read_text() == original
+    run("artifacts", "export", artifact, "--project", "other",
+        "--output", str(tmp_path / "cross-project"), success=False)
+    assert not (tmp_path / "cross-project").exists()
     run("restore", artifact, "--project", "other", success=False)
     run("artifacts", "delete", artifact, "--project", "p")
     run("restore", artifact, "--project", "p", success=False)

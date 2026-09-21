@@ -13,6 +13,8 @@ explicitly requests the original text. Raw files use artifact IDs as filenames,
 and the manifest maps each entry to its file. The manifest digest covers the
 exact UTF-8 bytes of that file.
 
+CLI: `julius artifacts export '<artifact-id>' --project app --output ./private-export` creates a metadata-only export. Add `--include-originals` only when you want original text in that new private directory. The explicit export command supplies the library authorization flag; another process cannot export merely by querying a report. The CLI prints the manifest, never the original text.
+
 Before writing anything, export checks project membership, expiration, stored
 file permissions, size, and SHA-256 integrity. It accepts 1–32 distinct artifact
 IDs and at most 16 MiB total original content. Missing or invalid artifacts

@@ -49,6 +49,7 @@ This example is synthetic. The 10,000 → 4,000 → 3,000 stages produce 7,000 m
 uv run --no-sync julius optimize ./tool-output.txt --project app --profile safe
 uv run --no-sync julius restore '<artifact-id>' --project app
 uv run --no-sync julius artifacts delete '<artifact-id>' --project app
+uv run --no-sync julius artifacts export '<artifact-id>' --project app --output ./private-export
 uv run --no-sync julius artifacts purge --project app
 ```
 

@@ -104,6 +104,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--include-raw", action="store_true", help="Include original rawUsage in explicit event JSONL export")
+    parser.add_argument("--include-originals", action="store_true", help="Include original artifact text in explicit artifact export")
     parser.add_argument("--explain", action="store_true")
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
     parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
@@ -219,6 +220,8 @@ def run(argv: list[str] | None = None) -> int:
         return 0
     if args.include_raw and (command != "export" or args.format != "events-jsonl"):
         raise ValueError("--include-raw requires export --format events-jsonl")
+    if args.include_originals and (command != "artifacts" or args.arguments[:1] != ["export"]):
+        raise ValueError("--include-originals requires artifacts export")
     if args.memory_search and (command != "mcp" or args.arguments != ["recovery"]):
         raise ValueError("--memory-search requires mcp recovery --project <id>")
     if command == "probe":
@@ -831,8 +834,13 @@ def run(argv: list[str] | None = None) -> int:
                 reference = args.arguments[1] if len(args.arguments) > 1 else None
                 julius.artifacts.delete(project, _required(reference, "artifact ID"))
                 print("Original deleted. Metadata may no longer be recountable.")
+            elif argument == "export":
+                _json(julius.artifacts.export(
+                    project, _required(args.output, "--output"), args.arguments[1:],
+                    authorized=True, include_raw=args.include_originals,
+                ))
             else:
-                raise ValueError("Use artifacts delete <id> or artifacts purge --project <id>")
+                raise ValueError("Use artifacts delete <id>, purge, or export <id> --project <id>")
         else:
             window = query_window({"since": args.since, "until": args.until})
             filters = {"since": window["since"], "until": window["until"]}
