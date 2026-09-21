@@ -99,6 +99,18 @@ def test_sdk_guard_rejects_missing_or_wrong_model_identity(tmp_path):
                 )
 
 
+def test_sdk_guard_rejects_unrelated_strategy_scope(tmp_path):
+    wrong = SCOPE.model_copy(update={"strategy_id": "other-strategy"})
+    with Julius(tmp_path) as julius:
+        with pytest.raises(ValueError, match="optimizer strategy"):
+            julius.optimize(
+                {"projectId": "p", "modelId": "m", "content": "short", "category": "tool_output"},
+                {"mode": "safe", "approved": True, "version": "1.0.0"},
+                quality_scope=wrong, quality_policy=POLICY,
+            )
+    assert list((tmp_path / "artifacts").rglob("*.txt")) == []
+
+
 def test_store_file_and_wal_are_owner_only(tmp_path):
     path = tmp_path / "quality.sqlite"
     with QualityStore(path) as store:

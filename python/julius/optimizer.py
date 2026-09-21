@@ -8,6 +8,8 @@ _PROTECTED = re.compile(
     re.I,
 )
 _ARTIFACT = re.compile(r"[a-f0-9-]{36}\Z")
+STRATEGY_ID = "repeated-lines"
+STRATEGY_VERSION = "1"
 
 
 def optimize(context: dict, policy: dict) -> dict:

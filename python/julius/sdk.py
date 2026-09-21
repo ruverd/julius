@@ -9,7 +9,7 @@ from uuid import uuid4
 from .artifacts import ArtifactStore
 from .events import validate_event
 from .ledger import Ledger
-from .optimizer import optimize
+from .optimizer import STRATEGY_ID, STRATEGY_VERSION, optimize
 from .quality_guard import GuardPolicy, Scope
 from .quality_store import QualityStore
 from .query import query_window
@@ -42,6 +42,10 @@ class Julius:
                 raise ValueError("Quality scope does not match optimization project")
             if context.get("modelId") != quality_scope.model_id:
                 raise ValueError("Quality scope requires the matching model ID")
+            if (quality_scope.strategy_id, quality_scope.strategy_version) != (
+                STRATEGY_ID, STRATEGY_VERSION,
+            ):
+                raise ValueError("Quality scope does not match optimizer strategy")
             try:
                 with QualityStore(self.directory / "quality.sqlite") as store:
                     decision = store.decision(quality_scope, quality_policy)
