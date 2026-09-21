@@ -244,10 +244,13 @@ class Julius:
         first = outcome["attempts"][0] if outcome["attempts"] else None
         first_event = first["usageEvent"] if first is not None else None
         first_response = outcome["responses"][0] if outcome["responses"] else None
-        accepted = bool(
+        response_acknowledged = bool(
             first_event is not None and isinstance(first_response, dict)
-            and first_response.get("id") == first_event["payload"]["callId"]
-            and first_event["payload"]["complete"]
+            and first_response.get("status") == "completed"
+            and isinstance(first_response.get("id"), str) and first_response["id"]
+            and first_response["id"] == first_event["payload"]["callId"]
+            and isinstance(first_response.get("model"), str) and first_response["model"]
+            and first_response["model"] == first_event["modelId"]
         )
         transformed = any(receipt["applied"] for receipt in prepared.receipts)
         measurement = dict(prepared.measurement or {})
@@ -257,7 +260,7 @@ class Julius:
             and measurement.get("afterTokens") is not None
             and measurement.get("modelId") == actual_model
         )
-        measurement["sent"] = bool(accepted and transformed)
+        measurement["sent"] = bool(response_acknowledged and transformed)
         measurement["actualModelId"] = actual_model
         measurement["tokenComparisonValid"] = valid_token_count
         request_event_id = str(uuid4())
@@ -276,7 +279,7 @@ class Julius:
             "adapterVersion": "0.1.0-experimental",
             "modelId": actual_model,
             "providerId": "xai",
-            "executionLocation": "remote" if accepted else "unknown",
+            "executionLocation": "remote" if response_acknowledged else "unknown",
             "eventType": "transform",
             "evidence": "tokenizer_counted" if valid_token_count else "heuristic_estimate",
             "payload": {
@@ -312,7 +315,7 @@ class Julius:
                 "adapterVersion": "0.1.0-experimental",
                 "modelId": first_event["modelId"] if first_event is not None else None,
                 "providerId": "xai",
-                "executionLocation": "remote" if accepted else "unknown",
+                "executionLocation": "remote" if response_acknowledged else "unknown",
                 "eventType": "transform",
                 "evidence": "heuristic_estimate",
                 "payload": {
@@ -325,7 +328,7 @@ class Julius:
                     "inputArtifactId": artifact_id,
                     "outputArtifactId": None,
                     "strategy": receipt["reason"],
-                    "sent": bool(accepted and receipt["applied"]),
+                    "sent": bool(response_acknowledged and receipt["applied"]),
                 },
             }
             transforms.append({"receipt": receipt, "event": event,

@@ -82,6 +82,46 @@ def test_failed_send_keeps_candidate_unsent_and_usage_unknown(tmp_path):
         assert usage["payload"]["costUsd"] is None
 
 
+def test_completed_response_without_usage_confirms_candidate_was_sent(tmp_path):
+    def transport(body, headers):
+        return json.dumps({"id": "resp_without_usage", "model": "grok-actual",
+                           "status": "completed", "output": []}).encode()
+
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport,
+        )
+        usage = result["attempts"][0]["usageEvent"]
+        assert result["complete"] is False
+        assert usage["payload"]["complete"] is False
+        assert usage["payload"]["inputTokens"] is None
+        assert usage["payload"]["costUsd"] is None
+        assert result["requestMeasurement"]["sent"] is True
+        assert result["requestTransformEvent"]["payload"]["sent"] is True
+        assert result["transformEvents"][0]["event"]["payload"]["sent"] is True
+        assert result["requestTransformEvent"]["executionLocation"] == "remote"
+        assert result["requestMeasurement"]["tokenComparisonValid"] is False
+        assert julius.report()["financialSavingsUsd"] is None
+
+
+def test_http_error_does_not_confirm_candidate_was_sent(tmp_path):
+    from urllib.error import HTTPError
+
+    def transport(body, headers):
+        raise HTTPError("https://api.x.ai/v1/responses", 503, "Unavailable", {}, None)
+
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport,
+        )
+        assert result["requestMeasurement"]["sent"] is False
+        assert result["requestTransformEvent"]["payload"]["sent"] is False
+        assert result["transformEvents"][0]["event"]["payload"]["sent"] is False
+        assert result["requestTransformEvent"]["executionLocation"] == "unknown"
+
+
 def test_pinned_counter_only_counts_when_actual_model_matches(tmp_path):
     def transport(body, headers):
         return json.dumps({"id": "resp_1", "model": "grok-requested", "status": "completed",
