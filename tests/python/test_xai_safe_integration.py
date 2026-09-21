@@ -1,10 +1,12 @@
 """Fixture-only xAI safe-send accounting tests."""
 
 import json
+from hashlib import sha256
 
 import pytest
 
 from julius.sdk import Julius
+from julius.xai import XAIAdapter
 
 
 LINE = "ordinary repeated status line with enough detail for deterministic reduction and retrieval"
@@ -53,10 +55,46 @@ def test_safe_send_records_transform_and_provider_attempt(tmp_path):
         assert request_transform["payload"]["inputTokens"] is None
         assert request_transform["payload"]["sent"] is True
         assert result["requestMeasurement"]["deltaBytes"] > 0
+        dispatched = result["attemptEvidence"][0]
+        assert dispatched["transportBodySha256"] == result["requestMeasurement"]["afterSha256"]
+        assert dispatched["transportBodyBytes"] == result["requestMeasurement"]["afterBytes"]
         assert result["requestMeasurement"]["tokenComparisonValid"] is False
         assert usage["payload"]["costUsd"] == pytest.approx(0.00001)
         assert julius.report()["financialSavingsUsd"] is None
         assert source["input"][0]["output"] == "\n".join([LINE] * 8)
+
+
+def test_different_transport_body_cannot_confirm_candidate(tmp_path, monkeypatch):
+    original_prepare = XAIAdapter.prepare
+    calls = 0
+    sent = []
+
+    def changed_prepare(self, payload):
+        nonlocal calls
+        calls += 1
+        body = original_prepare(self, payload)
+        if calls == 4:
+            return body.replace(b"ordinary", b"xrdinary", 1)
+        return body
+
+    def transport(body, headers):
+        sent.append(body)
+        return provider_response()
+
+    monkeypatch.setattr(XAIAdapter, "prepare", changed_prepare)
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport,
+        )
+        assert len(sent) == 1
+        assert result["attemptEvidence"][0]["transportBodySha256"] == sha256(sent[0]).hexdigest()
+        assert result["attemptEvidence"][0]["transportBodyBytes"] == result["requestMeasurement"]["afterBytes"]
+        assert result["requestMeasurement"]["bodyIdentityMatches"] is False
+        assert result["requestMeasurement"]["sent"] is False
+        assert result["requestTransformEvent"]["payload"]["sent"] is False
+        assert result["transformEvents"][0]["event"]["payload"]["sent"] is False
+        assert result["attempts"][0]["usageEvent"]["payload"]["outputTokens"] == 3
 
 
 def test_failed_send_keeps_candidate_unsent_and_usage_unknown(tmp_path):
@@ -178,7 +216,7 @@ def test_serialized_json_counter_does_not_claim_model_input_savings(tmp_path):
         assert summary["coverage"]["transformedObservedRequests"] == 1
 
 
-def test_explicit_model_input_counter_keeps_tokenizer_provenance(tmp_path):
+def test_partial_model_input_counter_remains_diagnostic(tmp_path):
     def transport(body, headers):
         return json.dumps({"id": "resp_1", "model": "grok-requested", "status": "completed",
                            "usage": {"input_tokens": 30, "output_tokens": 3},
@@ -196,11 +234,13 @@ def test_explicit_model_input_counter_keeps_tokenizer_provenance(tmp_path):
             token_counting_basis="model_input",
         )
         event = result["requestTransformEvent"]
-        assert event["evidence"] == "tokenizer_counted"
-        assert event["payload"]["inputTokens"] > event["payload"]["outputTokens"]
-        assert result["requestMeasurement"]["tokenComparisonValid"] is True
-        assert result["requestMeasurement"]["tokenComparisonReason"] is None
-        assert julius.report()["directInputReduction"][0]["tokens"]["total"] > 0
+        assert event["evidence"] == "heuristic_estimate"
+        assert event["payload"]["inputTokens"] is None
+        assert event["payload"]["outputTokens"] is None
+        assert result["requestMeasurement"]["beforeTokens"] is not None
+        assert result["requestMeasurement"]["tokenComparisonValid"] is False
+        assert result["requestMeasurement"]["tokenComparisonReason"] == "caller_counter_cannot_verify_model_input"
+        assert julius.report()["directInputReduction"][0]["tokens"]["total"] is None
 
 
 def test_response_model_alias_mismatch_invalidates_attested_count(tmp_path):

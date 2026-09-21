@@ -44,7 +44,7 @@ def test_explicit_pinned_counter_keeps_signed_delta():
                                     model_id="grok-pinned", tokenizer_id="fixture-v1")
     assert measured["deltaBytes"] < 0
     assert measured["deltaTokens"] < 0
-    assert measured["tokenEvidence"] == "tokenizer_counted"
+    assert measured["tokenEvidence"] == "caller_counted"
     assert measured["tokenCountingBasis"] == "serialized_request"
     assert measured["modelId"] == "grok-pinned"
     assert measured["tokenizerId"] == "fixture-v1"

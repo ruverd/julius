@@ -34,7 +34,7 @@ def _request_token_comparison(
         return False, "actual_model_unavailable"
     if measurement.get("modelId") != actual_model:
         return False, "actual_model_mismatch"
-    return True, None
+    return False, "caller_counter_cannot_verify_model_input"
 
 
 class Julius:
@@ -156,6 +156,8 @@ class Julius:
             "rawUsage": result.raw_usage,
             "error": result.error,
             "evidence": result.evidence,
+            "transportBodySha256": result.transport_body_sha256,
+            "transportBodyBytes": result.transport_body_bytes,
         }
 
     def _record_xai_attempt(
@@ -309,6 +311,13 @@ class Julius:
         first = outcome["attempts"][0] if outcome["attempts"] else None
         first_event = first["usageEvent"] if first is not None else None
         first_response = outcome["responses"][0] if outcome["responses"] else None
+        first_evidence = outcome["attemptEvidence"][0] if outcome["attemptEvidence"] else None
+        measurement = dict(prepared.measurement or {})
+        body_matches = bool(
+            first_evidence is not None
+            and first_evidence.get("transportBodySha256") == measurement.get("afterSha256")
+            and first_evidence.get("transportBodyBytes") == measurement.get("afterBytes")
+        )
         response_acknowledged = bool(
             first_event is not None and isinstance(first_response, dict)
             and first_response.get("status") == "completed"
@@ -316,9 +325,10 @@ class Julius:
             and first_response["id"] == first_event["payload"]["callId"]
             and isinstance(first_response.get("model"), str) and first_response["model"]
             and first_response["model"] == first_event["modelId"]
+            and body_matches
         )
         transformed = any(receipt["applied"] for receipt in prepared.receipts)
-        measurement = dict(prepared.measurement or {})
+        measurement["bodyIdentityMatches"] = body_matches
         actual_model = first_event["modelId"] if first_event is not None else None
         valid_token_count, comparison_reason = _request_token_comparison(
             measurement, actual_model,

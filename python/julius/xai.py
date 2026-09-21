@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 from urllib.error import HTTPError, URLError
@@ -31,6 +32,9 @@ class XAIResult:
     error: str | None = None
     evidence: str = "provider_reported"
     cost_ticks: int | None = None
+    # Identity of bytes handed to transport; delivery to the provider is unconfirmed.
+    transport_body_sha256: str | None = None
+    transport_body_bytes: int | None = None
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -108,6 +112,8 @@ class XAIAdapter:
         if not api_key or any(char in api_key for char in "\r\n"):
             raise ValueError("A valid dedicated xAI API key is required")
         model = str(request["model"])
+        body_sha256 = sha256(body).hexdigest()
+        body_bytes = len(body)
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         try:
             response_bytes = (transport or _default_transport)(body, headers)
@@ -115,13 +121,13 @@ class XAIAdapter:
                 raise ValueError("Response exceeds size limit")
             response = json.loads(response_bytes)
         except HTTPError as exc:
-            return self._incomplete(model, f"HTTP {exc.code}")
+            return self._incomplete(model, f"HTTP {exc.code}", body_sha256, body_bytes)
         except (URLError, TimeoutError, OSError):
-            return self._incomplete(model, "Transport failed; provider usage unknown")
+            return self._incomplete(model, "Transport failed; provider usage unknown", body_sha256, body_bytes)
         except (ValueError, UnicodeError, TypeError):
-            return self._incomplete(model, "Invalid or oversized provider response")
+            return self._incomplete(model, "Invalid or oversized provider response", body_sha256, body_bytes)
         if not isinstance(response, dict):
-            return self._incomplete(model, "Invalid provider response")
+            return self._incomplete(model, "Invalid provider response", body_sha256, body_bytes)
         usage = response.get("usage")
         usage = usage if isinstance(usage, dict) else None
         usage_fields = usage or {}
@@ -165,9 +171,12 @@ class XAIAdapter:
             raw_response=response,
             error=None if complete else "Response incomplete or usage unavailable",
             cost_ticks=_counter(usage_fields.get("cost_in_usd_ticks")),
+            transport_body_sha256=body_sha256,
+            transport_body_bytes=body_bytes,
         )
 
     @staticmethod
-    def _incomplete(model: str, error: str) -> XAIResult:
+    def _incomplete(model: str, error: str, body_sha256: str, body_bytes: int) -> XAIResult:
         return XAIResult(model, None, None, False, None, None, None, None, None,
-                         None, None, error)
+                         None, None, error, transport_body_sha256=body_sha256,
+                         transport_body_bytes=body_bytes)

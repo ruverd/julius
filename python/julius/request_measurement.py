@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from hashlib import sha256
 from typing import Any, Literal
 
 from .xai import XAIAdapter
@@ -21,7 +22,7 @@ def measure_request_pair(
     tokenizer_id: str | None = None,
     token_counting_basis: TokenCountingBasis = "serialized_request",
 ) -> dict[str, Any]:
-    """Count serialized bodies; model-input claims require a separate attestation."""
+    """Count serialized bodies; caller counts cannot verify model-visible coverage."""
     if token_counting_basis not in ("serialized_request", "model_input"):
         raise ValueError("Unknown token counting basis")
     if original.get("model") != candidate.get("model"):
@@ -50,6 +51,8 @@ def measure_request_pair(
         "scope": "request",
         "beforeBytes": len(before),
         "afterBytes": len(after),
+        "beforeSha256": sha256(before).hexdigest(),
+        "afterSha256": sha256(after).hexdigest(),
         "deltaBytes": len(before) - len(after),
         "beforeTokens": before_tokens,
         "afterTokens": after_tokens,
@@ -58,7 +61,8 @@ def measure_request_pair(
         "modelId": model_id,
         "tokenizerId": tokenizer_id,
         "tokenCountingBasis": token_counting_basis if token_counter is not None else None,
-        "tokenEvidence": "tokenizer_counted" if token_counter is not None else None,
+        "tokenEvidence": "caller_counted" if token_counter is not None else None,
+        "tokenVerificationReason": "caller_counter_cannot_verify_model_input" if token_counter is not None else "counter_unavailable",
         "providerMeasured": False,
         "sent": False,
     }

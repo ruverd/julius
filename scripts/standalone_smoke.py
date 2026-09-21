@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import shlex
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import subprocess
@@ -58,6 +59,38 @@ def main() -> None:
         )
         if codex_hook.stdout != "{}\n" or codex_hook.stderr:
             raise AssertionError("Bundled Codex hook default was not an offline no-op")
+        project = data_dir / "project"
+        (project / ".codex").mkdir(parents=True)
+        hooks_path = project / ".codex" / "hooks.json"
+        original_hooks = b'{"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"true"}]}]}}\n'
+        hooks_path.write_bytes(original_hooks)
+        setup_args = ("setup", "--integration", "codex", "--project-root", str(project))
+        preview = json.loads(_run(binary, *setup_args, data_dir=data_dir).stdout)
+        if preview["applied"] or hooks_path.read_bytes() != original_hooks:
+            raise AssertionError("Bundled Codex setup preview changed the project")
+        applied = json.loads(_run(
+            binary, *setup_args, "--apply-plan", preview["planHash"], data_dir=data_dir,
+        ).stdout)
+        if not applied["applied"]:
+            raise AssertionError("Bundled Codex setup did not apply reviewed plan")
+        installed = json.loads(hooks_path.read_bytes())
+        if installed["hooks"]["SessionStart"][0]["hooks"][0]["command"] != "true":
+            raise AssertionError("Bundled Codex setup lost another hook")
+        command = installed["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+        installed_hook = subprocess.run(
+            shlex.split(command),
+            input=json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "smoke",
+                              "cwd": str(project), "prompt": "synthetic"}),
+            cwd=project, capture_output=True, text=True, check=True, timeout=30,
+        )
+        if installed_hook.stdout != "{}\n" or installed_hook.stderr:
+            raise AssertionError("Bundled installed Codex hook did not run offline")
+        removed = json.loads(_run(
+            binary, "integrations", "remove", "codex", "--project-root", str(project),
+            data_dir=data_dir,
+        ).stdout)
+        if not removed["removed"] or hooks_path.read_bytes() != original_hooks:
+            raise AssertionError("Bundled Codex removal did not restore original hooks")
         now = datetime.now(timezone.utc)
         content = "standalone memory fixture"
         record = {
@@ -90,7 +123,7 @@ def main() -> None:
                 or history["records"][0]["invalidationReason"] != "smoke_complete"
                 or "content" in history["records"][0]):
             raise AssertionError("Bundled memory history lost invalidation audit or exposed content")
-    print(f"Standalone smoke passed: {version}; hook/MCP recovery, Codex hook, Jev replay, and memory search")
+    print(f"Standalone smoke passed: {version}; hook/MCP recovery, managed Codex hook, Jev replay, and memory search")
 
 
 if __name__ == "__main__":
