@@ -140,6 +140,13 @@ def test_pinned_counter_only_counts_when_actual_model_matches(tmp_path):
         assert event["evidence"] == "tokenizer_counted"
         assert event["payload"]["inputTokens"] > event["payload"]["outputTokens"]
         assert result["requestMeasurement"]["tokenComparisonValid"] is True
+        summary = julius.report()
+        assert len(summary["directInputReduction"]) == 1
+        assert len(summary["toolOutputReduction"]) == 1
+        assert summary["directInputReduction"][0]["tokens"]["total"] == (
+            event["payload"]["inputTokens"] - event["payload"]["outputTokens"]
+        )
+        assert summary["coverage"]["transformedObservedRequests"] == 1
 
 
 @pytest.mark.parametrize("bad_request", [
