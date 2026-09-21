@@ -1,14 +1,18 @@
 """Local command interface. Reports never call a model."""
 
 import argparse
+import hashlib
 import json
 import os
+import shlex
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import cast
 from uuid import uuid4
+
+from pydantic import ValidationError
 
 from . import __version__
 from .events import validate_event
@@ -25,6 +29,9 @@ from .claude_hooks import post_tool_use
 from .mcp_recovery import serve_stdio as serve_recovery_stdio
 from .claude_runner import run_claude
 from .lmstudio import discover_lmstudio
+from .model_registry import ModelRegistry, ModelSnapshot
+from .evaluation_runner import Attempt, FrozenFixture, replay_paired_fixtures
+from .integration_manager import ClaudeIntegrationManager
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -61,6 +68,7 @@ def _parser() -> argparse.ArgumentParser:
             "serve",
             "hook",
             "mcp",
+            "evaluate",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -69,7 +77,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
+    for option in ("project", "project-root", "apply-plan", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
         parser.add_argument(f"--{option}")
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence"):
         parser.add_argument(f"--{option}", type=float)
@@ -107,6 +115,17 @@ def _json(value: object) -> None:
 
 def _json_file(path: str, limit: int = 1_000_000) -> object:
     return json.loads(_read(path, limit))
+
+
+def _integration_state_root(data_dir: Path, project_root: Path) -> Path:
+    """Keep configuration backups outside the project, even with default .julius."""
+    data_dir = data_dir.resolve()
+    project_root = project_root.resolve()
+    if data_dir == project_root or data_dir.is_relative_to(project_root):
+        user_state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+        project_key = hashlib.sha256(str(project_root).encode()).hexdigest()
+        return user_state / "julius" / "managed-config" / project_key
+    return data_dir / "managed-config"
 
 
 def _task_explanation(data: dict) -> str:
@@ -217,13 +236,46 @@ def run(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0
     if command == "models":
-        if argument != "list":
-            raise ValueError("Use models list")
-        _json(
-            discover_lmstudio(args.endpoint or "http://127.0.0.1:1234")
-            if args.runtime == "lmstudio"
-            else discover_ollama(args.endpoint or "http://127.0.0.1:11434")
-        )
+        if argument == "list":
+            _json(
+                discover_lmstudio(args.endpoint or "http://127.0.0.1:1234")
+                if args.runtime == "lmstudio"
+                else discover_ollama(args.endpoint or "http://127.0.0.1:11434")
+            )
+        elif argument in ("record", "history"):
+            directory = Path(args.data_dir).absolute()
+            directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with ModelRegistry(directory / "models.sqlite3") as registry:
+                if argument == "record":
+                    snapshot = ModelSnapshot.model_validate(
+                        _json_file(_required(args.state_file, "--state-file"))
+                    )
+                    _json(registry.add(snapshot))
+                else:
+                    _json(registry.history(
+                        endpoint=_required(args.endpoint, "--endpoint"),
+                        requested_model=_required(args.model, "--model"),
+                    ))
+        else:
+            raise ValueError("Use models list, record, or history")
+        return 0
+    if command == "evaluate":
+        if args.arguments != ["replay"]:
+            raise ValueError("Use evaluate replay --state-file <json>")
+        payload = _json_file(_required(args.state_file, "--state-file"), 16 * 1024 * 1024)
+        if not isinstance(payload, dict):
+            raise ValueError("Evaluation input must be a JSON object")
+        fixtures = payload.get("fixtures")
+        attempts = payload.get("attempts")
+        if not isinstance(fixtures, list) or not isinstance(attempts, list):
+            raise ValueError("Evaluation requires fixtures and attempts arrays")
+        _json(replay_paired_fixtures(
+            [FrozenFixture.model_validate(item) for item in fixtures],
+            [Attempt.model_validate(item) for item in attempts],
+            baseline_arm=_required(payload.get("baselineArm"), "baselineArm"),
+            candidate_arm=_required(payload.get("candidateArm"), "candidateArm"),
+            seed=payload.get("seed", 0),
+        ))
         return 0
     if command == "run" and args.agent not in ("grok", "xai", "claude"):
         raise ValueError("Run requires --agent grok or --agent claude")
@@ -239,13 +291,62 @@ def run(argv: list[str] | None = None) -> int:
             recovery_verified=args.recovery_verified,
         )
     if command == "integrations":
-        if argument != "remove":
-            raise ValueError("Use integrations remove <id>")
-        print("No managed integrations exist. No client configuration was changed.")
+        if args.arguments != ["remove", "claude"]:
+            raise ValueError("Use integrations remove claude --project-root <directory>")
+        manager = ClaudeIntegrationManager(
+            _required(args.project_root, "--project-root"),
+            _integration_state_root(
+                Path(args.data_dir).absolute(), Path(args.project_root).absolute()
+            ),
+        )
+        _json({"removed": manager.remove(), "integration": "claude"})
         return 0
     if command == "jev" and argument != "shadow":
         raise ValueError("Use jev shadow --state-file <json> --project <id> --post-call-threshold-usd <amount>")
     directory = Path(args.data_dir).absolute()
+    if command == "setup" and args.project_root:
+        if args.arguments:
+            raise ValueError("Setup does not accept positional arguments")
+        if args.profile == "safe" and not args.recovery_verified:
+            raise ValueError("Persistent safe hook requires --recovery-verified")
+        project_root = Path(args.project_root).resolve()
+        project_id = _required(args.project, "--project")
+        module_command = [sys.executable, "-m", "julius.cli", "--data-dir", str(directory)]
+        hook_command = shlex.join([
+            *module_command, "hook", "claude-post-tool-use", "--project", project_id,
+            "--profile", args.profile,
+            *(["--recovery-available"] if args.recovery_verified else []),
+        ])
+        manager = ClaudeIntegrationManager(
+            project_root, _integration_state_root(directory, project_root),
+        )
+        plan = manager.preview(
+            hook_command=hook_command,
+            mcp_command=sys.executable,
+            mcp_args=["-m", "julius.cli", "--data-dir", str(directory),
+                      "mcp", "recovery", "--project", project_id],
+            recovery_verified=args.recovery_verified,
+        )
+        digest = hashlib.sha256(
+            plan.settings.desired + b"\0" + plan.mcp.desired
+        ).hexdigest()
+        if args.apply_plan is not None:
+            if args.apply_plan != digest:
+                raise ValueError("Setup plan changed; preview again before applying")
+            applied = manager.apply(plan)
+        else:
+            applied = False
+        _json({
+            "integration": "claude", "projectRoot": str(project_root),
+            "planHash": digest, "applied": applied,
+            "hookProfile": args.profile,
+            "recoveryAttested": args.recovery_verified,
+            "backupState": str(_integration_state_root(directory, project_root)),
+            "settingsDiff": plan.settings.diff, "mcpDiff": plan.mcp.diff,
+        })
+        return 0
+    if command == "setup" and args.apply_plan is not None:
+        raise ValueError("--apply-plan requires --project-root")
     if command == "serve":
         if args.arguments:
             raise ValueError("Use serve without positional arguments")
@@ -442,7 +543,8 @@ def run(argv: list[str] | None = None) -> int:
 def main() -> None:
     try:
         raise SystemExit(run())
-    except (ValueError, OSError, RuntimeError, KeyError, TypeError, sqlite3.Error) as error:
+    except (ValueError, OSError, RuntimeError, KeyError, TypeError, sqlite3.Error,
+            ValidationError) as error:
         print(f"Julius: {error}", file=sys.stderr)
         raise SystemExit(1) from error
 

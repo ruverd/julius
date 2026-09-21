@@ -15,6 +15,7 @@ Status: active. Existing Python/Rust repository is a foundation, not the deliver
 - Evaluation follow-up: paired bootstrap confidence intervals for measured trial differences. No causal product result is claimed from these fixtures.
 - Current follow-up: ephemeral Claude Code launcher with observe default and a guarded safe hook, read-only LM Studio discovery, offline xAI recoverable tool-output candidates, and task-level output difference only for explicit comparable baselines with complete coverage. None establishes live client compatibility or automatic xAI input savings.
 - Latest follow-up: local `doctor` hook/MCP subprocess probe, candidate-only Claude hook receipts, and a bounded xAI restore loop with per-attempt ledger accounting. Explicit xAI safe mode can send recoverable tool-output candidates; it reports heuristic candidate counts and no direct whole-request savings. Live acceptance, task quality, and economic benefit remain unverified.
+- This increment: hash-gated preview/apply and reversible Claude project configuration, append-only endpoint-scoped model snapshots, and offline frozen-fixture replay with individual attempts. CLI acceptance tests and an isolated wheel smoke cover these paths. Fixture replay executes no task; model snapshots do not verify remote facts; project setup still lacks a live Claude session-level acceptance test.
 
 ## Scope decisions
 

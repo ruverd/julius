@@ -27,7 +27,7 @@ For an existing local wheel, install into your chosen virtual environment:
 uv pip install --python /path/to/venv/bin/python ./dist/wheels/<matching-wheel>.whl
 ```
 
-Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Setup initializes storage and probes client versions; it does not change client configuration. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
+Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Plain `setup` initializes storage and probes client versions. Project-specific `setup --project-root` previews a Claude configuration change and requires a matching plan hash before applying it. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
 
 `julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request.
 
@@ -69,9 +69,11 @@ uv run --no-sync julius export --format csv --since 7d > usage.csv
 uv run --no-sync julius dashboard --output ./julius-report.html
 uv run --no-sync julius models list
 uv run --no-sync julius models list --runtime lmstudio
+uv run --no-sync julius models record --state-file ./model-snapshot.json
+uv run --no-sync julius models history --endpoint http://127.0.0.1:11434 --model '<model-id>'
 ```
 
-Transcript importers are experimental and fixture-tested, reading only explicitly supplied files. [Integration contracts](docs/integrations.md) describe supported record shapes. Codex cumulative deltas are not an exact call count. Executable detection does not establish live compatibility. Ollama and [LM Studio](docs/lmstudio.md) discovery are read-only, bypass environment proxies, reject redirects, and are restricted to loopback; they never download or load models.
+Transcript importers are experimental and fixture-tested, reading only explicitly supplied files. [Integration contracts](docs/integrations.md) describe supported record shapes. Codex cumulative deltas are not an exact call count. Executable detection does not establish live compatibility. Ollama and [LM Studio](docs/lmstudio.md) discovery are read-only, bypass environment proxies, reject redirects, and are restricted to loopback; they never download or load models. [Model snapshots](docs/model-registry.md) retain caller-supplied historical facts by endpoint; recording a snapshot does not itself verify or discover a model.
 
 `7d` means a rolling window, with inclusive start and exclusive end. Local date inputs convert to UTC; the report names its timezone. Unknown values stay unavailable. Negative reductions remain signed. Provider usage does not establish the cost of a counterfactual trajectory. Financial savings remain unavailable in CLI reports until an explicit comparable baseline is integrated. Subscription refunds and proprietary limits are never inferred.
 
@@ -98,7 +100,16 @@ Public Python functions use snake_case; versioned event and receipt dictionaries
 
 Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-scoped FTS5 memory](docs/memory.md), and a [cache-aware decision helper](docs/cache-policy.md). They do not automatically change agent requests or create financial baselines in CLI reports.
 
-The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. The [Codex hook adapter](docs/codex-hooks.md) provides trusted additive context only. Local tests verify protocol shapes and recovery; neither client has passed a live rewrite test. [Managed configuration primitives](docs/managed-config.md) and a [Claude project-config planner](docs/claude-config.md) are not yet connected to setup/remove commands.
+The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. The [Codex hook adapter](docs/codex-hooks.md) provides trusted additive context only. Local tests verify protocol shapes and recovery; neither client has passed a live rewrite test. [Managed Claude project configuration](docs/integration-management.md) supports a reviewable opt-in preview, hash-gated apply, and exact backup restoration on removal.
+
+```sh
+uv run --no-sync julius setup --project-root ./project --project app
+# Review both diffs, then use the printed hash:
+uv run --no-sync julius setup --project-root ./project --project app --apply-plan '<planHash>'
+uv run --no-sync julius integrations remove claude --project-root ./project
+```
+
+The project must already contain a `.claude` directory. Default project setup installs an observe-only hook; persistent safe mode requires `--profile safe --recovery-verified` after checking the recovery tool in that client session. The attestation is not automatic certification. Setup changes only that project. Configuration backups live outside the project when the default `.julius` data directory is inside it; `setup` prints their path. Removal refuses drifted configuration instead of overwriting edits made afterward.
 
 ```sh
 uv run --no-sync julius run --agent claude --project app --profile observe
@@ -125,12 +136,12 @@ Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, 
 
 The offline [`analyze_task` API](docs/economics.md) can calculate modeled task cost and net savings when a caller supplies complete call coverage, a comparable baseline, and dated price snapshots. CLI savings remains unavailable without that evidence. Observed output tokens are usage; a signed task-level output difference requires an explicit comparable output baseline and complete coverage. It is not proof that Julius shortened generated answers.
 
-An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline and candidate trials, keeps failed runs and retries in totals, and reports unknown measurements as unavailable. It calculates bootstrap confidence intervals when enough paired trials exist. It has no built-in task runner or benchmark corpus yet.
+An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline and candidate trials, keeps failed runs and retries in totals, and reports unknown measurements as unavailable. A [frozen-fixture replay](docs/evaluation-runner.md) accepts individual attempt records through `julius evaluate replay --state-file replay.json` and calculates signed differences and bootstrap confidence intervals. It executes no tasks and has no benchmark corpus yet.
 
 ## Delivery status
 
-Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, ephemeral Claude launcher, local hook/MCP probe, native wheels, and tests.
+Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery, append-only model snapshots, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics and fixture replay, ephemeral Claude launcher, managed project configuration, local hook/MCP probe, native wheels, and tests.
 
-Pending: verified live Claude/Codex/xAI/Jev integrations, confirmed sent-request interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, client-verified recovery registration, structured memory, automatic cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed setup/remove, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
+Pending: verified live Claude/Codex/xAI integrations, confirmed sent-request interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, client-verified recovery registration, structured memory, automatic cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 
 The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [product completion plan](docs/plans/2026-09-21-product-completion.md), [event contract](docs/events.md), and [validation](docs/validation.md).

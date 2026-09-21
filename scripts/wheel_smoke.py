@@ -22,8 +22,10 @@ def main() -> None:
 
         def run(*args: str) -> str:
             completed = subprocess.run(
-                [str(python), *args], cwd=root, env=env, capture_output=True, text=True, check=True
+                [str(python), *args], cwd=root, env=env, capture_output=True, text=True
             )
+            if completed.returncode:
+                raise RuntimeError(f"Wheel smoke command failed: {args}: {completed.stderr}")
             return completed.stdout
 
         location = run("-c", "import julius, julius._native; print(julius.__file__)").strip()
@@ -39,6 +41,9 @@ def main() -> None:
             "from julius.xai_tool_loop import run_restore_loop; "
             "from julius.claude_probe import probe_local_protocol; "
             "from julius.claude_config import plan_claude_project_config; "
+            "from julius.integration_manager import ClaudeIntegrationManager; "
+            "from julius.model_registry import ModelRegistry; "
+            "from julius.evaluation_runner import replay_paired_fixtures; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")
@@ -58,8 +63,34 @@ def main() -> None:
         assert run("-m", "julius", "restore", reference, "--project", "demo") == source.read_text()
         run("-m", "julius", "dashboard", *window, "--output", str(root / "report.html"))
         assert "group" in run("-m", "julius", "export", *window, "--format", "csv")
+        model_file = root / "model.json"
+        model_file.write_text(json.dumps({
+            "endpoint": "http://127.0.0.1:11434", "provider": "ollama",
+            "requested_model": "fixture", "state": "unknown", "source": "wheel-smoke",
+        }))
+        assert json.loads(run("-m", "julius", "models", "record", "--state-file", str(model_file)))["state"] == "unknown"
+        assert len(json.loads(run(
+            "-m", "julius", "models", "history", "--endpoint", "http://127.0.0.1:11434",
+            "--model", "fixture",
+        ))) == 1
+        project = root / "project"
+        (project / ".claude").mkdir(parents=True)
+        preview = json.loads(run(
+            "-m", "julius", "setup", "--project-root", str(project), "--project", "fixture",
+        ))
+        assert preview["applied"] is False
+        applied = json.loads(run(
+            "-m", "julius", "setup", "--project-root", str(project), "--project", "fixture",
+            "--apply-plan", preview["planHash"],
+        ))
+        assert applied["applied"] is True
+        assert json.loads(run(
+            "-m", "julius", "integrations", "remove", "claude", "--project-root", str(project),
+        ))["removed"] is True
         print(
-            "Isolated wheel smoke passed: native and optional module imports, idempotency, 7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV."
+            "Isolated wheel smoke passed: native and optional imports, event idempotency, "
+            "7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV, model snapshots, "
+            "and reversible Claude setup."
         )
 
 

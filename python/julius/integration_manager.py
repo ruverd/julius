@@ -23,7 +23,7 @@ class ClaudeIntegrationManager:
     """Manage two fixed project files without changing global client settings."""
 
     def __init__(self, project_root: str | Path, state_root: str | Path):
-        self.project_root = Path(project_root).absolute()
+        self.project_root = Path(project_root).resolve()
         self.settings_path = self.project_root / ".claude" / "settings.json"
         self.mcp_path = self.project_root / ".mcp.json"
         if not self.settings_path.parent.is_dir():
