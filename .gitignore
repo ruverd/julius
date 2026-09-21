@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.julius/
+*.sqlite*
+.DS_Store
