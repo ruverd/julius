@@ -11,13 +11,16 @@ PRICE = {
 
 def usage(name: str, input_tokens: int | None, output_tokens: int | None = 100, *,
           cache_read: int | None = 0, complete: bool = True, category: str = "primary",
-          model: str | None = "m", location: str = "remote") -> dict:
+          model: str | None = "m", tokenizer: str | None = None,
+          location: str = "remote") -> dict:
     return {
         "eventId": name, "eventType": "usage", "taskId": "task", "occurredAt": "2026-09-21T00:00:00Z",
         "modelId": model, "providerId": "vendor", "executionLocation": location,
         "evidence": "provider_reported", "payload": {"callId": name, "inputTokens": input_tokens,
         "outputTokens": output_tokens, "cacheReadTokens": cache_read, "cacheWriteTokens": 0,
-        "priceSnapshotId": "p", "category": category, "complete": complete, "costUsd": None,
+        "priceSnapshotId": "p", "tokenizerId": tokenizer,
+        "tokenizerSource": "test_counter" if tokenizer else None, "category": category,
+        "complete": complete, "costUsd": None,
         "costProvenance": None},
     }
 
@@ -26,11 +29,13 @@ def baseline(*calls: dict) -> dict:
     return {"id": "base", "taskId": "task", "evidence": "controlled_experiment", "calls": list(calls)}
 
 
-def base_call(name: str, count: int, output: int = 100, *, cache_read: int = 0) -> dict:
-    return {"callId": name, "modelId": "m", "providerId": "vendor",
+def base_call(name: str, count: int, output: int = 100, *, cache_read: int = 0,
+              model: str = "m", tokenizer: str | None = None) -> dict:
+    return {"callId": name, "modelId": model, "providerId": "vendor",
             "occurredAt": "2026-09-21T00:00:00Z", "inputTokens": count,
             "outputTokens": output, "cacheReadTokens": cache_read, "cacheWriteTokens": 0,
-            "priceSnapshotId": "p"}
+            "priceSnapshotId": "p", "tokenizerId": tokenizer,
+            "tokenizerSource": "test_counter" if tokenizer else None}
 
 
 def transform(name: str, before: int, after: int, parent: str | None = None) -> dict:
@@ -116,21 +121,51 @@ def test_orphan_parent_cannot_be_treated_as_root() -> None:
 
 
 def test_output_difference_needs_comparable_complete_task() -> None:
-    reference = baseline(base_call("base", 1000, output=200))
-    assert analyze_task([usage("current", 900, 150)], reference,
+    reference = baseline(base_call("base", 1000, output=200, tokenizer="tok"))
+    assert analyze_task([usage("current", 900, 150, tokenizer="tok")], reference,
                         coverage_complete=True)["outputSavingsTokens"] is None
     reference["outputComparable"] = True
-    result = analyze_task([usage("current", 900, 150)], reference,
+    result = analyze_task([usage("current", 900, 150, tokenizer="tok")], reference,
                           coverage_complete=True)
     assert result["outputSavingsTokens"] == 50
     assert result["outputSavingsEvidence"] == "controlled_experiment"
     assert result["outputSavingsScope"] == "task_comparison"
-    assert analyze_task([usage("current", 900, 250)], reference,
+    assert analyze_task([usage("current", 900, 250, tokenizer="tok")], reference,
                         coverage_complete=True)["outputSavingsTokens"] == -50
-    assert analyze_task([usage("current", 900, None, complete=False)], reference,
+    assert analyze_task([usage("current", 900, None, complete=False, tokenizer="tok")], reference,
                         coverage_complete=True)["outputSavingsTokens"] is None
-    assert analyze_task([usage("current", 900, 150)], reference,
+    assert analyze_task([usage("current", 900, 150, tokenizer="tok")], reference,
                         coverage_complete=False)["outputSavingsTokens"] is None
+
+
+def test_output_difference_rejects_cross_model_and_unknown_tokenizer() -> None:
+    reference = baseline(base_call("base", 1000, output=200, tokenizer="tok"))
+    reference["outputComparable"] = True
+    assert analyze_task([usage("current", 900, 150, model="other", tokenizer="tok")],
+                        reference, coverage_complete=True)["outputSavingsTokens"] is None
+    assert analyze_task([usage("current", 900, 150, tokenizer="other")],
+                        reference, coverage_complete=True)["outputSavingsTokens"] is None
+    assert analyze_task([usage("current", 900, 150)],
+                        reference, coverage_complete=True)["outputSavingsTokens"] is None
+    reference["calls"][0]["tokenizerId"] = None
+    assert analyze_task([usage("current", 900, 150, tokenizer="tok")],
+                        reference, coverage_complete=True)["outputSavingsTokens"] is None
+
+
+def test_output_difference_requires_identity_for_all_calls_but_keeps_cost() -> None:
+    reference = baseline(base_call("base", 1000, output=200, tokenizer="tok"))
+    reference["outputComparable"] = True
+    calls = [usage("first", 900, 150, tokenizer="tok"),
+             usage("second", 100, 50, model="other", tokenizer="tok")]
+    calls[1]["payload"]["priceSnapshotId"] = "other-price"
+    other_price = {**PRICE, "id": "other-price", "modelId": "other"}
+    result = analyze_task(calls, reference, {"p": PRICE, "other-price": other_price},
+                          coverage_complete=True)
+    assert result["outputSavingsTokens"] is None
+    assert result["observedOutputTokens"] == 200
+    assert result["baselineOutputTokens"] == 200
+    assert result["currentCostUsd"] is not None
+    assert result["netModeledSavingsUsd"] is not None
 
 
 def test_extra_overhead_cannot_charge_observed_call_twice() -> None:

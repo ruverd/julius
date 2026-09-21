@@ -20,6 +20,24 @@ def _cost(call: dict[str, Any], prices: Mapping[str, dict[str, Any]]) -> float |
     ]
 
 
+def _shared_output_counter_identity(
+    baseline_calls: Sequence[dict[str, Any]], current_calls: Sequence[dict[str, Any]]
+) -> bool:
+    """Require one known model/tokenizer counter for every compared output count."""
+    identities = {
+        (call.get("providerId"), call.get("modelId"), call.get("tokenizerId"))
+        for call in (*baseline_calls, *current_calls)
+    }
+    return len(identities) == 1 and all(
+        isinstance(part, str) and bool(part.strip())
+        for part in next(iter(identities))
+    ) and all(
+        isinstance(call.get("tokenizerSource"), str)
+        and bool(call["tokenizerSource"].strip())
+        for call in (*baseline_calls, *current_calls)
+    )
+
+
 def analyze_task(
     events: Sequence[dict[str, Any]],
     baseline: dict[str, Any] | None = None,
@@ -70,6 +88,8 @@ def analyze_task(
             "cacheReadTokens": payload.get("cacheReadTokens"),
             "cacheWriteTokens": payload.get("cacheWriteTokens"),
             "outputTokens": payload.get("outputTokens"),
+            "tokenizerId": payload.get("tokenizerId"),
+            "tokenizerSource": payload.get("tokenizerSource"),
             "executionLocation": event.get("executionLocation", "unknown"),
             "category": payload.get("category"),
             "complete": payload.get("complete") is True,
@@ -173,6 +193,7 @@ def analyze_task(
         baseline_output - observed_output
         if baseline is not None and baseline.get("outputComparable") is True
         and baseline_output is not None and observed_output is not None
+        and _shared_output_counter_identity(baseline_calls, priced)
         else None
     )
     return {
