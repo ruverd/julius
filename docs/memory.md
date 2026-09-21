@@ -8,6 +8,8 @@ Search requires both a project ID and the exact snapshot ID. It excludes expired
 
 The store makes no model or network requests. Search verifies each returned content hash. `invalidate(id, project_id, reason="explicit_invalidation", source=None)` hides all versions of that ID in one project and records a UTC timestamp, reason, and optional source on each newly invalidated row. A repeated invalidation leaves the first audit record intact. Existing rows are migrated additively; old invalidations keep unknown audit fields as `null`. `delete_project(project_id)` removes a project's indexed text. `purge_expired(project_id)` deletes expired records and their FTS entries. SQLite secure deletion is enabled and a WAL checkpoint is attempted after purge. Neither this nor any local deletion can guarantee physical erasure on SSDs. Call `close()` to release the SQLite connection.
 
+`history(project_id, artifact_id=None, limit=100)` reads up to 100 records from one project, including invalidated and expired records. It returns IDs, versions, snapshot IDs, content hashes, timestamps, provenance, origin, confidence, invalidation condition, and invalidation audit fields. It never returns raw content. Results are ordered by creation time (newest first), then ID and version. The optional artifact ID filters the result to one memory identity. Expired records disappear from history after `purge_expired` deletes them.
+
 The CLI accepts an explicitly prepared JSON record with the fields above, checks its project against `--project`, and keeps search local:
 
 ```sh

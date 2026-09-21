@@ -173,7 +173,40 @@ def test_legacy_schema_migrates_without_inventing_audit_values(tmp_path):
         ).fetchone()
         assert row == (None, None, None, None, None)
         assert store.invalidate("fact", "one") == 0
+        legacy = store.history("one", "fact")[0]
+        assert legacy["invalidated"] is True
+        assert legacy["invalidatedAt"] is None
+        assert legacy["invalidationReason"] is None
+        assert legacy["invalidationSource"] is None
         store.put(memory(id="new"))
         assert store.search("one", "compiler", snapshot="commit-a")[0]["id"] == "new"
+    finally:
+        store.close()
+
+
+def test_history_is_bounded_project_scoped_and_content_free():
+    store = MemoryStore(":memory:")
+    try:
+        store.put(memory(id="a", version=1, content="secret text compiler"))
+        store.put(memory(id="a", version=2, content="new secret compiler"))
+        store.put(memory(id="b", projectId="two", content="other secret compiler"))
+        assert store.invalidate("a", "one", reason="stale", source="test") == 2
+        rows = store.history("one", "a")
+        assert [row["version"] for row in rows] == [2, 1]
+        assert all("content" not in row for row in rows)
+        assert all(row["invalidationReason"] == "stale" for row in rows)
+        assert all(row["invalidationSource"] == "test" for row in rows)
+        assert len(store.history("one", limit=1)) == 1
+        assert store.history("one", "b") == []
+        assert store.history("two")[0]["id"] == "b"
+        for invalid in ("", 4):
+            with pytest.raises(ValueError):
+                store.history(invalid)
+        for invalid in ("", 4):
+            with pytest.raises(ValueError):
+                store.history("one", invalid)
+        for invalid in (0, 101, True, 1.5):
+            with pytest.raises(ValueError):
+                store.history("one", limit=invalid)
     finally:
         store.close()
