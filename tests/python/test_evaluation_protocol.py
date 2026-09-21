@@ -108,3 +108,31 @@ def test_confirmatory_requires_rationale_without_claiming_power():
         registered(phase="confirmatory")
     protocol = registered(phase="confirmatory", sample_size_rationale="Pilot variance estimate; target 80% power")
     assert assignment_plan(protocol)["efficacy_claim"] is None
+
+
+def test_same_kind_configurations_and_combination_are_distinct_arms():
+    protocol = registered()
+    second_head = protocol.arms[1].model_copy(update={"arm_id": "head-v2",
+        "configuration": {"mode": "headroom", "setting": 2}})
+    combination = protocol.arms[1].model_copy(update={"arm_id": "head-rtk",
+        "kind": "combination", "components": ("headroom", "rtk"),
+        "configuration": {"mode": "combined"}})
+    arms = (*protocol.arms, second_head, combination)
+    tasks = tuple(task.model_copy(update={"eligible_arm_ids":
+        (*task.eligible_arm_ids, "head-v2", "head-rtk")}) for task in protocol.tasks)
+    counts = {**protocol.planned_pairs_by_candidate,
+              "head-v2": {"en/general": 2, "pt/general": 2},
+              "head-rtk": {"en/general": 2, "pt/general": 2}}
+    plan = assignment_plan(registered(arms=arms, tasks=tasks,
+                                      planned_pairs_by_candidate=counts))
+    assert len(plan["assignments"]) == 20
+    assert {a["candidate_arm_id"] for a in plan["assignments"]} >= {"head-v2", "head-rtk"}
+
+
+def test_combination_components_are_validated():
+    arm = registered().arms[1]
+    with pytest.raises(ValidationError, match="two or three distinct"):
+        type(arm).model_validate({**arm.model_dump(), "kind": "combination",
+                                  "components": ("headroom", "headroom")})
+    with pytest.raises(ValidationError, match="Only combination"):
+        type(arm).model_validate({**arm.model_dump(), "components": ("rtk",)})

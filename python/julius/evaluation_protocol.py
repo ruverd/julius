@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_v
 from .evaluation_runner import FrozenFixture
 
 
-ArmKind = Literal["native", "headroom", "rtk", "context_mode"]
+OptimizerKind = Literal["headroom", "rtk", "context_mode"]
+ArmKind = Literal["native", "headroom", "rtk", "context_mode", "combination"]
 Locale = Literal["en", "pt"]
 Phase = Literal["pilot", "confirmatory"]
 EfficiencyMetric = Literal["input_tokens", "cost_usd", "latency_ms"]
@@ -35,6 +36,7 @@ class ProtocolArm(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     arm_id: StrictStr = Field(min_length=1)
     kind: ArmKind
+    components: tuple[OptimizerKind, ...] = ()
     client: StrictStr = Field(min_length=1)
     client_version: StrictStr = Field(min_length=1)
     model: StrictStr = Field(min_length=1)
@@ -49,6 +51,11 @@ class ProtocolArm(BaseModel):
     def json_state(self) -> ProtocolArm:
         _canonical(self.configuration)
         _canonical(self.cache_state)
+        if self.kind == "combination":
+            if not 2 <= len(self.components) <= 3 or len(set(self.components)) != len(self.components):
+                raise ValueError("Combination requires two or three distinct optimizer components")
+        elif self.components:
+            raise ValueError("Only combination arms may declare components")
         return self
 
 
@@ -79,8 +86,8 @@ class BenchmarkProtocol(BaseModel):
     @model_validator(mode="after")
     def verify_registration(self) -> BenchmarkProtocol:
         arms = {arm.arm_id: arm for arm in self.arms}
-        if len(arms) != len(self.arms) or len({arm.kind for arm in self.arms}) != len(self.arms):
-            raise ValueError("Arm IDs and kinds must be unique")
+        if len(arms) != len(self.arms):
+            raise ValueError("Arm IDs must be unique")
         if self.baseline_arm_id not in arms or arms[self.baseline_arm_id].kind != "native":
             raise ValueError("Baseline must be a registered native arm")
         if len({task.fixture.task_id for task in self.tasks}) != len(self.tasks):
