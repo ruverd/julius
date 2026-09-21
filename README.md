@@ -1,5 +1,7 @@
 # Julius
 
+<img src="docs/assets/julius-rock.png" alt="Julius Rock from Everybody Hates Chris" width="180">
+
 Local context optimization with evidence you can inspect.
 
 Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
