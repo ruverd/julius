@@ -28,6 +28,12 @@ def main() -> None:
 
         location = run("-c", "import julius, julius._native; print(julius.__file__)").strip()
         assert str(environment) in location, "Source tree leaked into isolated wheel smoke"
+        assert run(
+            "-c",
+            "from julius.xai import XAIAdapter; from julius.jev import shadow_decide; "
+            "from julius.economics import analyze_task; "
+            "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
+        ).strip() == '{"model":"grok-fixture","input":"hi"}'
         assert "0.2.0" in run("-m", "julius", "--version")
         assert json.loads(run("-m", "julius", "import", str(fixture)))["imported"] == 3
         assert json.loads(run("-m", "julius", "import", str(fixture)))["duplicates"] == 3
@@ -46,7 +52,7 @@ def main() -> None:
         run("-m", "julius", "dashboard", *window, "--output", str(root / "report.html"))
         assert "group" in run("-m", "julius", "export", *window, "--format", "csv")
         print(
-            "Isolated wheel smoke passed: native import, idempotency, 7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV."
+            "Isolated wheel smoke passed: native and optional module imports, idempotency, 7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV."
         )
 
 

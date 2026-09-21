@@ -10,7 +10,9 @@ def iso_utc(value: datetime) -> str:
 
 def query_window(options: dict | None = None, now: datetime | None = None) -> dict[str, str]:
     options = options or {}
-    current = now or datetime.now(timezone.utc)
+    # Stored events have millisecond precision. Include a just-recorded event in
+    # the default moving window while keeping the documented exclusive end.
+    current = now if now is not None else datetime.now(timezone.utc) + timedelta(milliseconds=1)
     end = _parse_date(options["until"]) if options.get("until") else current
     value = options.get("since") or "7d"
     duration = re.fullmatch(r"(\d+)([dhm])", value)

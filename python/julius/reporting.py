@@ -50,10 +50,17 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     observed = {request_key(event) for event in usage} - {None}
     transformed = {request_key(event) for event in transforms} & observed
 
-    def costs(items: list[dict]) -> list[float | None]:
-        return [event["payload"]["costUsd"] if event["modelId"] else None for event in items]
+    def costs(items: list[dict], *, provider_charge: bool = False) -> list[float | None]:
+        return [
+            event["payload"]["costUsd"]
+            if event["modelId"]
+            and ((event["payload"].get("costProvenance") or {}).get("chargeSource") == "provider_usage")
+            == provider_charge
+            else None
+            for event in items
+        ]
 
-    return {
+    result = {
         "schemaVersion": 1,
         "period": {**window, "interval": "[since, until)"},
         "sources": sorted({event["sourceId"] for event in events}),
@@ -110,6 +117,11 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             for key, items in groups.items()
         ],
     }
+    if any((event["payload"].get("costProvenance") or {}).get("chargeSource") == "provider_usage" for event in usage):
+        result["providerChargedUsd"] = _sum(costs(usage, provider_charge=True))
+        for group, items in zip(result["groups"], groups.values(), strict=True):
+            group["providerChargedUsd"] = _sum(costs(items, provider_charge=True))
+    return result
 
 
 def _display(value: Any) -> str:
@@ -140,6 +152,11 @@ def render_text(data: dict) -> str:
             f"Task measurement: {data['taskMeasurement']}",
         ]
     )
+    if "providerChargedUsd" in data:
+        lines.append(
+            f"Provider-reported charge USD: {_display(data['providerChargedUsd']['total'])}; "
+            f"known subtotal: {data['providerChargedUsd']['known']}"
+        )
     lines.extend(
         f"{group['key']}: calls={group['calls']}, input={_display(group['input']['total'])}, output={_display(group['output']['total'])}, evidence={','.join(group['evidence'])}"
         for group in data["groups"]
@@ -150,9 +167,11 @@ def render_text(data: dict) -> str:
 def render_csv(data: dict) -> str:
     output = io.StringIO(newline="")
     writer = csv.writer(output, quoting=csv.QUOTE_ALL)
-    writer.writerow(
-        ["group", "calls", "input_tokens", "output_tokens", "modeled_cost_usd", "evidence"]
-    )
+    provider_charges = "providerChargedUsd" in data
+    columns = ["group", "calls", "input_tokens", "output_tokens", "modeled_cost_usd"]
+    if provider_charges:
+        columns.append("provider_charged_usd")
+    writer.writerow([*columns, "evidence"])
     for group in data["groups"]:
         row = [
             group["key"],
@@ -160,8 +179,10 @@ def render_csv(data: dict) -> str:
             group["input"]["total"],
             group["output"]["total"],
             group["costUsd"]["total"],
-            ";".join(group["evidence"]),
         ]
+        if provider_charges:
+            row.append(group["providerChargedUsd"]["total"])
+        row.append(";".join(group["evidence"]))
         cells = [_display(value) for value in row]
         writer.writerow(
             [

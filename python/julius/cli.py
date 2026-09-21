@@ -6,6 +6,8 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
+from typing import cast
+from uuid import uuid4
 
 from . import __version__
 from .events import validate_event
@@ -14,11 +16,17 @@ from .models import discover_ollama, doctor
 from .query import query_window
 from .reporting import render_csv, render_html, render_text, report
 from .sdk import Julius
+from .jev import Action, ShadowPolicy, TypeSafeGateway
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Julius: local evidence-aware context tools. No hidden model calls."
+        description="Julius: local evidence-aware context tools. No hidden model calls.",
+        epilog=(
+            "Explicit network commands: run --agent grok --request request.json --project id "
+            "and jev shadow --state-file state.json --project id --post-call-threshold-usd amount. "
+            "Reports never call a model."
+        ),
     )
     parser.add_argument(
         "--version", action="version", version=f"julius-local {__version__} (Python + Rust)"
@@ -40,6 +48,7 @@ def _parser() -> argparse.ArgumentParser:
             "dashboard",
             "run",
             "integrations",
+            "jev",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -48,8 +57,10 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "task", "model", "source", "endpoint", "output"):
+    for option in ("project", "task", "model", "source", "endpoint", "output", "agent", "request", "session", "state-file", "actions", "price-source", "price-date"):
         parser.add_argument(f"--{option}")
+    for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence"):
+        parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--by", choices=["model", "category", "client"])
     parser.add_argument("--format")
     parser.add_argument("--profile", choices=["observe", "safe"], default="observe")
@@ -92,17 +103,68 @@ def run(argv: list[str] | None = None) -> int:
             raise ValueError("Use models list")
         _json(discover_ollama(args.endpoint or "http://127.0.0.1:11434"))
         return 0
-    if command == "run":
-        raise ValueError(
-            "Native execution is not integrated. Use the SDK in an authorized harness."
-        )
+    if command == "run" and args.agent not in ("grok", "xai"):
+        raise ValueError("Only explicit xAI/Grok API execution is available: --agent grok")
     if command == "integrations":
         if argument != "remove":
             raise ValueError("Use integrations remove <id>")
         print("No managed integrations exist. No client configuration was changed.")
         return 0
+    if command == "jev" and argument != "shadow":
+        raise ValueError("Use jev shadow --state-file <json> --project <id> --post-call-threshold-usd <amount>")
     directory = Path(args.data_dir).absolute()
     with Julius(directory) as julius:
+        if command == "jev":
+            key = os.environ.get("TYPESAFE_API_KEY")
+            if not key:
+                raise ValueError("TYPESAFE_API_KEY is required for an explicit Jev shadow call")
+            state = json.loads(_read(_required(args.state_file, "--state-file"), 16_384))
+            if not isinstance(state, dict):
+                raise ValueError("Jev state must be a JSON object")
+            actions = tuple((args.actions or "keep,retrieve,compress").split(","))
+            if any(action not in ("keep", "retrieve", "compress") for action in actions):
+                raise ValueError("Jev actions must be keep, retrieve, or compress")
+            gateway = TypeSafeGateway(
+                key,
+                input_usd_per_million=args.input_usd_per_million,
+                output_usd_per_million=args.output_usd_per_million,
+            )
+            result = julius.evaluate_jev_shadow(
+                state=state,
+                eligible_actions=cast(tuple[Action, ...], actions),
+                policy=ShadowPolicy(
+                    enabled=True,
+                    max_cost_usd=args.post_call_threshold_usd or 0.0,
+                    minimum_confidence=args.confidence if args.confidence is not None else 0.8,
+                ),
+                project_id=_required(args.project, "--project"),
+                session_id=args.session or str(uuid4()),
+                task_id=args.task,
+                gateway=gateway,
+                price_source=args.price_source,
+                price_date=args.price_date,
+            )
+            _json(result)
+            return 0
+        if command == "run":
+            if args.profile != "observe":
+                raise ValueError("xAI execution supports observe profile only; no recovery tool is integrated")
+            key = os.environ.get("XAI_API_KEY")
+            if not key:
+                raise ValueError("XAI_API_KEY is required for explicit xAI execution")
+            request_path = _required(args.request, "--request")
+            request = json.loads(_read(request_path, 2_000_000))
+            if not isinstance(request, dict):
+                raise ValueError("xAI request must be a JSON object")
+            result = julius.send_xai(
+                request,
+                api_key=key,
+                project_id=_required(args.project, "--project"),
+                session_id=args.session or str(uuid4()),
+                task_id=args.task,
+            )
+            _json(result)
+            return 0 if result["complete"] else 2
         if command == "setup":
             _json(
                 {

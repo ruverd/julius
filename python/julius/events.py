@@ -51,6 +51,21 @@ class PriceProvenance(StrictModel):
         return value
 
 
+class ProviderChargeProvenance(StrictModel):
+    chargeSource: Literal["provider_usage"]
+    chargeField: str
+    chargeUnit: Literal["usd_ticks_1e10"]
+    chargeModelId: str
+
+    @field_validator("chargeField", "chargeModelId")
+    @classmethod
+    def names(cls, value: str) -> str:
+        return _nonempty(value)
+
+
+CostProvenance = PriceProvenance | ProviderChargeProvenance
+
+
 TokenCount = Annotated[int, Field(ge=0, le=9007199254740991)]
 Money = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
@@ -82,10 +97,11 @@ class UsagePayload(StrictModel):
     category: Literal["primary", "auxiliary", "restoration"]
     callId: str | None
     costUsd: Money | None
+    priceSnapshotId: str | None = None
     observationScope: Literal["call", "session_delta"] | None = None
     rawUsage: dict[str, Any] | None = None
     normalizerVersion: str | None = None
-    costProvenance: PriceProvenance | None = None
+    costProvenance: CostProvenance | None = None
 
     @model_validator(mode="after")
     def valid_cost(self) -> UsagePayload:
@@ -118,7 +134,7 @@ class ReconciliationPayload(StrictModel):
     effectiveCacheReadTokens: TokenCount | None
     effectiveCacheWriteTokens: TokenCount | None
     effectiveCostUsd: Money | None
-    effectiveCostProvenance: PriceProvenance | None = None
+    effectiveCostProvenance: CostProvenance | None = None
     effectiveComplete: bool | None = None
     reason: str
 
@@ -190,8 +206,18 @@ class EventBase(StrictModel):
             provenance = getattr(payload, "costProvenance", None) or getattr(
                 payload, "effectiveCostProvenance", None
             )
-            if provenance is not None and provenance.priceModelId != self.modelId:
-                raise ValueError("Price model does not match event model")
+            if provenance is not None:
+                provenance_model = (
+                    provenance.priceModelId
+                    if isinstance(provenance, PriceProvenance)
+                    else provenance.chargeModelId
+                )
+                if provenance_model != self.modelId:
+                    raise ValueError(
+                        "Price model does not match event model"
+                        if isinstance(provenance, PriceProvenance)
+                        else "Charge model does not match event model"
+                    )
         return self
 
 

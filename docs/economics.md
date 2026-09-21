@@ -1,0 +1,15 @@
+# Task economics
+
+`julius.economics.analyze_task` is an offline calculation. It never invokes a model. It requires events for one identified task. The caller must attest `coverage_complete=True` only after confirming every task call was captured; any incomplete call keeps the actual total and net savings unavailable.
+
+The optional baseline is explicit: `{id, taskId, evidence, calls}`. Evidence must be `reconstructed_baseline` or `controlled_experiment`. Each call carries a unique `callId`, `modelId`, `providerId`, timestamp, input and output counters, cache read/write counters, and `priceSnapshotId`. `prices` maps snapshot IDs to caller-supplied, time-bounded price snapshots. Prices are modeled USD, not invoices. Unknown model, counter, or price leaves the relevant cost and net savings `null`. Baseline output tokens are only reported when every baseline call includes them. Observed output tokens do not imply output savings; `outputSavingsTokens` is always `null` until a separate comparable output analysis exists.
+
+Every observed call contributes once, including retries, auxiliary calls, and restoration. A provider-reported charge with provenance takes precedence over a modeled price for that call. Extra `overhead` includes only local or external costs not already in a call. Input cache reads and writes are subcategories of total input, never added to input again. Baseline and current calls are priced under their own model snapshots, so model routing changes may affect money without yielding comparable token counts.
+
+Sent request transforms report marginal input reduction by stage. A 10,000 → 4,000 → 3,000 chain reports 6,000 + 1,000 = 7,000. Linked stages require matching tokenizer, model, artifact, and count; mismatches produce `null` for that stage and total. Tool-output reductions remain separate and are not claimed as whole-request savings. Local and remote observed input tokens are reported separately. Missing evidence is `null`; negative financial savings remain negative.
+
+`analyze_task` does not infer full task coverage from observed events. Importers and adapters must supply truthful coverage and price snapshot provenance. It does not yet implement causal quality evaluation or financial attribution between compression and routing.
+
+Interrupted calls may lack a `callId` or final counters. Julius retains each usage event as a separate incomplete record, reports `usageRecordsWithoutCallId`, and leaves task totals unknown. It never equates absent usage with zero. Known call IDs must still be unique; duplicate IDs are rejected instead of silently collapsing distinct attempts.
+
+A transform that names a parent missing from the sent transform set has unknown marginal reduction. It cannot be treated as a root transform.

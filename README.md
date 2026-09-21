@@ -4,6 +4,8 @@ Local context optimization with evidence you can inspect.
 
 Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
 
+An explicit, experimental xAI Responses command can send one authorized Grok request and record provider-reported input/output usage. Optional Jev shadow decisions can be requested separately. Neither path proves token savings or live client compatibility; both have fixture tests only.
+
 ## Develop and run
 
 Requirements: Python 3.11+, uv, and a Rust toolchain for building from source. Installed native wheels do not require Rust. Native validation currently covers macOS arm64 with Python 3.12; Linux CI is configured but not yet certified.
@@ -91,10 +93,25 @@ Public Python functions use snake_case; versioned event and receipt dictionaries
 
 Optional modules provide [caller-supplied pricing](docs/pricing.md) and [snapshot-scoped FTS5 memory](docs/memory.md). They do not automatically change agent requests or create financial baselines in CLI reports.
 
+## Explicit remote calls and task economics
+
+```sh
+XAI_API_KEY=<dedicated-key> uv run --no-sync julius run --agent grok \
+  --request ./xai-request.json --project app --task DEV-123 --profile observe
+TYPESAFE_API_KEY=<dedicated-key> uv run --no-sync julius jev shadow \
+  --state-file ./decision-state.json --project app --task DEV-123 --post-call-threshold-usd 0.01
+```
+
+The xAI request file must contain an explicit Responses API `model` and `input`. This command forwards caller-supplied request fields to xAI once; review any requested server-side tools for effects before sending. xAI documents `store=true` by default, so set `"store": false` in the request if server-side response storage is unwanted. It records actual response model, input, output, and cache counters when supplied; provider-billed cost is recorded separately when `cost_in_usd_ticks` is present. Missing counters or charges stay unknown. It does not compress model output, automatically optimize a request, or intercept Grok in another client. See [xAI adapter](docs/xai.md).
+
+Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, or `compress`. Shadow mode always applies `keep` to production content and records any auxiliary call. Its budget is a post-call threshold, not a guaranteed pre-call charge cap; use only with a separately authorized spending limit. No live Jev account has been tested. See [Jev boundary](docs/jev.md).
+
+The offline [`analyze_task` API](docs/economics.md) can calculate modeled task cost and net savings when a caller supplies complete call coverage, a comparable baseline, and dated price snapshots. CLI savings remains unavailable without that evidence. Observed output tokens are usage; output token savings require a comparable output baseline and are not currently calculated.
+
 ## Delivery status
 
-Implemented: Python CLI/SDK, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, model discovery, reports/exports/HTML, optional pricing and lexical memory, native wheels, and tests.
+Implemented: Python CLI/SDK, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, model discovery, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send and Jev shadow gateways, offline task economics, native wheels, and tests.
 
-Pending: verified live Claude/Codex integrations, tool-output interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, agent-facing recovery integration, structured memory, cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed settings/rollback, signed distributions/updates, Jev, and Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
+Pending: verified live Claude/Codex/xAI/Jev integrations, tool-output interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, agent-facing recovery integration, structured memory, cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed settings/rollback, signed distributions/updates, active Jev decisions, and Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 
-The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [event contract](docs/events.md), and [validation](docs/validation.md).
+The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [product completion plan](docs/plans/2026-09-21-product-completion.md), [event contract](docs/events.md), and [validation](docs/validation.md).

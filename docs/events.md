@@ -12,7 +12,7 @@ Every event has source and source-event IDs. Normalized replay is idempotent; ch
 
 Each nullable counter distinguishes unavailable from zero. `complete:false` exposes incomplete usage. `observationScope:'session_delta'` identifies cumulative log deltas that cannot prove a count of individual calls. Model identity is null when actual responding model is unknown. A requested model does not prove actual model identity.
 
-Known `costUsd` requires a known model and `costProvenance` with price source, date, and model identity. This is modeled cost, not an invoice. This prototype does not calculate financial savings or use a guessed price table. Auxiliary and restoration categories are part of the same usage sum; their subtotals are never added again.
+Known `costUsd` requires a known model and `costProvenance`. Caller-modeled prices carry price source, date, and model identity. An xAI provider-reported charge carries `chargeSource: provider_usage`, `chargeField: usage.cost_in_usd_ticks`, `chargeUnit: usd_ticks_1e10`, and actual model identity. Reports separate provider charges from modeled prices. Raw ticks remain in `rawUsage`; the USD float is a display conversion, not billing-grade decimal arithmetic. Financial savings still need a comparable baseline. Auxiliary and restoration categories are part of the same usage sum; their subtotals are never added again.
 
 ## Transformations
 

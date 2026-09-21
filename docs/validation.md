@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Final local result: 44 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 17 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests.
+Current local result: 92 Python tests passed, Rust workspace tests passed, Ruff passed, mypy checked 20 source files without errors, and the rebuilt stable-ABI wheel passed isolated installation and offline CLI smoke tests.
 
 ## Active Python/Rust validation
 
@@ -13,9 +13,9 @@ sh scripts/dev.sh build
 uv run --no-sync python scripts/wheel_smoke.py dist/wheels/<matching-wheel>.whl
 ```
 
-The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native import, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, and HTML/CSV export.
+The setup installs locked dependencies and builds the editable PyO3 extension. The test command runs pytest, Ruff, mypy, and Rust workspace tests. The wheel smoke installs a built artifact into a new environment outside the source tree and exercises native and optional-module imports, repeated import, 7,000 marginal reduction, unknown money, optimization/restoration, and HTML/CSV export.
 
-Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior.
+Tests cover strict Pydantic validation (including boolean counters), explicit aliases and conflicting observations, atomic batch rollback, reconciliation, retry identity, immutable shared budget limits, multiprocess reservations, crash expiry, timestamp windows, isolated artifacts, content integrity, lexical snapshot retrieval, provider normalization, conservative imports, price validity, protected content, native reduction, and offline CLI behavior. New fixtures exercise xAI Responses request preservation, both documented usage shapes, provider charge ticks, incomplete responses, Jev Choice shadow fallback and auxiliary accounting, plus task economics with interrupted calls and chained transforms. These are fixture tests, not live provider calls.
 
 `tests/fixtures` freezes event and optimization contracts from the initial TypeScript checkpoint `3616024`. Python and native Rust match its optimization receipts and aggregate report for the selected corpus. The historical TypeScript suite passed 51 tests before cutover; this is reference evidence, not an active second implementation.
 
@@ -26,6 +26,8 @@ Local environment: macOS arm64, Python 3.12.10, Rust 1.98.1, PyO3 0.29.2, SQLite
 Linux and macOS CI jobs are configured but have not run remotely in this task. WSL and native Windows remain uncertified. Wheels are unsigned development artifacts. Standalone executables, clean-machine signed installers, updates, and rollback remain release work.
 
 Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes passed; real usage capture and rewriting were not tested. Ollama at `127.0.0.1:11434` did not respond. Provider/client parsing tests use fixtures and do not certify installed integrations.
+
+No live xAI or Jev request was made during this validation. The xAI adapter has no measured input or output savings; Jev remains shadow-only. xAI's provider charge field is recognized from its documented response shape, but actual account billing has not been reconciled.
 
 ## Open quality gates
 
@@ -45,5 +47,8 @@ Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes 
 - [Ollama loaded models](https://docs.ollama.com/api/ps)
 - [Maturin configuration](https://www.maturin.rs/config)
 - [PyO3 guide](https://pyo3.rs/main/)
+- [xAI Responses API](https://docs.x.ai/developers/rest-api-reference/inference/responses)
+- [xAI cost tracking](https://docs.x.ai/developers/cost-tracking)
+- [TypeSafe API reference](https://docs.typesafe.ai/api)
 
 Consult official contracts again when implementing native integrations. Documentation alone is not compatibility certification.
