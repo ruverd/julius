@@ -113,3 +113,67 @@ def test_three_and_six_digit_utc_dates_store_canonical_milliseconds():
             store.put(memory(id="bad-date", createdAt=past, expiresAt="2026-01-01T00:00:00Z"))
     finally:
         store.close()
+
+
+def test_confidence_and_invalidation_audit_are_project_scoped():
+    store = MemoryStore(":memory:")
+    try:
+        store.put(memory(confidence=0.7, invalidationCondition="dependency changes"))
+        store.put(memory(projectId="two"))
+        hit = store.search("one", "compiler", snapshot="commit-a")[0]
+        assert hit["confidence"] == 0.7
+        assert hit["invalidationCondition"] == "dependency changes"
+        assert store.invalidate("fact", "one", reason="dependency changed", source="watcher") == 1
+        assert store.invalidate("fact", "one", reason="later") == 0
+        row = store.db.execute(
+            "SELECT invalidated_at,invalidation_reason,invalidation_source "
+            "FROM memories WHERE project_id='one'"
+        ).fetchone()
+        assert row is not None
+        assert row[0].endswith("Z")
+        assert row[1:] == ("dependency changed", "watcher")
+        assert store.search("one", "compiler", snapshot="commit-a") == []
+        assert store.search("two", "compiler", snapshot="commit-a")[0]["confidence"] is None
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize("confidence", [-0.1, 1.1, True, float("nan"), float("inf"), "0.5"])
+def test_invalid_confidence_rejected(confidence):
+    store = MemoryStore(":memory:")
+    try:
+        with pytest.raises(ValueError, match="confidence"):
+            store.put(memory(confidence=confidence))
+    finally:
+        store.close()
+
+
+def test_legacy_schema_migrates_without_inventing_audit_values(tmp_path):
+    path = tmp_path / "legacy.db"
+    with sqlite3.connect(path) as db:
+        db.executescript("""
+            CREATE TABLE memories (id TEXT, version INTEGER, project_id TEXT, snapshot TEXT,
+                content TEXT, content_sha256 TEXT, created_at TEXT, expires_at TEXT,
+                provenance TEXT, origin TEXT, invalidated INTEGER DEFAULT 0,
+                PRIMARY KEY(project_id,id,version));
+        """)
+        item = memory()
+        db.execute(
+            "INSERT INTO memories VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            tuple(item[key] for key in (
+                "id", "version", "projectId", "snapshot", "content", "contentSha256",
+                "createdAt", "expiresAt", "provenance", "origin",
+            )) + (1,),
+        )
+    store = MemoryStore(path)
+    try:
+        row = store.db.execute(
+            "SELECT confidence,invalidation_condition,invalidated_at,invalidation_reason,"
+            "invalidation_source FROM memories WHERE id='fact'"
+        ).fetchone()
+        assert row == (None, None, None, None, None)
+        assert store.invalidate("fact", "one") == 0
+        store.put(memory(id="new"))
+        assert store.search("one", "compiler", snapshot="commit-a")[0]["id"] == "new"
+    finally:
+        store.close()

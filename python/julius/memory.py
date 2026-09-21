@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import hashlib
+import math
 from pathlib import Path
 import re
 import sqlite3
@@ -41,10 +42,21 @@ class MemoryStore:
         if str(path) != ":memory:":
             Path(path).chmod(0o600)
         self.db.executescript("""PRAGMA journal_mode=WAL; PRAGMA secure_delete=ON;
-            CREATE TABLE IF NOT EXISTS memories (id TEXT, version INTEGER, project_id TEXT, snapshot TEXT, content TEXT, content_sha256 TEXT, created_at TEXT, expires_at TEXT, provenance TEXT, origin TEXT, invalidated INTEGER DEFAULT 0, PRIMARY KEY(project_id,id,version));
+            CREATE TABLE IF NOT EXISTS memories (id TEXT, version INTEGER, project_id TEXT, snapshot TEXT, content TEXT, content_sha256 TEXT, created_at TEXT, expires_at TEXT, provenance TEXT, origin TEXT, invalidated INTEGER DEFAULT 0, confidence REAL, invalidation_condition TEXT, invalidated_at TEXT, invalidation_reason TEXT, invalidation_source TEXT, PRIMARY KEY(project_id,id,version));
             CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(content, content='memories', content_rowid='rowid');
             CREATE TRIGGER IF NOT EXISTS memory_ai AFTER INSERT ON memories BEGIN INSERT INTO memory_fts(rowid,content) VALUES(new.rowid,new.content); END;
             CREATE TRIGGER IF NOT EXISTS memory_ad AFTER DELETE ON memories BEGIN INSERT INTO memory_fts(memory_fts,rowid,content) VALUES('delete',old.rowid,old.content); END;""")
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(memories)")}
+        with self.db:
+            for name, kind in (
+                ("confidence", "REAL"),
+                ("invalidation_condition", "TEXT"),
+                ("invalidated_at", "TEXT"),
+                ("invalidation_reason", "TEXT"),
+                ("invalidation_source", "TEXT"),
+            ):
+                if name not in columns:
+                    self.db.execute(f"ALTER TABLE memories ADD COLUMN {name} {kind}")
 
     def put(self, item: dict) -> None:
         if (
@@ -70,12 +82,25 @@ class MemoryStore:
             raise ValueError("Invalid memory expiry") from error
         if item.get("provenance") not in ("observed", "inferred", "user_confirmed"):
             raise ValueError("Invalid memory provenance")
+        confidence = item.get("confidence")
+        if confidence is not None and (
+            isinstance(confidence, bool)
+            or not isinstance(confidence, (int, float))
+            or not math.isfinite(confidence)
+            or not 0 <= confidence <= 1
+        ):
+            raise ValueError("Invalid memory confidence")
+        condition = item.get("invalidationCondition")
+        if condition is not None and (
+            not isinstance(condition, str) or not 0 < len(condition) <= 1024
+        ):
+            raise ValueError("Invalid memory invalidation condition")
         stored = {**item, "createdAt": created, "expiresAt": expires}
         with self.db:
             self.db.execute(
-                "INSERT INTO memories(id,version,project_id,snapshot,content,content_sha256,created_at,expires_at,provenance,origin) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO memories(id,version,project_id,snapshot,content,content_sha256,created_at,expires_at,provenance,origin,confidence,invalidation_condition) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                 tuple(
-                    stored[key]
+                    stored.get(key)
                     for key in (
                         "id",
                         "version",
@@ -87,6 +112,8 @@ class MemoryStore:
                         "expiresAt",
                         "provenance",
                         "origin",
+                        "confidence",
+                        "invalidationCondition",
                     )
                 ),
             )
@@ -109,7 +136,7 @@ class MemoryStore:
             return []
         expression = " AND ".join('"' + word.replace('"', '""') + '"' for word in words)
         rows = self.db.execute(
-            """SELECT m.id,m.version,m.project_id,m.snapshot,m.content,m.content_sha256,m.created_at,m.expires_at,m.provenance,m.origin,bm25(memory_fts) FROM memory_fts JOIN memories m ON m.rowid=memory_fts.rowid WHERE memory_fts MATCH ? AND m.project_id=? AND m.snapshot=? AND m.invalidated=0 AND m.expires_at>? ORDER BY bm25(memory_fts),m.id,m.version LIMIT ?""",
+            """SELECT m.id,m.version,m.project_id,m.snapshot,m.content,m.content_sha256,m.created_at,m.expires_at,m.provenance,m.origin,m.confidence,m.invalidation_condition,bm25(memory_fts) FROM memory_fts JOIN memories m ON m.rowid=memory_fts.rowid WHERE memory_fts MATCH ? AND m.project_id=? AND m.snapshot=? AND m.invalidated=0 AND m.expires_at>? ORDER BY bm25(memory_fts),m.id,m.version LIMIT ?""",
             (
                 expression,
                 project_id,
@@ -129,6 +156,8 @@ class MemoryStore:
             "expiresAt",
             "provenance",
             "origin",
+            "confidence",
+            "invalidationCondition",
             "score",
         )
         hits = [dict(zip(keys, row)) for row in rows]
@@ -137,11 +166,18 @@ class MemoryStore:
                 raise ValueError("Memory content integrity mismatch")
         return hits
 
-    def invalidate(self, artifact_id: str, project_id: str) -> int:
+    def invalidate(
+        self, artifact_id: str, project_id: str, *, reason: str = "explicit_invalidation",
+        source: str | None = None,
+    ) -> int:
+        if not isinstance(reason, str) or not 0 < len(reason) <= 1024:
+            raise ValueError("Invalid invalidation reason")
+        if source is not None and (not isinstance(source, str) or not 0 < len(source) <= 256):
+            raise ValueError("Invalid invalidation source")
         with self.db:
             cursor = self.db.execute(
-                "UPDATE memories SET invalidated=1 WHERE id=? AND project_id=? AND invalidated=0",
-                (artifact_id, project_id),
+                "UPDATE memories SET invalidated=1,invalidated_at=?,invalidation_reason=?,invalidation_source=? WHERE id=? AND project_id=? AND invalidated=0",
+                (_now_millis(), reason, source, artifact_id, project_id),
             )
             return cursor.rowcount
 
