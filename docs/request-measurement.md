@@ -36,6 +36,12 @@ The ledger stores counts, SHA-256 digests, byte lengths, IDs, and the response
 identity. It does not store the input text. Repeating the same attempt returns
 an idempotent receipt; changing its attestation raises a conflict.
 
+This operation records a transform, not provider usage. Call `record_usage`
+separately with the same request and attempt IDs to report actual output,
+cache, cost, and an observed-call denominator. Without that usage event, those
+amounts and request coverage remain unavailable even when direct input
+reduction was counted.
+
 The separate `send_xai_optimized` path remains fail-closed for caller counters:
 it does not promote serialized request counts to verified model-input counts.
 
