@@ -32,9 +32,4 @@ archive="dist/julius-$version-linux-aarch64.tar.gz"
 python3 scripts/package_standalone.py \
   --binary /tmp/julius-dist/julius --version "$version" \
   --output "$archive"
-python3 scripts/install_standalone.py install \
-  --archive "$archive" \
-  --prefix /tmp/julius-installed --apply
-/tmp/julius-installed/bin/julius --version
-python3 scripts/install_standalone.py remove \
-  --prefix /tmp/julius-installed --apply
+python3 scripts/archive_smoke.py "$archive"

@@ -40,6 +40,7 @@ jobs:
       - run: sh scripts/build_standalone.sh
       - run: test "$(dist/standalone/julius --version)" = "julius-local $JULIUS_VERSION (Python + Rust)"
       - run: python3 scripts/package_standalone.py --version "$JULIUS_VERSION" --output dist/julius-${{ runner.os }}-${{ runner.arch }}.tar.gz
+      - run: python3 scripts/archive_smoke.py dist/julius-${{ runner.os }}-${{ runner.arch }}.tar.gz
       - uses: actions/upload-artifact@v4
         with:
           name: julius-unsigned-${{ runner.os }}-${{ runner.arch }}
