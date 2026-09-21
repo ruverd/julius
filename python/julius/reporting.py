@@ -221,6 +221,7 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
 
     result = {
         "schemaVersion": 1,
+        "groupBy": by,
         "period": {**window, "interval": "[since, until)"},
         "sources": sorted({event["sourceId"] for event in events}),
         "observedCalls": len(known_calls),
@@ -551,11 +552,15 @@ def render_html(data: dict) -> str:
         "style-src 'unsafe-inline'; script-src 'unsafe-inline'\">"
         "<title>Julius evidence report</title><style>"
         ":root{color-scheme:light dark;font:16px system-ui}body{max-width:1100px;margin:2rem auto;padding:1rem;line-height:1.5}"
-        "main{display:grid;gap:1.5rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.8rem}"
+        "main{display:grid;grid-template-columns:minmax(0,1fr);gap:1.5rem}main>*{min-width:0}"
+        ".cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.8rem}"
         ".card{border:1px solid #888;border-radius:.5rem;padding:1rem}.card strong{display:block;font-size:1.5rem}"
         ".muted{opacity:.75;font-size:.9em}.filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}"
         "select,button{font:inherit;padding:.35rem}select:focus-visible,button:focus-visible{outline:3px solid Highlight}"
-        ".table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:.65rem;text-align:left;border-bottom:1px solid #888;vertical-align:top}"
+        ".table-wrap{min-width:0;max-width:100%;overflow-x:auto}.table-wrap:focus-visible{outline:3px solid Highlight}"
+        "table{border-collapse:collapse;width:100%}#task-table{min-width:2200px}"
+        "#task-table th,#task-table td{min-width:7rem}"
+        "th,td{padding:.65rem;text-align:left;border-bottom:1px solid #888;vertical-align:top}"
         "tbody tr:hover{background:CanvasText;color:Canvas}tr[hidden]{display:none}"
         "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}"
         "</style></head><body><main><header><h1>Julius evidence report</h1>"
@@ -581,7 +586,9 @@ def render_html(data: dict) -> str:
         "<p>Call cost counts one recorded USD amount per usage record; provider charges, client estimates, and price models can mix. It is not a verified invoice. Modeled includes client and price estimates; "
         "provider charges are separate. Primary and auxiliary modeled or provider subtotals partition those amounts. "
         "Unavailable totals show known subtotals; no financial savings are inferred.</p>"
-        "<div class='table-wrap'><table id='task-table'><caption>Task usage, costs, and sent transformations</caption>"
+        "<p class='muted'>Scroll task table horizontally to inspect every cost and evidence column.</p>"
+        "<div class='table-wrap' tabindex='0' role='region' aria-label='Scrollable task details'>"
+        "<table id='task-table'><caption>Task usage, costs, and sent transformations</caption>"
         "<thead><tr><th scope='col'>Task</th><th scope='col'>Project</th><th scope='col'>Outcome</th>"
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"

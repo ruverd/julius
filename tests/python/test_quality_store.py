@@ -7,7 +7,7 @@ from julius.quality_store import QualityStore
 from julius.sdk import Julius
 
 
-SCOPE = Scope(project_id="p", model_id="m", strategy_id="repeated-lines", strategy_version="2")
+SCOPE = Scope(project_id="p", model_id="m", strategy_id="repeated-lines", strategy_version="3")
 POLICY = GuardPolicy(
     version="1", minimum_samples=2, max_error_rate=0.25,
     max_recovery_rate=0.5, max_rework_rate=0.5,
@@ -141,8 +141,8 @@ def test_store_rejects_symlink_and_unsafe_existing_modes(tmp_path):
         QualityStore(link)
 
 
-def test_v1_outcomes_cannot_clear_v2_optimizer(tmp_path):
-    old_scope = SCOPE.model_copy(update={"strategy_version": "1"})
+def test_v2_outcomes_cannot_clear_v3_optimizer(tmp_path):
+    old_scope = SCOPE.model_copy(update={"strategy_version": "2"})
     with QualityStore(tmp_path / "quality.sqlite") as store:
         store.append(outcome(1, "old-a", scope=old_scope), POLICY)
         store.append(outcome(2, "old-b", scope=old_scope), POLICY)

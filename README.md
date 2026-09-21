@@ -57,7 +57,7 @@ uv run --no-sync julius artifacts export '<artifact-id>' --project app --output 
 uv run --no-sync julius artifacts purge --project app
 ```
 
-`observe` is the default profile. `safe` replaces eligible repeated neutral lines only when shorter and recoverable. Protected instructions, failures, opaque data, expired policies, missing approval, and implicit recompression prevent application. Rust performs the eligible text operation; Python retains permissions and storage boundaries. A missing native extension returns an unchanged candidate with `native_unavailable`.
+`observe` is the default profile. `safe` replaces eligible repeated neutral lines only when shorter and recoverable. Version 3 can reduce neutral repetition in a mixed log while preserving an error line and its neighbors exactly. Permission, approval, instruction, and wholly protected content still block the entire candidate, as do opaque data, expired policies, missing approval, and implicit recompression. Rust performs the eligible text operation; Python retains permissions and storage boundaries. A missing native extension returns an unchanged candidate with `native_unavailable`.
 
 Receipts distinguish bytes from heuristic token estimates. Originals expire after 24 hours by default; the artifact API accepts TTLs up to 30 days. Expired originals cannot be restored. Project scope and content hashes are checked. Denied and observe requests do not retain originals.
 

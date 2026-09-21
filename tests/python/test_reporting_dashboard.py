@@ -86,6 +86,8 @@ def test_daily_categories_cache_unknown_and_signed_reduction():
     transform["payload"].update(sent=True, inputTokens=10, outputTokens=30)
     window = {"since": "2026-09-21T00:00:00Z", "until": "2026-09-23T00:00:00Z", "timezone": "UTC"}
     data = report([primary, auxiliary, restoration, transform], window)
+    assert data["groupBy"] == "model"
+    assert "id='filter-model'" in render_html(data)
     assert len(data["dailySeries"]) == 1
     day = data["dailySeries"][0]
     assert day["dateUtc"] == "2026-09-22"

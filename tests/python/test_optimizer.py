@@ -60,10 +60,8 @@ def test_fail_closed_and_protected():
     assert (
         optimize({**context, "recovery": None}, POLICY)["receipt"]["reason"] == "recovery_required"
     )
-    assert (
-        optimize({**context, "content": "FAIL assertion\n" + CONTENT}, POLICY)["receipt"]["reason"]
-        == "protected_content"
-    )
+    mixed = optimize({**context, "content": "FAIL assertion\n" + CONTENT}, POLICY)
+    assert mixed["candidate"].startswith("FAIL assertion\n" + LINE)
     assert optimize(context, {**POLICY, "mode": "observe"})["candidate"] == CONTENT
 
 
@@ -114,3 +112,21 @@ def test_native_repeated_multiline_block_and_noop():
     protected = "warning status with additional stable descriptive detail"
     assert compress_repeated_lines("\n".join([protected] * 4), RECOVERY["artifactId"]) == "\n".join([protected] * 4)
     assert compress_repeated_lines(first + "\n" + second, RECOVERY["artifactId"]) == first + "\n" + second
+
+
+def test_mixed_log_preserves_error_and_neighbors_but_reduces_distant_lines():
+    from julius._native import compress_repeated_lines
+
+    error = "ERROR: assertion failed at worker 7"
+    content = "\n".join([LINE] * 4 + [error] + [LINE] * 4)
+    result = optimize(
+        {"projectId": "p", "category": "tool_output", "content": content, "recovery": RECOVERY},
+        POLICY,
+    )
+    assert result["receipt"]["applied"] is True
+    assert f"{LINE}\n{error}\n{LINE}" in result["candidate"]
+    assert result["candidate"].count(error) == 1
+    assert len(result["candidate"].encode()) < len(content.encode())
+    all_protected = f"{LINE}\n{error}\n{LINE}"
+    assert compress_repeated_lines(all_protected, RECOVERY["artifactId"]) == all_protected
+    assert optimize({"category": "tool_output", "content": all_protected, "recovery": RECOVERY}, POLICY)["candidate"] == all_protected

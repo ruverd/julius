@@ -167,7 +167,7 @@ def test_cli_policy_check_suspends_negative_net_without_model_call(tmp_path: Pat
 def test_cli_persistent_quality_guard_blocks_later_optimization(tmp_path: Path) -> None:
     scope = {
         "project_id": "p", "model_id": "m", "strategy_id": "repeated-lines",
-        "strategy_version": "2",
+        "strategy_version": "3",
     }
     policy = {
         "version": "1", "minimum_samples": 1,

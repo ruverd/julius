@@ -3,7 +3,8 @@
 import re
 from .policy import policy_decision
 
-_PROTECTED = re.compile(
+_AUTHORITY_PROTECTED = re.compile(r"\b(denied|permission|approval|instruction|system prompt)\b", re.I)
+_PROTECTED_LINE = re.compile(
     r"\b(error|exception|warning|denied|permission|approval|instruction|system prompt|fail(?:ed|ure)?|assert(?:ion)?|panic|stack trace|traceback)\b",
     re.I,
 )
@@ -12,7 +13,7 @@ _KNOWN_TRANSFORM = re.compile(
     r"\[repeated exact (?:line \d+/\d+|block \d+/\d+; original lines \d+-\d+); restore artifact [a-f0-9-]{36}\]"
 )
 STRATEGY_ID = "repeated-lines"
-STRATEGY_VERSION = "2"
+STRATEGY_VERSION = "3"
 
 
 def optimize(context: dict, policy: dict) -> dict:
@@ -30,7 +31,10 @@ def optimize(context: dict, policy: dict) -> dict:
             reason = "ineligible_scope"
         elif (
             context.get("protected")
-            or _PROTECTED.search(content)
+            or _AUTHORITY_PROTECTED.search(content)
+            or (bool(content.strip()) and all(
+                _PROTECTED_LINE.search(line) for line in content.splitlines() if line.strip()
+            ))
             or any(ord(char) < 32 and char not in "\n\r\t" for char in content)
             or "```" in content
             or "-----BEGIN " in content
