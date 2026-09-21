@@ -163,6 +163,7 @@ class ObservedExecution(BaseModel):
     arm_id: StrictStr = Field(min_length=1)
     attempt_index: StrictInt = Field(ge=0)
     run_order_index: StrictInt = Field(ge=0, le=1)
+    execution_sequence: StrictInt = Field(ge=0)
     seed: StrictInt = Field(ge=0)
     manifest_sha256: StrictStr = Field(min_length=1)
     assignment_sha256: StrictStr = Field(min_length=1)
@@ -191,16 +192,31 @@ def audit_execution_adherence(
     counts: dict[str, dict[str, int]] = {candidate: {} for candidate in
                                          protocol.planned_pairs_by_candidate}
     seen: dict[tuple[str, str, str], list[int]] = {}
+    sequences: dict[tuple[str, str, str], list[int]] = {}
+    invalid_pairs: set[tuple[str, str]] = set()
+    sequence_owner: dict[int, int] = {}
     issues: list[dict[str, Any]] = []
 
     def issue(code: str, index: int | None, **details: Any) -> None:
         issues.append({"code": code, "observation_index": index, **details})
+        if index is not None:
+            obs = observations[index]
+            invalid_pairs.add((obs.task_id, obs.candidate_arm_id))
+        elif "task_id" in details and "candidate_arm_id" in details:
+            invalid_pairs.add((details["task_id"], details["candidate_arm_id"]))
 
     for index, obs in enumerate(observations):
         key = (obs.task_id, obs.candidate_arm_id)
         assignment = assignments.get(key)
         task = tasks.get(obs.task_id)
         arm = arms.get(obs.arm_id)
+        if obs.execution_sequence in sequence_owner:
+            issue("duplicate_execution_sequence", index,
+                  first_observation_index=sequence_owner[obs.execution_sequence])
+            first = observations[sequence_owner[obs.execution_sequence]]
+            invalid_pairs.add((first.task_id, first.candidate_arm_id))
+        else:
+            sequence_owner[obs.execution_sequence] = index
         if assignment is None or obs.arm_id not in (
             protocol.baseline_arm_id, obs.candidate_arm_id
         ):
@@ -209,6 +225,8 @@ def audit_execution_adherence(
             continue
         seen.setdefault((obs.task_id, obs.candidate_arm_id, obs.arm_id), []).append(
             obs.attempt_index)
+        sequences.setdefault((obs.task_id, obs.candidate_arm_id, obs.arm_id), []).append(
+            obs.execution_sequence)
         if task is None or obs.snapshot_hash != task.fixture.fixture_id:
             issue("snapshot_mismatch", index)
         if obs.seed != protocol.seed or obs.run_order_index != assignment["run_order"].index(obs.arm_id):
@@ -237,7 +255,22 @@ def audit_execution_adherence(
             elif sorted(indices) != list(range(len(indices))):
                 issue("attempt_sequence_invalid", None, task_id=task_id,
                       candidate_arm_id=candidate, arm_id=arm_id)
-        if all(seen.get((task_id, candidate, arm_id)) for arm_id in assignment["run_order"]):
+            elif len(indices) > 1:
+                records = [(obs.attempt_index, obs.execution_sequence) for obs in observations
+                           if (obs.task_id, obs.candidate_arm_id, obs.arm_id)
+                           == (task_id, candidate, arm_id)]
+                if [sequence for _, sequence in sorted(records)] != sorted(sequences[
+                    (task_id, candidate, arm_id)]):
+                    issue("attempt_chronology_mismatch", None, task_id=task_id,
+                          candidate_arm_id=candidate, arm_id=arm_id)
+        first_arm, second_arm = assignment["run_order"]
+        first_sequences = sequences.get((task_id, candidate, first_arm), [])
+        second_sequences = sequences.get((task_id, candidate, second_arm), [])
+        if first_sequences and second_sequences and max(first_sequences) >= min(second_sequences):
+            issue("arm_chronology_mismatch", None, task_id=task_id,
+                  candidate_arm_id=candidate)
+        if ((task_id, candidate) not in invalid_pairs
+                and all(seen.get((task_id, candidate, arm_id)) for arm_id in assignment["run_order"])):
             stratum = f"{assignment['locale']}/{assignment['stratum']}"
             counts[candidate][stratum] = counts[candidate].get(stratum, 0) + 1
     for candidate, planned in protocol.planned_pairs_by_candidate.items():

@@ -145,15 +145,18 @@ def observed(protocol):
     return [ObservedExecution(
         task_id=assignment["task_id"], snapshot_hash=assignment["snapshot_hash"],
         candidate_arm_id=assignment["candidate_arm_id"], arm_id=arm_id,
-        attempt_index=0, run_order_index=position, seed=protocol.seed,
+        attempt_index=0, run_order_index=position, execution_sequence=sequence,
+        seed=protocol.seed,
         manifest_sha256=plan["manifest_sha256"],
         assignment_sha256=plan["assignment_sha256"],
         **{field: getattr(arms[arm_id], field) for field in (
             "client", "client_version", "model", "model_version", "runtime",
             "runtime_version", "implementation_version", "configuration",
             "cache_state", "kind", "components")},
-    ) for assignment in plan["assignments"]
-        for position, arm_id in enumerate(assignment["run_order"])]
+    ) for sequence, (assignment, position, arm_id) in enumerate(
+        (assignment, position, arm_id)
+        for assignment in plan["assignments"]
+        for position, arm_id in enumerate(assignment["run_order"]))]
 
 
 def test_complete_observed_execution_audits_without_claim():
@@ -198,3 +201,23 @@ def test_audit_rejects_duplicate_attempt_indices_and_changed_registration():
     codes = {item["code"] for item in audit_execution_adherence(protocol, rows)["issues"]}
     assert "attempt_sequence_invalid" in codes
     assert "registration_hash_mismatch" in codes
+
+
+def test_invalid_pair_is_excluded_from_observed_denominator():
+    protocol = registered()
+    rows = observed(protocol)
+    rows[0] = rows[0].model_copy(update={"cache_state": {"state": "warm"}})
+    result = audit_execution_adherence(protocol, rows)
+    candidate = rows[0].candidate_arm_id
+    assert result["observed_complete_pairs_by_candidate"][candidate]["en/general"] == 1
+    assert "denominator_mismatch" in {item["code"] for item in result["issues"]}
+
+
+def test_observed_sequence_verifies_arm_and_retry_chronology():
+    protocol = registered()
+    rows = observed(protocol)
+    rows[0] = rows[0].model_copy(update={"execution_sequence": rows[1].execution_sequence})
+    rows[1] = rows[1].model_copy(update={"execution_sequence": 0})
+    result = audit_execution_adherence(protocol, rows)
+    assert "arm_chronology_mismatch" in {item["code"] for item in result["issues"]}
+    assert result["observed_complete_pairs_by_candidate"][rows[0].candidate_arm_id]["en/general"] == 1
