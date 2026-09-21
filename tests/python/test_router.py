@@ -100,3 +100,26 @@ def test_unknown_current_price_and_unverified_current_keep_current():
     assert route(candidate, prices=(price(candidate, "2"),)).reason == "current_price_unknown"
     current = model(authorization_granted=None)
     assert route(candidate, current=current).reason == "current_eligibility_unverified"
+
+
+def test_dispatch_verdict_denies_unverified_current_even_when_kept():
+    candidate = model("small", supports_tools=False)
+    current = model(authorization_granted=None)
+    decision = route(candidate, current=current)
+    assert decision.selected == current
+    assert decision.dispatch_allowed is False
+
+
+def test_dispatch_verdict_denies_unknown_or_exceeded_budget():
+    candidate = model("small", supports_tools=False)
+    unknown = route(candidate, prices=(), task=boundary(maximum_spend=Decimal("1")))
+    assert unknown.dispatch_allowed is False
+    exceeded = route(candidate, task=boundary(maximum_spend=Decimal("0.001")))
+    assert exceeded.reason == "budget_exceeded_no_eligible_alternative"
+    assert exceeded.dispatch_allowed is False
+
+
+def test_unsafe_switch_can_still_allow_verified_current_dispatch():
+    decision = route(model("small"), task=boundary(safe_to_switch=False))
+    assert decision.switched is False
+    assert decision.dispatch_allowed is True

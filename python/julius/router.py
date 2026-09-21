@@ -84,6 +84,7 @@ class RouteDecision(StrictModel):
     boundary_id: str
     selected: ModelChoice
     switched: bool
+    dispatch_allowed: bool
     reason: str
     current_evidence_id: str
     selected_evidence_id: str
@@ -175,6 +176,10 @@ def decide_route(*, boundary: TaskBoundary, current: ModelChoice,
     return RouteDecision(
         boundary_id=boundary.boundary_id, selected=selected,
         switched=selected.identity != current.identity, reason=reason,
+        dispatch_allowed=(_eligible(selected, boundary)
+                          and (boundary.maximum_spend is None
+                               or (selected_price is not None
+                                   and selected_price[0] <= boundary.maximum_spend))),
         current_evidence_id=current.evidence_id, selected_evidence_id=selected.evidence_id,
         current_predicted_cost=current_price[0] if current_price else None,
         selected_predicted_cost=selected_price[0] if selected_price else None,
