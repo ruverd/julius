@@ -1,0 +1,7 @@
+# Explicit Codex CLI usage probe
+
+`julius.codex_live_probe.probe_codex_usage(confirmed=True)` runs one synthetic Codex CLI turn in an empty temporary working directory. It uses `codex exec --json --ephemeral --sandbox read-only --ignore-user-config --ignore-rules --skip-git-repo-check` with a fixed request to reply with one word and avoid tools. The function is opt-in and never runs on import. It imposes a 30-second subprocess timeout and accepts at most 1 MiB and 1,000 JSONL events. It does not copy credentials, inspect a user project, write a result file, or configure hooks. Codex may reuse its existing authentication and make a model request; run this only when that explicit external call is authorized.
+
+`parse_codex_jsonl` extracts only `turn.completed.usage` counters and the thread ID. It discards message and tool content. Missing or invalid counters stay null; timeouts, failures, malformed output, and absent completion do not become zero usage. The probe does not establish provider billing, complete session coverage, or input savings. Fixtures establish parser behavior only; they do not certify a live installed Codex version.
+
+The [official Codex non-interactive guide](https://learn.chatgpt.com/docs/non-interactive-mode) documents `--json` event streams, `turn.completed.usage`, `--ephemeral`, and the read-only sandbox. The [CLI reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli) documents the flags used here. A read-only sandbox restricts filesystem writes by the agent but does not imply that the model call is offline.
