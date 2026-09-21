@@ -31,7 +31,7 @@ uv pip install --python /path/to/venv/bin/python ./dist/wheels/<matching-wheel>.
 
 Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Plain `setup` initializes storage and probes client versions. Project-specific `setup --project-root` previews a Claude configuration change and requires a matching plan hash before applying it. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
 
-`julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request.
+`julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request. The [capability matrix](docs/doctor.md) separates bounded historical exact-version evidence from checks made during the current invocation.
 
 ## Offline example
 

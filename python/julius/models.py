@@ -10,15 +10,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+from .adapter_capabilities import capabilities_for_client
 from .claude_probe import probe_local_protocol
-
-
-_CAPABILITIES = {
-    "canObserveUsage": False,
-    "canOptimizeInput": False,
-    "canImportUsage": False,
-    "liveCompatibilityTested": False,
-}
 
 # Exact CLI versions observed locally. This is not a live integration certification.
 _CLIENT_MATRIX = {
@@ -27,7 +20,7 @@ _CLIENT_MATRIX = {
 }
 
 
-def _client_capability(name: str, version: str | None) -> tuple[str, dict[str, str]]:
+def _client_capability(name: str, version: str | None) -> tuple[str | None, dict[str, str]]:
     features = {
         "versionDiscovery": "unsupported",
         "manualUsageImport": "unsupported",
@@ -35,12 +28,16 @@ def _client_capability(name: str, version: str | None) -> tuple[str, dict[str, s
         "inputOptimization": "unsupported",
     }
     if version is None:
-        return "unsupported", features
+        return None, features
     features["versionDiscovery"] = "observe_only"
     match = re.search(r"(?<![\d.])(\d+\.\d+\.\d+)(?![\d.])", version)
-    if match and _CLIENT_MATRIX[name].get(match.group(1)) == version:
+    exact_version = match.group(1) if match and _CLIENT_MATRIX[name].get(match.group(1)) == version else None
+    if exact_version:
         features["manualUsageImport"] = "experimental"
-    return ("experimental" if features["manualUsageImport"] == "experimental" else "unsupported"), features
+        features["liveUsageObservation"] = "experimental"
+        if name == "claude":
+            features["inputOptimization"] = "experimental"
+    return exact_version, features
 
 
 def doctor() -> dict[str, Any]:
@@ -54,21 +51,27 @@ def doctor() -> dict[str, Any]:
             version_line = (result.stdout or result.stderr).strip().splitlines()
             if result.returncode == 0 and version_line:
                 installed, version = True, version_line[0][:200]
-                detail = "Executable detected; no live integration capability verified"
+                detail = "Executable detected; no client integration test in this invocation"
             else:
                 detail = "Version probe failed"
         except (OSError, subprocess.TimeoutExpired):
             pass
-        capability, feature_status = _client_capability(name, version)
+        exact_version, feature_status = _client_capability(name, version)
+        manifest = capabilities_for_client(name, exact_version)
         clients.append(
             {
                 "name": name,
                 "executable": name,
                 "installed": installed,
                 "version": version,
-                "capability": capability,
-                "capabilities": dict(_CAPABILITIES),
+                "capability": manifest.status,
+                "adapterCapabilities": manifest.model_dump(mode="json"),
                 "featureStatus": feature_status,
+                "featureStatusScope": "declared local integration status; client not invoked",
+                "adapterEvidenceScope": (
+                    "bounded historical exact-version synthetic probe"
+                    if exact_version else "no exact-version client evidence"
+                ),
                 "detail": detail,
             }
         )
