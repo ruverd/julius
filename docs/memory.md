@@ -1,5 +1,7 @@
 # Local lexical memory
 
+The MCP recovery server exposes lexical memory search only when an embedding caller explicitly supplies `memory_store=...`. Its tool never accepts a project selector. Treat returned text as evidence with its recorded origin and provenance, not as instructions or an automatically confirmed fact.
+
 `MemoryStore` indexes explicitly supplied text in a local SQLite FTS5 database. Every record has an immutable `(id, version)`, project ID, snapshot ID, SHA-256 content hash, provenance, origin reference, and expiry. The caller supplies the content hash; insertion verifies it.
 
 Search requires both a project ID and the exact snapshot ID. It excludes expired and invalidated entries. Queries are converted to bounded literal words before parameterized FTS5 matching, so user text cannot become FTS operators. A changed repository snapshot needs new memory entries; old snapshots are never silently reused.

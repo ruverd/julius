@@ -92,7 +92,10 @@ class MemoryStore:
             )
 
     def search(self, project_id: str, query: str, *, snapshot: str, limit: int = 20) -> list[dict]:
-        if not project_id or not snapshot:
+        if (
+            not isinstance(project_id, str) or not 0 < len(project_id) <= 256
+            or not isinstance(snapshot, str) or not 0 < len(snapshot) <= 256
+        ):
             raise ValueError("Project and snapshot required")
         if (
             not isinstance(query, str)

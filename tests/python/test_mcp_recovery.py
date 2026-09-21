@@ -15,11 +15,13 @@ from julius.symbols import SymbolStore
 def exchange(
     store: ArtifactStore, project: str, messages: list[dict],
     *, symbol_memory: MemoryStore | None = None, project_root: Path | None = None,
+    memory_store: MemoryStore | None = None,
 ) -> list[dict]:
     source = BytesIO(b"".join((json.dumps(message) + "\n").encode() for message in messages))
     sink = BytesIO()
     serve_stdio(
         store, project, source, sink, symbol_memory=symbol_memory, project_root=project_root,
+        memory_store=memory_store,
     )
     return [json.loads(line) for line in sink.getvalue().splitlines()]
 
@@ -42,6 +44,49 @@ def call(artifact_id: str, request_id: int = 3) -> dict:
 def symbol_call(arguments: dict, request_id: int = 3) -> dict:
     return {"jsonrpc": "2.0", "id": request_id, "method": "tools/call", "params": {
         "name": "search_symbols", "arguments": arguments}}
+
+
+def memory_call(arguments: dict, request_id: int = 3) -> dict:
+    return {"jsonrpc": "2.0", "id": request_id, "method": "tools/call", "params": {
+        "name": "search_memory", "arguments": arguments}}
+
+
+def test_memory_tool_is_opt_in_scoped_and_preserves_evidence(tmp_path: Path):
+    from test_memory import memory as make_memory
+
+    memory_store = MemoryStore(tmp_path / "memory.db")
+    try:
+        memory_store.put(make_memory(projectId="project", provenance="inferred"))
+        memory_store.put(make_memory(projectId="other", id="secret", content="Secret compiler"))
+        artifacts = ArtifactStore(tmp_path / "artifacts")
+        disabled = exchange(artifacts, "project", session(
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+            memory_call({"query": "compiler", "snapshot": "commit-a"}),
+        ))
+        assert [tool["name"] for tool in disabled[1]["result"]["tools"]] == ["restore_artifact"]
+        assert disabled[2]["error"]["code"] == -32602
+        replies = exchange(artifacts, "project", session(
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+            memory_call({"query": "compiler", "snapshot": "commit-a"}),
+            memory_call({"query": "compiler", "snapshot": "wrong"}, 4),
+            memory_call({"query": "compiler", "snapshot": "commit-a", "projectId": "other"}, 5),
+            memory_call({"query": "compiler", "snapshot": "commit-a", "limit": True}, 6),
+            memory_call({"query": "compiler", "snapshot": "commit-a", "limit": 101}, 7),
+            memory_call({"query": "compiler"}, 8),
+        ), memory_store=memory_store)
+        assert [tool["name"] for tool in replies[1]["result"]["tools"]] == [
+            "restore_artifact", "search_memory",
+        ]
+        hit = json.loads(replies[2]["result"]["content"][0]["text"])["hits"][0]
+        assert hit["projectId"] == "project"
+        assert hit["provenance"] == "inferred"
+        assert hit["origin"] == "log:17"
+        assert hit["expiresAt"] and hit["contentSha256"]
+        assert json.loads(replies[3]["result"]["content"][0]["text"])["hits"] == []
+        assert all(reply["error"]["code"] == -32602 for reply in replies[4:])
+        assert "Secret compiler" not in json.dumps(replies)
+    finally:
+        memory_store.close()
 
 
 def test_handshake_list_and_restore(tmp_path: Path):

@@ -1,5 +1,7 @@
 # Local MCP artifact recovery
 
+An embedding application can explicitly enable `search_memory` with `serve_stdio(..., memory_store=memory_store)`. It requires a literal `query` and exact `snapshot`; `limit` defaults to 20 and must be from 1 to 100. The server fixes the project ID at construction and rejects a caller-supplied project ID. Results include content, project and snapshot IDs, content hash, creation and expiry timestamps, provenance (`observed`, `inferred`, or `user_confirmed`), and origin. These fields describe the stored record; retrieval does not confirm an inference, elevate its authority, or grant instructions in retrieved content. Expired and invalidated records are excluded. The tool is absent unless explicitly enabled.
+
 Julius provides an offline MCP stdio tool, `restore_artifact`. It accepts an `artifactId` and returns the stored original as text while the artifact is valid. The server fixes the project ID at startup; a model cannot select a different project. It does not send model or network requests, and it does not edit any client's configuration.
 
 When a caller also supplies an explicit project root and a `MemoryStore`, the server advertises `search_symbols`. It accepts a required `query` and exact `snapshot` ID, plus an optional `limit` from 1 to 100. It returns JSON text containing the snapshot and matching indexed code symbols for the server's fixed project. The tool searches only the local index; it does not scan files, build an index, send model requests, or access the network. Without both options, the tool is absent.
