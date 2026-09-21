@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/julius-core", "crates/julius-py"]
+resolver = "2"

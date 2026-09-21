@@ -1,6 +1,6 @@
 # Julius Python and Rust Migration
 
-Status: user-approved architecture change; implementation handoff, not a completed migration.
+Status: user-approved architecture change; Python/Rust core cutover implemented and locally validated. Cross-platform release certification remains open.
 Date: September 21, 2026.
 
 ## Decision
@@ -41,3 +41,11 @@ The ledger, optimizer/artifacts, and adapters remain independent migration subta
 ## Completion evidence
 
 Record exact commands and results for Python tests, configured lint/type checks, Rust tests, wheel installation, and offline CLI smoke tests. Retain relevant TypeScript checks until cutover. Do not describe this document edit as a completed language migration, a delivered Rust speedup, or verified cross-platform support.
+
+## Cutover record
+
+The coordinator checkpointed the initial TypeScript product at commit `3616024`, then assigned Python ledger/events, optimizer/artifacts/Rust, and adapters/pricing to three Sol workers. Strict Pydantic schemas retain JSON contracts. Frozen outputs in `tests/fixtures` verify native optimization and report parity. Existing TypeScript-style SQLite event bodies normalize before idempotency comparison.
+
+Python now owns the active CLI/SDK, SQLite ledger, policies, adapters, reporting, artifacts, FTS5 memory, and pricing. PyO3 exposes a substantive deterministic repeated-line operation from `julius-core`. The binding uses Python 3.11 stable ABI support. Maturin built a macOS arm64 wheel; an isolated Python 3.12 environment installed it and exercised native import, duplicate import, signed marginal arithmetic, optimization/restoration, and HTML/CSV export. TypeScript source was removed from the active tree after these checks; its checkpoint and frozen fixtures remain available.
+
+This completes the local core migration, not the full product roadmap. Native client integrations, quality benchmarks, Linux/WSL certification, signed distributions, and managed update/rollback remain separate gates. See `docs/validation.md` for final commands and test counts.

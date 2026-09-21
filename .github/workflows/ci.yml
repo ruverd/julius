@@ -8,12 +8,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: astral-sh/setup-uv@v6
         with:
-          bun-version: 1.3.13
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun test
-      - run: bun run build
-      - run: ./dist/julius --version
-      - run: bun run smoke
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - run: uv sync --frozen
+      - run: sh scripts/dev.sh test
+      - run: sh scripts/dev.sh build
+      - run: uv run --no-sync python scripts/wheel_smoke.py dist/wheels/*.whl

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "period": {
+    "since": "2026-09-21T00:00:00.000Z",
+    "until": "2026-09-22T00:00:00.000Z",
+    "timezone": "UTC",
+    "interval": "[since, until)"
+  },
+  "sources": [
+    "contract-fixture"
+  ],
+  "observedCalls": 1,
+  "sessionUsageDeltas": 0,
+  "incompleteCalls": 0,
+  "unknownModels": 0,
+  "coverage": {
+    "transformedObservedRequests": 1,
+    "observedRequestsWithId": 1,
+    "scope": "Imported or instrumented requests only; unobserved traffic is unknown."
+  },
+  "directInputReduction": [
+    {
+      "scope": "request",
+      "evidence": "heuristic_estimate",
+      "tokenizer": null,
+      "modelId": "fixture-model",
+      "tokens": {
+        "known": 7000,
+        "unknownRecords": 0,
+        "total": 7000
+      }
+    }
+  ],
+  "candidateTransformsNotCounted": 0,
+  "modeledCostUsd": {
+    "known": 0,
+    "unknownRecords": 1,
+    "total": null
+  },
+  "auxiliaryCostUsd": {
+    "known": 0,
+    "unknownRecords": 0,
+    "total": null
+  },
+  "financialSavingsUsd": null,
+  "baseline": "Unavailable: no comparable financial baseline was recorded.",
+  "taskMeasurement": "Incomplete: instrumentation does not establish that every call of a task was captured.",
+  "groups": [
+    {
+      "key": "fixture-model",
+      "calls": 1,
+      "input": {
+        "known": 3000,
+        "unknownRecords": 0,
+        "total": 3000
+      },
+      "output": {
+        "known": 100,
+        "unknownRecords": 0,
+        "total": 100
+      },
+      "cacheRead": {
+        "known": 0,
+        "unknownRecords": 1,
+        "total": null
+      },
+      "cacheWrite": {
+        "known": 0,
+        "unknownRecords": 1,
+        "total": null
+      },
+      "costUsd": {
+        "known": 0,
+        "unknownRecords": 1,
+        "total": null
+      },
+      "evidence": [
+        "heuristic_estimate"
+      ],
+      "locations": [
+        "unknown"
+      ]
+    }
+  ]
+}

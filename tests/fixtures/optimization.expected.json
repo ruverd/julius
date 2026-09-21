@@ -1,0 +1,98 @@
+[
+  {
+    "name": "repeated",
+    "result": {
+      "candidate": "neutral status text xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n[repeated exact line 2/4; restore artifact 11111111-1111-1111-1111-111111111111]\n[repeated exact line 3/4; restore artifact 11111111-1111-1111-1111-111111111111]\n[repeated exact line 4/4; restore artifact 11111111-1111-1111-1111-111111111111]\n",
+      "receipt": {
+        "scope": "tool_output",
+        "applied": true,
+        "reason": "repeated_exact_lines",
+        "policyVersion": "1.0.0",
+        "beforeBytes": 1044,
+        "afterBytes": 504,
+        "beforeTokens": 261,
+        "afterTokens": 126,
+        "tokenEstimateMethod": "heuristic_utf8_bytes_divided_by_4",
+        "evidence": "heuristic_estimate",
+        "tokenizer": null,
+        "realizedSavings": null,
+        "lineage": {
+          "priorTransformId": null,
+          "originalArtifactId": "11111111-1111-1111-1111-111111111111"
+        }
+      }
+    }
+  },
+  {
+    "name": "protected",
+    "result": {
+      "candidate": "FAIL assertion 123\nFAIL assertion 123\nFAIL assertion 123\nFAIL assertion 123\n",
+      "receipt": {
+        "scope": "tool_output",
+        "applied": false,
+        "reason": "protected_content",
+        "policyVersion": "1.0.0",
+        "beforeBytes": 76,
+        "afterBytes": 76,
+        "beforeTokens": 19,
+        "afterTokens": 19,
+        "tokenEstimateMethod": "heuristic_utf8_bytes_divided_by_4",
+        "evidence": "heuristic_estimate",
+        "tokenizer": null,
+        "realizedSavings": null,
+        "lineage": {
+          "priorTransformId": null,
+          "originalArtifactId": null
+        }
+      }
+    }
+  },
+  {
+    "name": "compact",
+    "result": {
+      "candidate": "hello",
+      "receipt": {
+        "scope": "tool_output",
+        "applied": false,
+        "reason": "no_reducible_lines",
+        "policyVersion": "1.0.0",
+        "beforeBytes": 5,
+        "afterBytes": 5,
+        "beforeTokens": 2,
+        "afterTokens": 2,
+        "tokenEstimateMethod": "heuristic_utf8_bytes_divided_by_4",
+        "evidence": "heuristic_estimate",
+        "tokenizer": null,
+        "realizedSavings": null,
+        "lineage": {
+          "priorTransformId": null,
+          "originalArtifactId": null
+        }
+      }
+    }
+  },
+  {
+    "name": "portuguese",
+    "result": {
+      "candidate": "Concluído: ação rápida.\nConcluído: ação rápida.\nConcluído: ação rápida.\nConcluído: ação rápida.\n",
+      "receipt": {
+        "scope": "tool_output",
+        "applied": false,
+        "reason": "no_reducible_lines",
+        "policyVersion": "1.0.0",
+        "beforeBytes": 112,
+        "afterBytes": 112,
+        "beforeTokens": 28,
+        "afterTokens": 28,
+        "tokenEstimateMethod": "heuristic_utf8_bytes_divided_by_4",
+        "evidence": "heuristic_estimate",
+        "tokenizer": null,
+        "realizedSavings": null,
+        "lineage": {
+          "priorTransformId": null,
+          "originalArtifactId": null
+        }
+      }
+    }
+  }
+]

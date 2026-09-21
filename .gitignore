@@ -3,3 +3,13 @@ dist/
 .julius/
 *.sqlite*
 .DS_Store
+.venv/
+.tools/
+target/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.so
+*.dylib
+*.egg-info/

@@ -1,10 +1,10 @@
 # Event and accounting contract
 
-The executable accepts Julius v1 JSONL events. `src/events.ts` exports `EconomyEvent` and `validateEvent`; these are the authoritative runtime and TypeScript contracts. Events have a 64 KiB maximum. Imports have a 16 MiB maximum. Timestamps use canonical UTC ISO strings with milliseconds, for example `2026-09-21T12:00:00.000Z`.
+The executable accepts Julius v1 JSONL events. `python/julius/events.py` exports strict Pydantic schemas and `validate_event`; these are the authoritative runtime contracts. Events have a 64 KiB maximum. Imports have a 16 MiB maximum. Timestamps use canonical UTC ISO strings with milliseconds, for example `2026-09-21T12:00:00.000Z`.
 
 ## Identity
 
-Every event has source and source-event IDs. Exact replay is idempotent; changed content at the same source identity is rejected. Cross-source usage duplicates require explicit call identity and matching ownership/attempt identity. The ledger keeps aliases rather than forgetting the second source. New attempts remain distinct. Importing a changed transcript requires explicit reconciliation instead of silently rewriting an earlier measurement.
+Every event has source and source-event IDs. Normalized replay is idempotent; changed content at the same source identity is rejected. Cross-source usage duplicates require explicit call identity and matching ownership/attempt identity. The ledger keeps aliases rather than forgetting the second source. New attempts remain distinct. Importing a changed transcript requires explicit reconciliation instead of silently rewriting an earlier measurement.
 
 ## Usage
 
