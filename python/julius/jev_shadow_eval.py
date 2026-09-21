@@ -7,10 +7,22 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
 
 Action = Literal["keep", "retrieve", "compress"]
 ACTIONS: tuple[Action, ...] = ("keep", "retrieve", "compress")
+
+
+class CaseState(BaseModel):
+    """The exact, bounded metadata vocabulary accepted by the Jev boundary."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    input_tokens: StrictInt = Field(ge=0, le=1_000_000_000)
+    estimated_reduction_tokens: StrictInt = Field(ge=0, le=1_000_000_000)
+    artifact_recoverable: StrictBool
+    has_protected_content: StrictBool
+    model_local: StrictBool
+    repetitive_content: StrictBool
 
 
 class LabeledCase(BaseModel):
@@ -19,6 +31,8 @@ class LabeledCase(BaseModel):
     label: Action
     eligible_actions: tuple[Action, ...] = Field(min_length=1)
     rationale: StrictStr = Field(min_length=1)
+    state: CaseState
+    evaluation_mode: Literal["deterministic_only", "optional_jev_shadow"]
 
     @model_validator(mode="after")
     def valid_label(self) -> LabeledCase:
@@ -26,6 +40,10 @@ class LabeledCase(BaseModel):
             raise ValueError("Eligible actions must be unique")
         if self.label not in self.eligible_actions:
             raise ValueError("Label must be eligible")
+        if self.state.has_protected_content and self.evaluation_mode != "deterministic_only":
+            raise ValueError("Protected content must be deterministic only")
+        if self.evaluation_mode == "deterministic_only" and self.eligible_actions != ("keep",):
+            raise ValueError("Deterministic-only cases must allow only keep")
         return self
 
 
@@ -33,7 +51,7 @@ class Registration(BaseModel):
     """Fixed label set; register before inspecting captures."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
-    schema_version: Literal["1"]
+    schema_version: Literal["2"]
     registration_id: StrictStr = Field(min_length=1)
     cases: tuple[LabeledCase, ...] = Field(min_length=1)
 
@@ -66,7 +84,10 @@ def evaluate_replay(
     registration: Registration, captures: tuple[CapturedChoice, ...]
 ) -> dict[str, object]:
     """Score one captured Choice per case without invoking a gateway or changing routing."""
-    by_id = {case.case_id: case for case in registration.cases}
+    by_id = {case.case_id: case for case in registration.cases
+             if case.evaluation_mode == "optional_jev_shadow"}
+    deterministic_ids = sorted(case.case_id for case in registration.cases
+                               if case.evaluation_mode == "deterministic_only")
     seen: set[str] = set()
     for capture in captures:
         if capture.case_id not in by_id:
@@ -126,15 +147,17 @@ def evaluate_replay(
             bins[name] = {"count": int(count), "mean_confidence": confidence_sum / count,
                           "accuracy": hit_sum / count}
     count = len(captures)
-    complete = count == len(registration.cases)
+    complete = count == len(by_id)
     return {
         "scope": "offline_jev_shadow_replay",
         "registration_id": registration.registration_id,
         "registration_sha256": digest,
         "planned_cases": len(registration.cases),
+        "planned_shadow_cases": len(by_id),
+        "deterministic_only_case_ids": deterministic_ids,
         "captured_cases": count,
         "missing_case_ids": sorted(set(by_id) - seen),
-        "coverage": count / len(registration.cases),
+        "coverage": count / len(by_id) if by_id else None,
         "confusion": confusion,
         "correct": correct,
         "accuracy": correct / count if count else None,

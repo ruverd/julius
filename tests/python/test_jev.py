@@ -37,6 +37,7 @@ def test_shadow_never_applies_and_filters_state():
     ("artifact_recoverable", "true"),
     ("has_protected_content", {"prompt": "private"}),
     ("model_local", 1),
+    ("repetitive_content", "true"),
 ])
 def test_invalid_allowlisted_state_fails_before_gateway(field, value):
     gateway = FakeGateway(JevAnswer("keep", 1, 0))
@@ -53,7 +54,7 @@ def test_valid_state_keeps_exact_metadata_types_and_bounds():
     gateway = FakeGateway(JevAnswer("keep", 1, 0))
     state = {"input_tokens": 0, "estimated_reduction_tokens": 1_000_000_000,
              "artifact_recoverable": False, "has_protected_content": True,
-             "model_local": False, "secret": "private"}
+             "model_local": False, "repetitive_content": True, "secret": "private"}
     receipt = shadow_decide(
         state=state, eligible_actions=("keep",),
         policy=ShadowPolicy(enabled=True, max_cost_usd=1), gateway=gateway,
@@ -126,6 +127,36 @@ def test_typesafe_protocol_and_usage():
     assert receipt.input_tokens == 200 and receipt.output_tokens == 10
     assert receipt.actual_model == "jev-latest"
     assert receipt.cost_usd == 0.00022
+
+
+def test_pinned_typesafe_model_is_sent_and_invalid_id_fails_before_transport():
+    transport = FixtureTransport({
+        "model": "jev-1.13.0",
+        "answers": {"action": {"choice": "keep", "confidence": 0.9}},
+        "usage": {"input_tokens": 1, "output_tokens": 1},
+    })
+    gateway = TypeSafeGateway("key", model_id="jev-1.13.0", transport=transport)
+    answer = gateway.choose({"repetitive_content": False}, ("keep",), 1)
+    assert transport.calls[0][0]["model"] == "jev-1.13.0"
+    assert answer.actual_model == "jev-1.13.0"
+    with pytest.raises(ValueError, match="model ID"):
+        TypeSafeGateway("key", model_id="jev-1.13.0\nInjected: yes", transport=transport)
+    assert len(transport.calls) == 1
+
+
+def test_model_mismatch_keeps_token_usage_but_price_unavailable():
+    transport = FixtureTransport({
+        "model": "jev-1.14.0",
+        "answers": {"action": {"choice": "keep", "confidence": 0.9}},
+        "usage": {"input_tokens": 200, "output_tokens": 10},
+    })
+    answer = TypeSafeGateway(
+        "key", model_id="jev-1.13.0", input_usd_per_million=0.042,
+        output_usd_per_million=0, transport=transport,
+    ).choose({}, ("keep",), 1)
+    assert answer.actual_model == "jev-1.14.0"
+    assert answer.input_tokens == 200 and answer.output_tokens == 10
+    assert answer.cost_usd is None
 
 
 def test_typesafe_gateway_direct_call_validates_before_transport():

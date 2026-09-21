@@ -1,12 +1,116 @@
 {
-  "schema_version": "1",
-  "registration_id": "jev-policy-choice-pilot-v1",
+  "schema_version": "2",
+  "registration_id": "jev-policy-choice-pilot-v2",
   "cases": [
-    {"case_id": "protected-content", "label": "keep", "eligible_actions": ["keep"], "rationale": "Protected content leaves no eligible transformation."},
-    {"case_id": "recoverable-short-context", "label": "keep", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Small context has no useful reduction to justify a change."},
-    {"case_id": "missing-recoverable-source", "label": "keep", "eligible_actions": ["keep", "compress"], "rationale": "Retrieval has no recoverable source and compression is unnecessary."},
-    {"case_id": "recoverable-large-context", "label": "retrieve", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Authorized recoverable source permits selective retrieval."},
-    {"case_id": "repeated-large-context", "label": "compress", "eligible_actions": ["keep", "compress"], "rationale": "Eligible repeated text can be compressed while preserving required content."},
-    {"case_id": "local-model-long-context", "label": "compress", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Eligible long context has a preselected compression target."}
+    {
+      "case_id": "protected-content",
+      "label": "keep",
+      "eligible_actions": [
+        "keep"
+      ],
+      "rationale": "Protected content leaves no eligible transformation.",
+      "evaluation_mode": "deterministic_only",
+      "state": {
+        "input_tokens": 12000,
+        "estimated_reduction_tokens": 4000,
+        "artifact_recoverable": false,
+        "has_protected_content": true,
+        "model_local": false,
+        "repetitive_content": false
+      }
+    },
+    {
+      "case_id": "recoverable-short-context",
+      "label": "keep",
+      "eligible_actions": [
+        "keep",
+        "retrieve",
+        "compress"
+      ],
+      "rationale": "Small context has no useful reduction to justify a change.",
+      "evaluation_mode": "optional_jev_shadow",
+      "state": {
+        "input_tokens": 200,
+        "estimated_reduction_tokens": 20,
+        "artifact_recoverable": true,
+        "has_protected_content": false,
+        "model_local": false,
+        "repetitive_content": false
+      }
+    },
+    {
+      "case_id": "missing-recoverable-source",
+      "label": "keep",
+      "eligible_actions": [
+        "keep",
+        "compress"
+      ],
+      "rationale": "Retrieval has no recoverable source and compression is unnecessary.",
+      "evaluation_mode": "optional_jev_shadow",
+      "state": {
+        "input_tokens": 500,
+        "estimated_reduction_tokens": 30,
+        "artifact_recoverable": false,
+        "has_protected_content": false,
+        "model_local": false,
+        "repetitive_content": false
+      }
+    },
+    {
+      "case_id": "recoverable-large-context",
+      "label": "retrieve",
+      "eligible_actions": [
+        "keep",
+        "retrieve",
+        "compress"
+      ],
+      "rationale": "Authorized recoverable source permits selective retrieval.",
+      "evaluation_mode": "optional_jev_shadow",
+      "state": {
+        "input_tokens": 12000,
+        "estimated_reduction_tokens": 7000,
+        "artifact_recoverable": true,
+        "has_protected_content": false,
+        "model_local": false,
+        "repetitive_content": false
+      }
+    },
+    {
+    "case_id": "repeated-large-context",
+      "label": "compress",
+      "eligible_actions": [
+        "keep",
+        "compress"
+      ],
+      "rationale": "Eligible repeated text can be compressed while preserving required content.",
+      "evaluation_mode": "optional_jev_shadow",
+      "state": {
+        "input_tokens": 12000,
+        "estimated_reduction_tokens": 6000,
+        "artifact_recoverable": true,
+        "has_protected_content": false,
+        "model_local": false,
+        "repetitive_content": true
+      }
+    },
+    {
+      "case_id": "local-model-long-context",
+      "label": "compress",
+      "eligible_actions": [
+        "keep",
+        "retrieve",
+        "compress"
+      ],
+      "rationale": "Eligible long context has a preselected compression target.",
+      "evaluation_mode": "optional_jev_shadow",
+      "state": {
+        "input_tokens": 30000,
+        "estimated_reduction_tokens": 15000,
+        "artifact_recoverable": true,
+        "has_protected_content": false,
+        "model_local": true,
+        "repetitive_content": false
+      }
+    }
   ]
 }

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Literal, Mapping, Protocol
 import json
 import math
@@ -75,6 +76,7 @@ class TypeSafeGateway:
         *,
         input_usd_per_million: float | None = None,
         output_usd_per_million: float | None = None,
+        model_id: str = "jev-latest",
         transport: JevTransport | None = None,
     ) -> None:
         if not api_key or api_key != api_key.strip() or any(character in api_key for character in "\r\n\x00"):
@@ -82,9 +84,12 @@ class TypeSafeGateway:
         for rate in (input_usd_per_million, output_usd_per_million):
             if rate is not None and (not math.isfinite(rate) or rate < 0):
                 raise ValueError("TypeSafe price rates must be finite and nonnegative")
+        if not isinstance(model_id, str) or re.fullmatch(r"jev-[A-Za-z0-9][A-Za-z0-9._-]{0,63}", model_id) is None:
+            raise ValueError("Invalid TypeSafe model ID")
         self._api_key = api_key
         self._input_rate = input_usd_per_million
         self._output_rate = output_usd_per_million
+        self.model_id = model_id
         self._transport = transport or HttpsTypeSafeTransport()
 
     def choose(
@@ -97,7 +102,7 @@ class TypeSafeGateway:
             "compress": "Compress eligible context while preserving protected content.",
         }
         body = json.dumps({
-            "model": "jev-latest",
+            "model": self.model_id,
             "state": minimal_state,
             "questions": {"action": {
                 "type": "choice",
@@ -123,12 +128,14 @@ class TypeSafeGateway:
         for count in (input_tokens, output_tokens):
             if count is not None and (isinstance(count, bool) or not isinstance(count, int) or count < 0):
                 raise ValueError("Invalid TypeSafe usage")
+        model = payload.get("model")
+        actual_model = model if isinstance(model, str) and model else None
         cost = None
         if (input_tokens is not None and output_tokens is not None
-            and self._input_rate is not None and self._output_rate is not None):
+            and self._input_rate is not None and self._output_rate is not None
+            and actual_model == self.model_id):
             cost = (input_tokens * self._input_rate + output_tokens * self._output_rate) / 1_000_000
-        model = payload.get("model")
-        return JevAnswer(choice, float(confidence), cost, input_tokens, output_tokens, model if isinstance(model, str) else None)
+        return JevAnswer(choice, float(confidence), cost, input_tokens, output_tokens, actual_model)
 
 
 class JevGateway(Protocol):
@@ -155,7 +162,7 @@ class ShadowReceipt:
 
 
 _ALLOWED_STATE_KEYS = frozenset(
-    {"input_tokens", "estimated_reduction_tokens", "artifact_recoverable", "has_protected_content", "model_local"}
+    {"input_tokens", "estimated_reduction_tokens", "artifact_recoverable", "has_protected_content", "model_local", "repetitive_content"}
 )
 _TOKEN_STATE_KEYS = frozenset({"input_tokens", "estimated_reduction_tokens"})
 _MAX_STATE_TOKENS = 1_000_000_000
