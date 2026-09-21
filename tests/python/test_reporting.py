@@ -34,6 +34,36 @@ def test_preview_and_foreign_project_do_not_count_coverage():
     assert result["coverage"]["transformedObservedRequests"] == 0
 
 
+def test_session_delta_is_recorded_without_becoming_a_call():
+    def usage(source: str, call_id: str | None, scope: str, complete: bool) -> dict:
+        return {
+            "eventType": "usage", "sourceId": source, "projectId": "p",
+            "sessionId": "s", "requestId": None, "attemptId": None,
+            "clientId": "cli", "modelId": None, "providerId": None,
+            "executionLocation": "unknown", "evidence": "runtime_reported",
+            "payload": {"callId": call_id, "observationScope": scope,
+                        "complete": complete, "category": "primary",
+                        "inputTokens": 10, "outputTokens": 2,
+                        "cacheReadTokens": None, "cacheWriteTokens": None,
+                        "costUsd": None},
+        }
+
+    result = report([
+        usage("session", None, "session_delta", False),
+        usage("call", "real-call", "call", True),
+    ], WINDOW)
+    assert result["observedCalls"] == 1
+    assert result["usageRecords"] == 2
+    assert result["usageRecordsWithoutCallId"] == 1
+    assert result["sessionUsageDeltas"] == 1
+    assert result["incompleteCalls"] == 0
+    assert result["incompleteUsageRecords"] == 1
+    assert result["groups"][0]["calls"] == 1
+    assert result["groups"][0]["usageRecords"] == 2
+    assert "Transformed observed requests" in render_html(result)
+    assert "Session usage deltas" in render_html(result)
+
+
 def test_exports_escape_active_content():
     event = json.loads(FIXTURE.read_text().splitlines()[-1])
     event["clientId"] = "<script>alert(1)</script>"

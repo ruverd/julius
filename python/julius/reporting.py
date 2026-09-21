@@ -23,6 +23,18 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     if by not in ("model", "client", "category"):
         raise ValueError("Group must be model, client, or category")
     usage = [event for event in events if event["eventType"] == "usage"]
+    def call_identity(event: dict) -> tuple | None:
+        payload = event["payload"]
+        call_id = payload.get("callId")
+        return (
+            (event["projectId"], event["sessionId"], event["clientId"],
+             event.get("providerId"), call_id)
+            if isinstance(call_id, str) and call_id
+            and payload.get("observationScope") != "session_delta"
+            else None
+        )
+
+    known_calls = {call_identity(event) for event in usage} - {None}
     transforms = [
         event for event in events if event["eventType"] == "transform" and event["payload"]["sent"]
     ]
@@ -65,13 +77,16 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         "schemaVersion": 1,
         "period": {**window, "interval": "[since, until)"},
         "sources": sorted({event["sourceId"] for event in events}),
-        "observedCalls": sum(
-            event["payload"].get("observationScope") != "session_delta" for event in usage
-        ),
+        "observedCalls": len(known_calls),
+        "usageRecords": len(usage),
+        "usageRecordsWithoutCallId": sum(call_identity(event) is None for event in usage),
         "sessionUsageDeltas": sum(
             event["payload"].get("observationScope") == "session_delta" for event in usage
         ),
-        "incompleteCalls": sum(not event["payload"]["complete"] for event in usage),
+        "incompleteCalls": len({call_identity(event) for event in usage
+                                if call_identity(event) is not None
+                                and not event["payload"]["complete"]}),
+        "incompleteUsageRecords": sum(not event["payload"]["complete"] for event in usage),
         "unknownModels": sum(event["modelId"] is None for event in usage),
         "coverage": {
             "transformedObservedRequests": len(transformed),
@@ -101,7 +116,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         "groups": [
             {
                 "key": key,
-                "calls": len(items),
+                "calls": len({call_identity(item) for item in items} - {None}),
+                "usageRecords": len(items),
                 **{
                     name: _sum([item["payload"][field] for item in items])
                     for name, field in (
@@ -135,7 +151,8 @@ def render_text(data: dict) -> str:
         "Julius — evidence-aware report",
         f"Period: {period['since']} ≤ time < {period['until']} ({period['timezone']})",
         f"Sources: {', '.join(data['sources']) or 'none'}",
-        f"Observed calls: {data['observedCalls']}; incomplete: {data['incompleteCalls']}; unknown model: {data['unknownModels']}",
+        f"Observed calls with IDs: {data['observedCalls']}; incomplete calls: {data['incompleteCalls']}; unknown-model usage records: {data['unknownModels']}",
+        f"Usage records: {data.get('usageRecords', data['observedCalls'])}; without call ID: {data.get('usageRecordsWithoutCallId', 0)}; incomplete records: {data.get('incompleteUsageRecords', data['incompleteCalls'])}",
         f"Session usage deltas: {data['sessionUsageDeltas']} (not a known call count)",
         f"Coverage: {data['coverage']['transformedObservedRequests']}/{data['coverage']['observedRequestsWithId']} observed requests with IDs transformed",
     ]
@@ -159,7 +176,7 @@ def render_text(data: dict) -> str:
             f"known subtotal: {data['providerChargedUsd']['known']}"
         )
     lines.extend(
-        f"{group['key']}: calls={group['calls']}, input={_display(group['input']['total'])}, output={_display(group['output']['total'])}, evidence={','.join(group['evidence'])}"
+        f"{group['key']}: calls={group['calls']}, records={group.get('usageRecords', group['calls'])}, input={_display(group['input']['total'])}, output={_display(group['output']['total'])}, evidence={','.join(group['evidence'])}"
         for group in data["groups"]
     )
     return "\n".join(lines)
@@ -169,7 +186,7 @@ def render_csv(data: dict) -> str:
     output = io.StringIO(newline="")
     writer = csv.writer(output, quoting=csv.QUOTE_ALL)
     provider_charges = "providerChargedUsd" in data
-    columns = ["group", "calls", "input_tokens", "output_tokens", "modeled_cost_usd"]
+    columns = ["group", "calls", "usage_records", "input_tokens", "output_tokens", "modeled_cost_usd"]
     if provider_charges:
         columns.append("provider_charged_usd")
     writer.writerow([*columns, "evidence"])
@@ -177,6 +194,7 @@ def render_csv(data: dict) -> str:
         row = [
             group["key"],
             group["calls"],
+            group.get("usageRecords", group["calls"]),
             group["input"]["total"],
             group["output"]["total"],
             group["costUsd"]["total"],
@@ -262,6 +280,14 @@ def render_html(data: dict) -> str:
         )
     savings = data.get("financialSavingsUsd")
     savings_text = cell(savings) if savings is not None else "unavailable"
+    coverage = data.get("coverage")
+    coverage_text = (
+        f"{cell(coverage['transformedObservedRequests'])}/{cell(coverage['observedRequestsWithId'])}"
+        if isinstance(coverage, dict)
+        and "transformedObservedRequests" in coverage
+        and "observedRequestsWithId" in coverage
+        else "unavailable"
+    )
     period = data["period"]
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
@@ -281,8 +307,10 @@ def render_html(data: dict) -> str:
         f"<p>Local aggregate for {cell(period['since'])} to {cell(period['until'])}. "
         "No model calls or external resources.</p></header>"
         "<section class='cards' aria-label='Summary'>"
-        f"<div class='card'>Observed calls<strong>{cell(data['observedCalls'])}</strong></div>"
-        f"<div class='card'>Incomplete calls<strong>{cell(data['incompleteCalls'])}</strong></div>"
+        f"<div class='card'>Observed calls with IDs<strong>{cell(data['observedCalls'])}</strong></div>"
+        f"<div class='card'>Incomplete usage records<strong>{cell(data.get('incompleteUsageRecords', data['incompleteCalls']))}</strong></div>"
+        f"<div class='card'>Transformed observed requests<strong>{coverage_text}</strong></div>"
+        f"<div class='card'>Session usage deltas<strong>{cell(data.get('sessionUsageDeltas'))}</strong></div>"
         f"<div class='card'>Modeled cost USD<strong>{measure(data['modeledCostUsd'])}</strong></div>"
         f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
         f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
