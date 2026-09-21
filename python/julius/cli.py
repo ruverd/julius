@@ -34,6 +34,8 @@ from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
 from .price_store import PriceSnapshot, PriceStore
 from .model_scan import scan_models
+from .memory import MemoryStore
+from .symbols import SymbolStore
 from .evaluation_runner import Attempt, FrozenFixture, replay_paired_fixtures
 from .integration_manager import ClaudeIntegrationManager
 from .quality_guard import GuardPolicy, ManualAction, Scope, TaskOutcome, decide_suspension
@@ -60,6 +62,7 @@ def _parser() -> argparse.ArgumentParser:
             "setup",
             "doctor",
             "models",
+            "symbols",
             "prices",
             "import",
             "optimize",
@@ -86,7 +89,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "project-root", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
+    for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
         parser.add_argument(f"--{option}")
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence", "max-budget-usd", "timeout-seconds"):
         parser.add_argument(f"--{option}", type=float)
@@ -375,6 +378,30 @@ def run(argv: list[str] | None = None) -> int:
                     ))
         else:
             raise ValueError("Use models list, record, history, or scan")
+        return 0
+    if command == "symbols":
+        if len(args.arguments) != 2 or argument not in ("index", "search", "invalidate"):
+            raise ValueError("Use symbols index|search|invalidate <relative-file-or-query> --project <id> --project-root <directory> --snapshot <id>")
+        directory = Path(args.data_dir).absolute()
+        memory = MemoryStore(directory / "memory.sqlite3")
+        try:
+            symbols = SymbolStore(
+                memory, project_id=_required(args.project, "--project"),
+                project_root=_required(args.project_root, "--project-root"),
+            )
+            try:
+                target = args.arguments[1]
+                symbol_snapshot = _required(args.snapshot, "--snapshot")
+                if argument == "index":
+                    _json(symbols.index_file(target, snapshot=symbol_snapshot))
+                elif argument == "search":
+                    _json(symbols.search(target, snapshot=symbol_snapshot))
+                else:
+                    _json({"removed": symbols.invalidate_file(target, snapshot=symbol_snapshot)})
+            finally:
+                symbols.close()
+        finally:
+            memory.close()
         return 0
     if command == "prices":
         if args.arguments not in (["record"], ["history"], ["lookup"]):

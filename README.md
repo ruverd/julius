@@ -72,6 +72,8 @@ uv run --no-sync julius models list --runtime lmstudio
 uv run --no-sync julius models scan --runtime ollama
 uv run --no-sync julius models record --state-file ./model-snapshot.json
 uv run --no-sync julius models history --endpoint http://127.0.0.1:11434 --model '<model-id>'
+uv run --no-sync julius symbols index src/module.py --project app --project-root ./project --snapshot '<revision-id>'
+uv run --no-sync julius symbols search process_request --project app --project-root ./project --snapshot '<revision-id>'
 uv run --no-sync julius prices record --state-file ./price-snapshot.json
 uv run --no-sync julius prices lookup --endpoint https://api.example.test --provider example \
   --model '<model-id>' --currency USD --tier standard --cache-regime default \

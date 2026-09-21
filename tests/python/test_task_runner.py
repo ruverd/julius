@@ -77,6 +77,25 @@ def test_timeout_is_recorded_as_failure() -> None:
     assert all(entry["observations"][0]["timed_out"] for entry in result["checks"])
 
 
+def test_checks_do_not_inherit_secret_environment_and_output_is_bounded(monkeypatch) -> None:
+    monkeypatch.setenv("JULIUS_TEST_SECRET", "private-token")
+    snapshot = {
+        "arm_files": {"base": {}, "new": {}},
+        "checks": [{"argv": ["{python}", "-I", "-c",
+                             "import os; print(os.getenv('JULIUS_TEST_SECRET', 'missing')); "
+                             "print('x' * 5000)"]}],
+    }
+    result = run_paired_fixture_tasks(
+        [fixture("bounded", snapshot)], baseline_arm="base", candidate_arm="new",
+    )
+    for entry in result["checks"]:
+        output = entry["observations"][0]
+        assert output["stdout"].startswith("missing\n")
+        assert "private-token" not in output["stdout"]
+        assert len(output["stdout"]) == 2048
+        assert output["stdout_truncated"] is True
+
+
 def test_invalid_snapshots_are_rejected_before_execution(tmp_path) -> None:
     marker = tmp_path / "should-not-exist"
     valid = fixture("valid", {

@@ -70,26 +70,40 @@ def _run_attempt(
         root = Path(directory)
         _write_files(root, snapshot.files)
         _write_files(root, snapshot.arm_files[arm])
-        environment = os.environ.copy()
-        environment["HOME"] = directory
-        environment["TMPDIR"] = directory
-        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        environment = {
+            "HOME": directory,
+            "TMPDIR": directory,
+            "PATH": os.defpath,
+            "PYTHONDONTWRITEBYTECODE": "1",
+        }
+        for name in ("LANG", "LC_ALL", "TZ"):
+            if name in os.environ:
+                environment[name] = os.environ[name]
         for check_index, check in enumerate(snapshot.checks):
             argv = [sys.executable if part == "{python}" else part for part in check.argv]
             started = time.perf_counter()
             try:
-                completed = subprocess.run(
-                    argv, cwd=root, env=environment, capture_output=True, text=True,
-                    timeout=check.timeout_seconds, check=False,
-                )
+                with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as stdout_file, \
+                     tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as stderr_file:
+                    completed = subprocess.run(
+                        argv, cwd=root, env=environment,
+                        stdout=stdout_file, stderr=stderr_file, text=True,
+                        timeout=check.timeout_seconds, check=False,
+                    )
+                    stdout_file.seek(0)
+                    stderr_file.seek(0)
+                    stdout = stdout_file.read(2049)
+                    stderr = stderr_file.read(2049)
                 observation = {
                     "check_index": check_index,
                     "argv": list(check.argv),
                     "exit_code": completed.returncode,
                     "timed_out": False,
                     "error": None,
-                    "stdout": completed.stdout[:2048],
-                    "stderr": completed.stderr[:2048],
+                    "stdout": stdout[:2048],
+                    "stderr": stderr[:2048],
+                    "stdout_truncated": len(stdout) > 2048,
+                    "stderr_truncated": len(stderr) > 2048,
                     "latency_ms": (time.perf_counter() - started) * 1000,
                 }
             except subprocess.TimeoutExpired as exc:
@@ -101,6 +115,8 @@ def _run_attempt(
                     "error": str(exc),
                     "stdout": None,
                     "stderr": None,
+                    "stdout_truncated": None,
+                    "stderr_truncated": None,
                     "latency_ms": (time.perf_counter() - started) * 1000,
                 }
             except OSError as exc:
@@ -112,6 +128,8 @@ def _run_attempt(
                     "error": str(exc),
                     "stdout": None,
                     "stderr": None,
+                    "stdout_truncated": None,
+                    "stderr_truncated": None,
                     "latency_ms": (time.perf_counter() - started) * 1000,
                 }
             observations.append(observation)

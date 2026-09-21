@@ -9,6 +9,17 @@ from julius.reporting import report
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 
 
+def _legacy_projection(actual: object, expected: object) -> object:
+    """Keep frozen v1 values exact while allowing additive report fields."""
+    if isinstance(expected, dict):
+        assert isinstance(actual, dict)
+        return {key: _legacy_projection(actual[key], value) for key, value in expected.items()}
+    if isinstance(expected, list):
+        assert isinstance(actual, list) and len(actual) == len(expected)
+        return [_legacy_projection(item, value) for item, value in zip(actual, expected, strict=True)]
+    return actual
+
+
 def test_native_optimizer_matches_frozen_reference_contract():
     inputs = json.loads((FIXTURES / "optimization.json").read_text())
     expected = json.loads((FIXTURES / "optimization.expected.json").read_text())
@@ -36,4 +47,4 @@ def test_report_matches_frozen_reference_contract():
         "until": "2026-09-22T00:00:00.000Z",
         "timezone": "UTC",
     }
-    assert report(events, window) == expected
+    assert _legacy_projection(report(events, window), expected) == expected
