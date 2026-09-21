@@ -262,6 +262,71 @@ class Ledger:
         ).fetchall()
         return [validate_event(json.loads(row["body"])) for row in rows]
 
+    def export_history(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        """Return raw, replayable events selected by scope and occurrence time.
+
+        Reconciliations and source aliases of selected usage events are included
+        even when their own timestamps fall outside the requested window.
+        Transform ancestors are included when needed for replay validation.
+        """
+        filters = filters or {}
+        since = normalize_utc(filters["since"]) if "since" in filters else None
+        until = normalize_utc(filters["until"]) if "until" in filters else None
+        rows = self.db.execute("SELECT event_id,body FROM events ORDER BY rowid").fetchall()
+        events = [validate_event(json.loads(row["body"])) for row in rows]
+        selected: set[str] = set()
+        transforms: dict[tuple[str, str], dict[str, Any]] = {}
+
+        for event in events:
+            if event["eventType"] == "transform":
+                transforms[(event["projectId"], event["payload"]["transformId"])] = event
+            if event["eventType"] == "reconciliation":
+                continue
+            if any(
+                event[key] != filters[key]
+                for key in ("projectId", "taskId", "modelId")
+                if key in filters
+            ):
+                continue
+            if since is not None and event["occurredAt"] < since:
+                continue
+            if until is not None and event["occurredAt"] >= until:
+                continue
+            if "eventType" in filters and event["eventType"] != filters["eventType"]:
+                continue
+            selected.add(event["eventId"])
+
+        # A transform may precede the time window while its child is selected.
+        pending = [event for event in events if event["eventId"] in selected]
+        while pending:
+            event = pending.pop()
+            if event["eventType"] != "transform":
+                continue
+            parent_id = event["payload"]["parentTransformId"]
+            if parent_id is None:
+                continue
+            parent = transforms[(event["projectId"], parent_id)]
+            if parent["eventId"] not in selected:
+                selected.add(parent["eventId"])
+                pending.append(parent)
+
+        exported = []
+        for event in events:
+            if event["eventId"] in selected or (
+                event["eventType"] == "reconciliation"
+                and event["payload"]["targetEventId"] in selected
+            ):
+                exported.append(event)
+
+        # Aliases live in a separate table. They can be replayed after their
+        # canonical event; their original position among events is not stored.
+        for row in self.db.execute(
+            "SELECT canonical_event_id,body FROM event_aliases ORDER BY rowid"
+        ):
+            if row["canonical_event_id"] in selected:
+                exported.append(validate_event(json.loads(row["body"])))
+        return exported
+
     def events(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
         history = self.history(filters)
         corrections = {}
