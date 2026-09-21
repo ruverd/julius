@@ -1,5 +1,7 @@
 # xAI Responses adapter
 
+The [loopback HTTP acceptance](xai-loopback.md) exercises the real Julius transport with synthetic data. It is local transport evidence, not a live xAI compatibility test.
+
 Status: fixture tested, experimental. Live xAI compatibility and any savings remain unverified.
 
 `XAIAdapter.prepare(request)` validates and serializes a complete Responses API request without network activity. `send_once(request, api_key, transport=None)` sends one explicit POST to `https://api.x.ai/v1/responses` when called. Caller must supply a dedicated, authorized xAI API key and an explicit model. The adapter does not select a model, compress content, route from another client, retry, follow redirects, or run client-side tool calls. It disables environment proxies. If an explicit request includes xAI server-side tools, xAI may execute those tools as part of that one authorized request; caller must review and authorize those effects before dispatch. Request fields, including system instructions, function outputs, tool IDs, and cache keys, pass through unchanged.
