@@ -80,3 +80,17 @@ def test_failed_later_output_does_not_retain_partial_candidates(tmp_path):
                                   artifacts=ArtifactStore(tmp_path),
                                   recovery_handler_available=True)
     assert list(tmp_path.rglob("*.txt")) == []
+
+
+def test_known_julius_candidate_is_not_compressed_again_without_lineage(tmp_path):
+    source = request()
+    marker = "[repeated exact line 2/3; restore artifact 12345678-1234-1234-1234-123456789abc]"
+    source["input"][1]["output"] = marker + "\n" + TEXT
+    prepared = prepare_optimized_request(
+        source, project_id="project", policy={**POLICY, "allowRecompression": True},
+        artifacts=ArtifactStore(tmp_path), recovery_handler_available=True,
+    )
+    assert prepared.request == source
+    assert prepared.receipts[0]["applied"] is False
+    assert prepared.receipts[0]["reason"] == "recompression_requires_opt_in"
+    assert list(tmp_path.rglob("*.txt")) == []

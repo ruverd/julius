@@ -8,6 +8,9 @@ _PROTECTED = re.compile(
     re.I,
 )
 _ARTIFACT = re.compile(r"[a-f0-9-]{36}\Z")
+_KNOWN_TRANSFORM = re.compile(
+    r"\[repeated exact line \d+/\d+; restore artifact [a-f0-9-]{36}\]"
+)
 STRATEGY_ID = "repeated-lines"
 STRATEGY_VERSION = "1"
 
@@ -33,7 +36,11 @@ def optimize(context: dict, policy: dict) -> dict:
             or "-----BEGIN " in content
         ):
             reason = "protected_content"
-        elif context.get("priorTransformId") and policy.get("allowRecompression") is not True:
+        elif (context.get("priorTransformId") or _KNOWN_TRANSFORM.search(content)) and not (
+            policy.get("allowRecompression") is True
+            and isinstance(context.get("priorTransformId"), str)
+            and context["priorTransformId"]
+        ):
             reason = "recompression_requires_opt_in"
         elif policy["mode"] == "observe":
             reason = "observe_mode"

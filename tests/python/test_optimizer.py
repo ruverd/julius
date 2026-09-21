@@ -65,3 +65,21 @@ def test_fail_closed_and_protected():
         == "protected_content"
     )
     assert optimize(context, {**POLICY, "mode": "observe"})["candidate"] == CONTENT
+
+
+def test_known_transform_requires_explicit_traceable_recompression():
+    marker = f"[repeated exact line 2/3; restore artifact {RECOVERY['artifactId']}]"
+    context = {
+        "projectId": "p", "category": "tool_output",
+        "content": marker + "\n" + CONTENT, "recovery": RECOVERY,
+    }
+    for policy in (POLICY, {**POLICY, "allowRecompression": True}):
+        result = optimize(context, policy)
+        assert result["receipt"]["reason"] == "recompression_requires_opt_in"
+        assert result["receipt"]["applied"] is False
+    allowed = optimize(
+        {**context, "priorTransformId": "prior-transform"},
+        {**POLICY, "allowRecompression": True},
+    )
+    assert allowed["receipt"]["lineage"]["priorTransformId"] == "prior-transform"
+    assert allowed["receipt"]["reason"] != "recompression_requires_opt_in"
