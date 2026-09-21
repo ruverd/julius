@@ -89,6 +89,19 @@ def test_session_delta_is_recorded_without_becoming_a_call():
     assert "Session usage deltas" in render_html(result)
 
 
+def test_session_delta_with_request_id_is_not_request_coverage() -> None:
+    event = json.loads(FIXTURE.read_text().splitlines()[-1])
+    event["requestId"] = "client-session-id"
+    event["attemptId"] = "session-delta"
+    event["payload"]["observationScope"] = "session_delta"
+    event["payload"]["callId"] = None
+    result = report([event], WINDOW)
+    assert result["sessionUsageDeltas"] == 1
+    assert result["observedCalls"] == 0
+    assert result["coverage"]["observedRequestsWithId"] == 0
+    assert result["coverage"]["transformedObservedRequests"] == 0
+
+
 def test_client_estimates_and_provider_charges_have_distinct_evidence():
     def usage(name: str, provenance: dict, cost: float) -> dict:
         return {

@@ -118,6 +118,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         return (
             (event["projectId"], event["sessionId"], event["requestId"], event["attemptId"])
             if event["requestId"] is not None
+            and (event["eventType"] != "usage"
+                 or event["payload"].get("observationScope") != "session_delta")
             else None
         )
 
