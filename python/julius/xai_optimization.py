@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from .artifacts import ArtifactStore
 from .optimizer import optimize
-from .request_measurement import TokenCounter, measure_request_pair
+from .request_measurement import TokenCounter, TokenCountingBasis, measure_request_pair
 
 RECOVERY_TOOL = "julius_restore_artifact"
 
@@ -52,6 +52,7 @@ def prepare_optimized_request(
     token_counter: TokenCounter | None = None,
     tokenizer_model_id: str | None = None,
     tokenizer_id: str | None = None,
+    token_counting_basis: TokenCountingBasis = "serialized_request",
 ) -> PreparedXAIRequest:
     """Prepare a copy; never send, alter the caller's request, or claim realized savings.
 
@@ -110,6 +111,7 @@ def prepare_optimized_request(
         measurement = measure_request_pair(
             request, candidate_request, token_counter=token_counter,
             model_id=tokenizer_model_id, tokenizer_id=tokenizer_id,
+            token_counting_basis=token_counting_basis,
         )
     except BaseException:
         for artifact_id in retained:

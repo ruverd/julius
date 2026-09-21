@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Literal
 
 from .xai import XAIAdapter
 
 
 TokenCounter = Callable[[str], int]
+TokenCountingBasis = Literal["serialized_request", "model_input"]
 
 
 def measure_request_pair(
@@ -18,8 +19,11 @@ def measure_request_pair(
     token_counter: TokenCounter | None = None,
     model_id: str | None = None,
     tokenizer_id: str | None = None,
+    token_counting_basis: TokenCountingBasis = "serialized_request",
 ) -> dict[str, Any]:
-    """Count full serialized bodies; token counts require an explicit pinned counter."""
+    """Count serialized bodies; model-input claims require a separate attestation."""
+    if token_counting_basis not in ("serialized_request", "model_input"):
+        raise ValueError("Unknown token counting basis")
     if original.get("model") != candidate.get("model"):
         raise ValueError("Whole-request model changed")
     if token_counter is not None:
@@ -29,6 +33,8 @@ def measure_request_pair(
             raise ValueError("Counter requires matching model and tokenizer IDs")
     elif model_id is not None or tokenizer_id is not None:
         raise ValueError("Model/tokenizer IDs require a token counter")
+    elif token_counting_basis != "serialized_request":
+        raise ValueError("Model-input basis requires a token counter")
     adapter = XAIAdapter()
     before = adapter.prepare(original)
     after = adapter.prepare(candidate)
@@ -51,6 +57,7 @@ def measure_request_pair(
                         if before_tokens is not None and after_tokens is not None else None),
         "modelId": model_id,
         "tokenizerId": tokenizer_id,
+        "tokenCountingBasis": token_counting_basis if token_counter is not None else None,
         "tokenEvidence": "tokenizer_counted" if token_counter is not None else None,
         "providerMeasured": False,
         "sent": False,

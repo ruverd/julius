@@ -41,6 +41,23 @@ def main() -> None:
             raise AssertionError(f"Bundled hook/MCP probe failed: {doctor['localProtocolProbe']}")
         if list(data_dir.glob("*.sqlite")):
             raise AssertionError("Doctor left ledger files in smoke directory")
+        captures = data_dir / "jev-captures.json"
+        captures.write_text('{"captures":[]}', encoding="utf-8")
+        jev_replay = json.loads(_run(
+            binary, "evaluate", "jev-shadow", "--state-file", str(captures),
+            data_dir=data_dir,
+        ).stdout)
+        if (jev_replay["planned_cases"] != 6 or jev_replay["captured_cases"] != 0
+                or jev_replay["auxiliary_cost_usd"] is not None):
+            raise AssertionError("Bundled Jev registration or unknown totals are invalid")
+        codex_hook = subprocess.run(
+            [str(binary), "hook", "codex-user-prompt-submit"],
+            input=json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "smoke",
+                              "cwd": str(data_dir), "prompt": "synthetic"}),
+            capture_output=True, text=True, check=True, timeout=30,
+        )
+        if codex_hook.stdout != "{}\n" or codex_hook.stderr:
+            raise AssertionError("Bundled Codex hook default was not an offline no-op")
         now = datetime.now(timezone.utc)
         content = "standalone memory fixture"
         record = {
@@ -73,7 +90,7 @@ def main() -> None:
                 or history["records"][0]["invalidationReason"] != "smoke_complete"
                 or "content" in history["records"][0]):
             raise AssertionError("Bundled memory history lost invalidation audit or exposed content")
-    print(f"Standalone smoke passed: {version}; hook/MCP recovery and memory search")
+    print(f"Standalone smoke passed: {version}; hook/MCP recovery, Codex hook, Jev replay, and memory search")
 
 
 if __name__ == "__main__":

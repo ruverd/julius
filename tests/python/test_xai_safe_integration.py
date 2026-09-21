@@ -150,7 +150,7 @@ def test_http_error_does_not_confirm_candidate_was_sent(tmp_path):
         assert result["requestTransformEvent"]["executionLocation"] == "unknown"
 
 
-def test_pinned_counter_only_counts_when_actual_model_matches(tmp_path):
+def test_serialized_json_counter_does_not_claim_model_input_savings(tmp_path):
     def transport(body, headers):
         return json.dumps({"id": "resp_1", "model": "grok-requested", "status": "completed",
                            "usage": {"input_tokens": 30, "output_tokens": 3},
@@ -165,16 +165,59 @@ def test_pinned_counter_only_counts_when_actual_model_matches(tmp_path):
         event = result["requestTransformEvent"]
         assert event["payload"]["scope"] == "request"
         assert event["payload"]["sent"] is True
-        assert event["evidence"] == "tokenizer_counted"
-        assert event["payload"]["inputTokens"] > event["payload"]["outputTokens"]
-        assert result["requestMeasurement"]["tokenComparisonValid"] is True
+        assert event["evidence"] == "heuristic_estimate"
+        assert event["payload"]["inputTokens"] is None
+        assert event["payload"]["outputTokens"] is None
+        assert result["requestMeasurement"]["beforeTokens"] is not None
+        assert result["requestMeasurement"]["tokenComparisonValid"] is False
+        assert result["requestMeasurement"]["tokenComparisonReason"] == "serialized_request_only"
         summary = julius.report()
         assert len(summary["directInputReduction"]) == 1
         assert len(summary["toolOutputReduction"]) == 1
-        assert summary["directInputReduction"][0]["tokens"]["total"] == (
-            event["payload"]["inputTokens"] - event["payload"]["outputTokens"]
-        )
+        assert summary["directInputReduction"][0]["tokens"]["total"] is None
         assert summary["coverage"]["transformedObservedRequests"] == 1
+
+
+def test_explicit_model_input_counter_keeps_tokenizer_provenance(tmp_path):
+    def transport(body, headers):
+        return json.dumps({"id": "resp_1", "model": "grok-requested", "status": "completed",
+                           "usage": {"input_tokens": 30, "output_tokens": 3},
+                           "output": []}).encode()
+
+    def count_model_input(serialized_request):
+        body = json.loads(serialized_request)
+        return len(body["input"][0]["output"].split())
+
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport, token_counter=count_model_input,
+            tokenizer_model_id="grok-requested", tokenizer_id="fixture-counter-v1",
+            token_counting_basis="model_input",
+        )
+        event = result["requestTransformEvent"]
+        assert event["evidence"] == "tokenizer_counted"
+        assert event["payload"]["inputTokens"] > event["payload"]["outputTokens"]
+        assert result["requestMeasurement"]["tokenComparisonValid"] is True
+        assert result["requestMeasurement"]["tokenComparisonReason"] is None
+        assert julius.report()["directInputReduction"][0]["tokens"]["total"] > 0
+
+
+def test_response_model_alias_mismatch_invalidates_attested_count(tmp_path):
+    with Julius(tmp_path) as julius:
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=lambda body, headers: provider_response(),
+            token_counter=lambda text: len(text.split()),
+            tokenizer_model_id="grok-requested", tokenizer_id="fixture-counter-v1",
+            token_counting_basis="model_input",
+        )
+        measurement = result["requestMeasurement"]
+        assert measurement["actualModelId"] == "grok-actual"
+        assert measurement["tokenComparisonValid"] is False
+        assert measurement["tokenComparisonReason"] == "actual_model_mismatch"
+        assert result["requestTransformEvent"]["payload"]["inputTokens"] is None
+        assert julius.report()["directInputReduction"][0]["tokens"]["total"] is None
 
 
 @pytest.mark.parametrize("bad_request", [

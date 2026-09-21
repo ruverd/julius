@@ -45,6 +45,7 @@ def test_explicit_pinned_counter_keeps_signed_delta():
     assert measured["deltaBytes"] < 0
     assert measured["deltaTokens"] < 0
     assert measured["tokenEvidence"] == "tokenizer_counted"
+    assert measured["tokenCountingBasis"] == "serialized_request"
     assert measured["modelId"] == "grok-pinned"
     assert measured["tokenizerId"] == "fixture-v1"
 
@@ -57,6 +58,10 @@ def test_invalid_counter_pin_or_output_fails_closed():
     with pytest.raises(ValueError, match="invalid count"):
         measure_request_pair(source, source, token_counter=lambda _: True,
                              model_id="grok-pinned", tokenizer_id="tok")
+    with pytest.raises(ValueError, match="requires a token counter"):
+        measure_request_pair(source, source, token_counting_basis="model_input")
+    with pytest.raises(ValueError, match="Unknown token counting basis"):
+        measure_request_pair(source, source, token_counting_basis="unknown")
 
 
 def test_preparation_exposes_pinned_measurement(tmp_path):
@@ -67,3 +72,4 @@ def test_preparation_exposes_pinned_measurement(tmp_path):
     )
     assert prepared.measurement is not None
     assert prepared.measurement["deltaTokens"] == prepared.measurement["deltaBytes"]
+    assert prepared.measurement["tokenCountingBasis"] == "serialized_request"

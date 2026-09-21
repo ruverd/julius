@@ -24,6 +24,7 @@ cargo test --workspace --locked
 /tmp/julius-venv/bin/pyinstaller --clean --noconfirm --onefile --console \
   --name julius --distpath /tmp/julius-dist \
   --add-data "$PWD/python/julius/data/repo_task_pilot.json:julius/data" \
+  --add-data "$PWD/python/julius/data/jev_shadow_cases.json:julius/data" \
   --workpath /tmp/julius-pyinstaller-work \
   --specpath /tmp/julius-pyinstaller-spec scripts/standalone_entry.py
 /tmp/julius-venv/bin/python scripts/standalone_smoke.py /tmp/julius-dist/julius

@@ -17,10 +17,24 @@ from .reporting import report
 from .xai import XAIAdapter, XAIResult, Transport
 from .xai_tool_loop import run_restore_loop
 from .xai_optimization import prepare_optimized_request
-from .request_measurement import TokenCounter
+from .request_measurement import TokenCounter, TokenCountingBasis
 from .jev import Action, JevGateway, ShadowPolicy, shadow_decide
 from dataclasses import asdict
 from datetime import date
+
+
+def _request_token_comparison(
+    measurement: Mapping[str, Any], actual_model: str | None,
+) -> tuple[bool, str | None]:
+    if measurement.get("beforeTokens") is None or measurement.get("afterTokens") is None:
+        return False, "counter_unavailable"
+    if measurement.get("tokenCountingBasis") != "model_input":
+        return False, "serialized_request_only"
+    if actual_model is None:
+        return False, "actual_model_unavailable"
+    if measurement.get("modelId") != actual_model:
+        return False, "actual_model_mismatch"
+    return True, None
 
 
 class Julius:
@@ -250,6 +264,7 @@ class Julius:
         token_counter: TokenCounter | None = None,
         tokenizer_model_id: str | None = None,
         tokenizer_id: str | None = None,
+        token_counting_basis: TokenCountingBasis = "serialized_request",
     ) -> dict[str, Any]:
         """Explicitly prepare, send, and account for a recoverable xAI candidate."""
         if not project_id or not session_id:
@@ -269,6 +284,7 @@ class Julius:
             recovery_handler_available=True,
             token_counter=token_counter, tokenizer_model_id=tokenizer_model_id,
             tokenizer_id=tokenizer_id,
+            token_counting_basis=token_counting_basis,
         )
         outcome = self.send_xai_with_restores(
             prepared.request, api_key=api_key, project_id=project_id,
@@ -283,11 +299,9 @@ class Julius:
             actual_model = first_evidence["actualModel"] if first_evidence else None
             measurement["sent"] = None
             measurement["actualModelId"] = actual_model
-            measurement["tokenComparisonValid"] = bool(
-                measurement.get("beforeTokens") is not None
-                and measurement.get("afterTokens") is not None
-                and measurement.get("modelId") == actual_model
-            )
+            valid, reason = _request_token_comparison(measurement, actual_model)
+            measurement["tokenComparisonValid"] = valid
+            measurement["tokenComparisonReason"] = reason
             return {**outcome, "candidateReceipts": list(prepared.receipts),
                     "requestMeasurement": measurement,
                     "requestTransformEvent": None, "requestTransformReceipt": None,
@@ -306,14 +320,13 @@ class Julius:
         transformed = any(receipt["applied"] for receipt in prepared.receipts)
         measurement = dict(prepared.measurement or {})
         actual_model = first_event["modelId"] if first_event is not None else None
-        valid_token_count = bool(
-            measurement.get("beforeTokens") is not None
-            and measurement.get("afterTokens") is not None
-            and measurement.get("modelId") == actual_model
+        valid_token_count, comparison_reason = _request_token_comparison(
+            measurement, actual_model,
         )
         measurement["sent"] = bool(response_acknowledged and transformed)
         measurement["actualModelId"] = actual_model
         measurement["tokenComparisonValid"] = valid_token_count
+        measurement["tokenComparisonReason"] = comparison_reason
         request_event_id = str(uuid4())
         request_event = {
             "schemaVersion": 1,

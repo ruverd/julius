@@ -33,6 +33,8 @@ from .claude_pilot import run_claude_pilot
 from .claude_pilot_analysis import analyze_claude_pilot_report
 from .codex_live_probe import probe_codex_usage
 from .codex_hook_probe import probe_codex_hook
+from .codex_hook_command import _read_trusted_context, run_user_prompt_submit
+from .jev_shadow_eval import CapturedChoice, evaluate_replay, load_frozen_registration
 from .repo_task_pilot import run_repo_task_pilot
 from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
@@ -94,7 +96,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead", "work-dir", "claude-executable"):
+    for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead", "work-dir", "claude-executable", "trusted-context-file"):
         parser.add_argument(f"--{option}")
     parser.add_argument("--invalidation-reason", help="Reason recorded when invalidating memory")
     parser.add_argument("--limit", type=int, default=100, help="Memory history page size, 1-100")
@@ -357,8 +359,16 @@ def run(argv: list[str] | None = None) -> int:
             memory.close()
         return 0
     if command == "hook":
+        if args.arguments == ["codex-user-prompt-submit"]:
+            context = _read_trusted_context(
+                Path(args.trusted_context_file) if args.trusted_context_file else None
+            )
+            return run_user_prompt_submit(
+                sys.stdin.buffer, sys.stdout, context=context,
+                trusted_context=context is not None and args.trusted_context_file is not None,
+            )
         if args.arguments != ["claude-post-tool-use"]:
-            raise ValueError("Use hook claude-post-tool-use --project <id> --profile safe")
+            raise ValueError("Use hook claude-post-tool-use --project <id> --profile safe or hook codex-user-prompt-submit")
         project_id = _required(args.project, "--project")
         raw = sys.stdin.buffer.read(64 * 1024 + 1)
         if len(raw) > 64 * 1024:
@@ -516,6 +526,13 @@ def run(argv: list[str] | None = None) -> int:
                 ))
         return 0
     if command == "evaluate":
+        if args.arguments == ["jev-shadow"]:
+            payload = _json_file(_required(args.state_file, "--state-file"))
+            if not isinstance(payload, dict) or not isinstance(payload.get("captures"), list):
+                raise ValueError("Jev shadow replay requires a captures array")
+            captures = tuple(CapturedChoice.model_validate(item) for item in payload["captures"])
+            _json(evaluate_replay(load_frozen_registration(), captures))
+            return 0
         if args.arguments == ["repo-pilot"]:
             if not args.execute:
                 raise ValueError("evaluate repo-pilot requires --execute because it makes external Claude sessions")

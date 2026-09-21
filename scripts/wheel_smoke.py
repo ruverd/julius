@@ -53,9 +53,24 @@ def main() -> None:
             "from julius.claude_pilot import run_claude_pilot; "
             "from julius.claude_pilot_analysis import analyze_claude_pilot_report; "
             "from julius.codex_live_probe import probe_codex_usage; "
+            "from julius.codex_hook_command import run_user_prompt_submit; "
+            "from julius.jev_shadow_eval import load_frozen_registration; "
+            "from julius.repo_task_pilot import CORPUS_PATH; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'
+        assert run(
+            "-c", "from julius.jev_shadow_eval import load_frozen_registration; "
+            "from julius.repo_task_pilot import CORPUS_PATH; "
+            "print(len(load_frozen_registration().cases), CORPUS_PATH.is_file())",
+        ).strip() == "6 True"
         assert "0.2.0" in run("-m", "julius", "--version")
+        hook = subprocess.run(
+            [str(python), "-m", "julius", "hook", "codex-user-prompt-submit"],
+            input=json.dumps({"hook_event_name": "UserPromptSubmit", "session_id": "smoke",
+                              "cwd": str(root), "prompt": "synthetic"}),
+            cwd=root, env=env, capture_output=True, text=True, check=True,
+        )
+        assert hook.stdout == "{}\n" and hook.stderr == ""
         assert json.loads(run("-m", "julius", "import", str(fixture)))["imported"] == 3
         assert json.loads(run("-m", "julius", "import", str(fixture)))["duplicates"] == 3
         window = ("--since", "2026-09-21T00:00:00Z", "--until", "2026-09-22T00:00:00Z")
@@ -99,7 +114,7 @@ def main() -> None:
         print(
             "Isolated wheel smoke passed: native and optional imports, event idempotency, "
             "7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV, model snapshots, "
-            "and reversible Claude setup."
+            "Codex hook, packaged evaluation corpora, and reversible Claude setup."
         )
 
 

@@ -1,0 +1,12 @@
+{
+  "schema_version": "1",
+  "registration_id": "jev-policy-choice-pilot-v1",
+  "cases": [
+    {"case_id": "protected-content", "label": "keep", "eligible_actions": ["keep"], "rationale": "Protected content leaves no eligible transformation."},
+    {"case_id": "recoverable-short-context", "label": "keep", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Small context has no useful reduction to justify a change."},
+    {"case_id": "missing-recoverable-source", "label": "keep", "eligible_actions": ["keep", "compress"], "rationale": "Retrieval has no recoverable source and compression is unnecessary."},
+    {"case_id": "recoverable-large-context", "label": "retrieve", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Authorized recoverable source permits selective retrieval."},
+    {"case_id": "repeated-large-context", "label": "compress", "eligible_actions": ["keep", "compress"], "rationale": "Eligible repeated text can be compressed while preserving required content."},
+    {"case_id": "local-model-long-context", "label": "compress", "eligible_actions": ["keep", "retrieve", "compress"], "rationale": "Eligible long context has a preselected compression target."}
+  ]
+}
