@@ -11,6 +11,8 @@ import uuid
 
 MAX_BYTES = 1024 * 1024
 MAX_TTL_MS = 30 * 24 * 60 * 60 * 1000
+MAX_EXPORT_BYTES = 16 * MAX_BYTES
+MAX_EXPORT_ITEMS = 32
 _ID = re.compile(r"[a-f0-9-]{36}\Z")
 
 
@@ -141,3 +143,75 @@ class ArtifactStore:
                 metadata_path.unlink()
                 removed += 1
         return removed
+
+    def export(
+        self,
+        project_id: str,
+        destination: str | Path,
+        artifact_ids: list[str],
+        *,
+        authorized: bool = False,
+        include_raw: bool = False,
+    ) -> dict:
+        """Export verified artifacts into a new private directory.
+
+        Authorization must be supplied by the caller for this specific export.
+        The default manifest contains metadata only; raw content requires opt-in.
+        """
+        if authorized is not True:
+            raise PermissionError("Artifact export requires user authorization")
+        if type(include_raw) is not bool:
+            raise ValueError("Invalid raw export option")
+        if not isinstance(artifact_ids, list) or not 0 < len(artifact_ids) <= MAX_EXPORT_ITEMS:
+            raise ValueError("Invalid artifact selection")
+        if any(not isinstance(item, str) or not _ID.fullmatch(item) for item in artifact_ids):
+            raise ValueError("Invalid artifact ID")
+        if len(set(artifact_ids)) != len(artifact_ids):
+            raise ValueError("Duplicate artifact ID")
+
+        entries = []
+        contents = []
+        total_bytes = 0
+        for artifact_id in artifact_ids:
+            body, meta = self._paths(project_id, artifact_id)
+            metadata = self._metadata(self._read(meta), project_id, artifact_id)
+            content = self.get(project_id, artifact_id)
+            total_bytes += metadata["bytes"]
+            if total_bytes > MAX_EXPORT_BYTES:
+                raise ValueError("Artifact export too large")
+            entry = {key: metadata[key] for key in (
+                "id", "projectId", "bytes", "sha256", "createdAt", "expiresAt"
+            )}
+            if include_raw:
+                entry["file"] = f"{artifact_id}.txt"
+                contents.append((entry["file"], content.encode("utf-8")))
+            entries.append(entry)
+
+        manifest = {
+            "format": "julius-artifacts-v1",
+            "projectId": project_id,
+            "includesRaw": include_raw,
+            "artifacts": entries,
+        }
+        target = Path(destination).absolute()
+        if target.is_symlink():
+            raise ValueError("Export destination is a symlink")
+        target.mkdir(mode=0o700, parents=False, exist_ok=False)
+        try:
+            for name, data in [
+                ("manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8")),
+                *contents,
+            ]:
+                fd = os.open(
+                    target / name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                )
+                with os.fdopen(fd, "wb") as stream:
+                    stream.write(data)
+        except Exception:
+            for path in target.iterdir():
+                path.unlink()
+            target.rmdir()
+            raise
+        return manifest

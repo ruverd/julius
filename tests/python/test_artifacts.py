@@ -45,3 +45,61 @@ def test_expiry_purge_and_symlink(tmp_path: Path):
         store.put("one", "bad", ttl_ms=0)
     with pytest.raises(ValueError, match="large"):
         store.put("one", "x" * (1024 * 1024 + 1))
+
+
+def test_export_requires_authorization_and_defaults_to_metadata(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "api_key=secret")
+    destination = tmp_path / "export"
+    with pytest.raises(PermissionError, match="authorization"):
+        store.export("one", destination, [item["id"]])
+    assert not destination.exists()
+
+    manifest = store.export("one", destination, [item["id"]], authorized=True)
+    assert manifest["includesRaw"] is False
+    assert sorted(path.name for path in destination.iterdir()) == ["manifest.json"]
+    assert "secret" not in (destination / "manifest.json").read_text()
+    assert manifest["artifacts"][0]["sha256"] == item["sha256"]
+
+
+def test_raw_export_is_scoped_and_verified(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "original")
+    with pytest.raises(FileNotFoundError):
+        store.export("two", tmp_path / "wrong", [item["id"]], authorized=True)
+    assert not (tmp_path / "wrong").exists()
+
+    destination = tmp_path / "raw"
+    manifest = store.export(
+        "one", destination, [item["id"]], authorized=True, include_raw=True
+    )
+    filename = manifest["artifacts"][0]["file"]
+    assert (destination / filename).read_text() == "original"
+    assert hashlib.sha256((destination / filename).read_bytes()).hexdigest() == item["sha256"]
+    assert destination.stat().st_mode & 0o077 == 0
+    assert (destination / filename).stat().st_mode & 0o077 == 0
+
+
+def test_export_rejects_expired_tampered_and_unsafe_destinations(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "short", ttl_ms=1)
+    time.sleep(0.005)
+    with pytest.raises(ValueError, match="expired"):
+        store.export("one", tmp_path / "expired", [item["id"]], authorized=True)
+    assert not (tmp_path / "expired").exists()
+
+    item = store.put("one", "safe")
+    directory = store.root / hashlib.sha256(b"one").hexdigest()
+    (directory / f"{item['id']}.txt").write_text("evil")
+    with pytest.raises(ValueError, match="integrity"):
+        store.export("one", tmp_path / "tampered", [item["id"]], authorized=True)
+    assert not (tmp_path / "tampered").exists()
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (tmp_path / "linked").symlink_to(outside, target_is_directory=True)
+    valid = store.put("one", "valid")
+    with pytest.raises(ValueError, match="symlink"):
+        store.export("one", tmp_path / "linked", [valid["id"]], authorized=True)
+    with pytest.raises(ValueError, match="selection"):
+        store.export("one", tmp_path / "empty", [], authorized=True)
