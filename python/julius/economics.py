@@ -196,6 +196,15 @@ def analyze_task(
         and _shared_output_counter_identity(baseline_calls, priced)
         else None
     )
+    comparison_identity = None
+    if comparative_output is not None:
+        compared_calls = (*baseline_calls, *priced)
+        comparison_identity = {
+            "providerId": compared_calls[0]["providerId"],
+            "modelId": compared_calls[0]["modelId"],
+            "tokenizerId": compared_calls[0]["tokenizerId"],
+            "tokenizerSources": sorted({call["tokenizerSource"] for call in compared_calls}),
+        }
     return {
         "taskId": task_id,
         "coverageComplete": complete,
@@ -211,6 +220,7 @@ def analyze_task(
         "baselineEvidence": baseline["evidence"] if baseline else None,
         "baselineOutputTokens": baseline_output,
         "outputSavingsTokens": comparative_output,
+        "outputComparisonIdentity": comparison_identity,
         "outputSavingsEvidence": baseline["evidence"] if comparative_output is not None and baseline is not None else None,
         "outputSavingsScope": "task_comparison" if comparative_output is not None else None,
         "baselineModeledCostUsd": baseline_total,

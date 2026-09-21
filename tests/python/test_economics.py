@@ -128,6 +128,10 @@ def test_output_difference_needs_comparable_complete_task() -> None:
     result = analyze_task([usage("current", 900, 150, tokenizer="tok")], reference,
                           coverage_complete=True)
     assert result["outputSavingsTokens"] == 50
+    assert result["outputComparisonIdentity"] == {
+        "providerId": "vendor", "modelId": "m", "tokenizerId": "tok",
+        "tokenizerSources": ["test_counter"],
+    }
     assert result["outputSavingsEvidence"] == "controlled_experiment"
     assert result["outputSavingsScope"] == "task_comparison"
     assert analyze_task([usage("current", 900, 250, tokenizer="tok")], reference,
@@ -143,6 +147,8 @@ def test_output_difference_rejects_cross_model_and_unknown_tokenizer() -> None:
     reference["outputComparable"] = True
     assert analyze_task([usage("current", 900, 150, model="other", tokenizer="tok")],
                         reference, coverage_complete=True)["outputSavingsTokens"] is None
+    assert analyze_task([usage("current", 900, 150, model="other", tokenizer="tok")],
+                        reference, coverage_complete=True)["outputComparisonIdentity"] is None
     assert analyze_task([usage("current", 900, 150, tokenizer="other")],
                         reference, coverage_complete=True)["outputSavingsTokens"] is None
     assert analyze_task([usage("current", 900, 150)],
@@ -150,6 +156,17 @@ def test_output_difference_rejects_cross_model_and_unknown_tokenizer() -> None:
     reference["calls"][0]["tokenizerId"] = None
     assert analyze_task([usage("current", 900, 150, tokenizer="tok")],
                         reference, coverage_complete=True)["outputSavingsTokens"] is None
+
+
+def test_output_identity_records_each_counter_source() -> None:
+    reference = baseline(base_call("base", 1000, output=200, tokenizer="tok"))
+    reference["outputComparable"] = True
+    reference["calls"][0]["tokenizerSource"] = "baseline_count"
+    result = analyze_task([usage("current", 900, 150, tokenizer="tok")], reference,
+                          coverage_complete=True)
+    assert result["outputComparisonIdentity"]["tokenizerSources"] == [
+        "baseline_count", "test_counter",
+    ]
 
 
 def test_output_difference_requires_identity_for_all_calls_but_keeps_cost() -> None:
