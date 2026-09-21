@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from julius.quality_guard import GuardPolicy, ManualAction, Scope, TaskOutcome
@@ -84,3 +86,33 @@ def test_sdk_guard_store_access_error_blocks_before_artifact(tmp_path, monkeypat
                 quality_scope=SCOPE, quality_policy=POLICY,
             )
     assert list((tmp_path / "artifacts").rglob("*.txt")) == []
+
+
+def test_store_file_and_wal_are_owner_only(tmp_path):
+    path = tmp_path / "quality.sqlite"
+    with QualityStore(path) as store:
+        store.append(outcome(1, "a"), POLICY)
+        assert path.stat().st_mode & 0o077 == 0
+        wal = tmp_path / "quality.sqlite-wal"
+        assert wal.exists()
+        assert wal.stat().st_mode & 0o077 == 0
+
+
+def test_store_rejects_symlink_and_unsafe_existing_modes(tmp_path):
+    target = tmp_path / "target.sqlite"
+    target.write_bytes(b"")
+    link = tmp_path / "quality.sqlite"
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="Unsafe quality store file"):
+        QualityStore(link)
+    link.unlink()
+    target.rename(link)
+    os.chmod(link, 0o644)
+    with pytest.raises(ValueError, match="Unsafe quality store file"):
+        QualityStore(link)
+    os.chmod(link, 0o600)
+    sidecar = tmp_path / "quality.sqlite-wal"
+    sidecar.write_bytes(b"")
+    os.chmod(sidecar, 0o644)
+    with pytest.raises(ValueError, match="Unsafe quality store file"):
+        QualityStore(link)

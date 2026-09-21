@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -14,10 +16,13 @@ class QualityStore:
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._secure_files()
         self.db = sqlite3.connect(self.path, timeout=5, isolation_level=None)
-        self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("PRAGMA busy_timeout=5000")
-        self.db.executescript("""
+        try:
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA busy_timeout=5000")
+            self._secure_files()
+            self.db.executescript("""
             CREATE TABLE IF NOT EXISTS quality_records (
                 scope_key TEXT NOT NULL, sequence INTEGER NOT NULL,
                 kind TEXT NOT NULL, body TEXT NOT NULL,
@@ -27,7 +32,40 @@ class QualityStore:
                 scope_key TEXT PRIMARY KEY, policy_version TEXT NOT NULL,
                 decision TEXT NOT NULL
             );
-        """)
+            """)
+            self._secure_files()
+        except BaseException:
+            self.db.close()
+            raise
+
+    @staticmethod
+    def _check_private_file(path: Path) -> None:
+        info = path.lstat()
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_uid != os.getuid()
+            or info.st_mode & 0o077
+        ):
+            raise ValueError(f"Unsafe quality store file: {path.name}")
+
+    def _secure_files(self) -> None:
+        """Create a private DB and reject unsafe DB, WAL, and shared-memory files."""
+        try:
+            fd = os.open(
+                self.path,
+                os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+        except FileExistsError:
+            pass
+        else:
+            os.close(fd)
+        for candidate in (
+            self.path, Path(f"{self.path}-wal"), Path(f"{self.path}-shm"),
+            Path(f"{self.path}-journal"),
+        ):
+            if candidate.exists() or candidate.is_symlink():
+                self._check_private_file(candidate)
 
     @staticmethod
     def _key(scope: Scope) -> str:
