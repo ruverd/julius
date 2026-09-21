@@ -28,6 +28,8 @@ def main() -> None:
         parser.error("binary must be a regular executable, not a symlink")
     binary = args.binary.read_bytes()
     installer = Path(__file__).with_name("install_standalone.py").read_bytes()
+    if len(binary) > 250_000_000 or len(installer) > 200_000:
+        parser.error("standalone payload exceeds installer limits")
     system = platform.system().lower()
     machine = platform.machine().lower()
     manifest = {

@@ -1,6 +1,7 @@
 """Release archive and managed installation lifecycle."""
 
 import importlib.util
+import io
 import json
 from pathlib import Path
 import platform
@@ -82,3 +83,16 @@ def test_archive_manifest_and_platform_check(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr(installer.platform, "machine", lambda: "wrong-architecture")
     with pytest.raises(ValueError, match="platform or architecture"):
         installer.execute("install", tmp_path / "prefix", release, False)
+
+
+def test_duplicate_archive_member_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    release = archive(tmp_path, monkeypatch, "0.2.0", b"first")
+    duplicate = tmp_path / "duplicate.tar.gz"
+    with tarfile.open(release, "r:gz") as source, tarfile.open(duplicate, "w:gz") as target:
+        for member in source.getmembers():
+            content = source.extractfile(member).read()
+            target.addfile(member, io.BytesIO(content))
+            if member.name == "manifest.json":
+                target.addfile(member, io.BytesIO(content))
+    with pytest.raises(ValueError, match="unexpected archive contents"):
+        installer.load_archive(duplicate)

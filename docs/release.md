@@ -1,6 +1,6 @@
 # Local standalone release
 
-The local standalone archive contains a Julius executable, its SHA-256 manifest, and the offline installer script. Each archive is built for one exact operating system and machine architecture. It is unsigned and is not a published release.
+The local standalone archive contains a Julius executable, its SHA-256 manifest, and the offline installer script. Each archive is built for one operating system and machine architecture. The executable bundles Python and does not need a separate Python runtime to run. The installer is a Python 3.10+ script, so installing from this archive still requires Python or manual copying. This artifact has no Developer ID signature or notarization and is not a published release. A manifest hash detects accidental archive changes but does not authenticate its publisher.
 
 Build on the target machine after the standalone build:
 
@@ -21,4 +21,6 @@ The first command only previews. `--apply` is required for every change. Use `--
 
 The installer verifies archive hashes and the current platform and architecture. It refuses to replace an unrelated binary, symlink, or modified managed binary. The managed state file is `.julius-install.json` within the prefix. Keep the state file and backup directory with the install if you want update and rollback. All operations use local files; the installer downloads nothing.
 
-This archive and installer were tested locally on macOS arm64. Linux, WSL, and Windows builds and installation remain untested. Build and test a separate archive on each target. Code signing, notarization, and published distribution are separate release gates.
+The macOS arm64 executable passed an offline smoke test for its CLI version, bundled subprocess dispatch, hook candidate, MCP initialize/list, and artifact restoration. It also ran from a temporary directory with `PATH=/usr/bin:/bin` and no `PYTHONPATH`. The archive was installed into a temporary prefix, launched, then removed. This checks one local machine, not a clean-machine release. The [standalone CI workflow](../.github/workflows/standalone.yml) specifies macOS and Linux builds but has not run remotely in this task. Linux, WSL, and Windows installation remain untested. Build and test a separate archive on each target. Code signing, notarization, trusted update distribution, and published distribution remain release gates.
+
+[PyInstaller's operating-mode documentation](https://pyinstaller.org/en/stable/operating-mode.html) describes the bundled interpreter and platform-specific output. Its [usage documentation](https://pyinstaller.org/en/stable/usage.html) recommends building and testing on each target environment; this script uses PyInstaller `6.22.3` and does not cross-compile.

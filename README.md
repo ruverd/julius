@@ -4,6 +4,8 @@ Local context optimization with evidence you can inspect.
 
 Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
 
+A local macOS arm64 standalone development archive and managed installer are now available from source; see [release instructions](docs/release.md). The binary runs without a separate Python runtime. This is not a signed or broadly tested release.
+
 An explicit, experimental xAI Responses command can send an authorized Grok request and record provider-reported input/output usage. A guarded safe mode prepares recoverable tool-output candidates and handles Julius-only restore calls. Optional Jev shadow decisions can be requested separately. xAI paths have fixture tests only; one live Jev Choice gateway call validated its observed wire shape. A bounded [live Claude pair](docs/live-claude-validation.md) passed its synthetic task in both arms but Julius cost more in that run. None proves measured product savings or agent quality.
 
 ## Develop and run
@@ -160,7 +162,7 @@ An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline 
 
 ## Delivery status
 
-Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery and append-only model snapshots, reports/exports/HTML, replayable event export, optional pricing, lexical memory and snapshot-scoped code symbols, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, fixture replay and trusted-check runner, scoped quality checks, ephemeral Claude launcher, managed project configuration, local hook/MCP probe, native wheels, and tests.
+Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery and append-only model snapshots, reports/exports/HTML with observed task counters, replayable event export, optional pricing, lexical memory and snapshot-scoped code symbols, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, fixture replay and trusted-check runner, scoped quality checks, ephemeral Claude launcher, managed project configuration, local hook/MCP probe, native wheels, a local standalone macOS arm64 development archive, and tests.
 
 Pending: broad Claude/Codex/xAI compatibility validation beyond narrow synthetic probes, confirmed sent-request interception, routing, exact tokenizers, automatic pricing/baselines, automatic symbol indexing in client workflows, structured memory integration, automatic cache-aware policy, measured production quality-based suspension, representative isolated task benchmarks, full task-level dashboard, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 

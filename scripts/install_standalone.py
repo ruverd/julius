@@ -14,6 +14,9 @@ import tempfile
 
 STATE_NAME = ".julius-install.json"
 BACKUP_NAME = ".julius-backups"
+MAX_BINARY_BYTES = 250_000_000
+MAX_INSTALLER_BYTES = 200_000
+MAX_MANIFEST_BYTES = 65_536
 
 
 def digest(data: bytes) -> str:
@@ -23,9 +26,27 @@ def digest(data: bytes) -> str:
 def load_archive(path: Path) -> tuple[dict, bytes]:
     with tarfile.open(path, "r:gz") as archive:
         members = archive.getmembers()
-        if {m.name for m in members} != {"manifest.json", "julius", "install_standalone.py"} or any(not m.isfile() for m in members):
+        expected_sizes = {
+            "manifest.json": MAX_MANIFEST_BYTES,
+            "julius": MAX_BINARY_BYTES,
+            "install_standalone.py": MAX_INSTALLER_BYTES,
+        }
+        if (
+            len(members) != len(expected_sizes)
+            or {m.name for m in members} != set(expected_sizes)
+            or any(not m.isfile() or m.size < 0 or m.size > expected_sizes[m.name]
+                   for m in members)
+        ):
             raise ValueError("unexpected archive contents")
-        contents = {m.name: archive.extractfile(m).read() for m in members}  # type: ignore[union-attr]
+        contents = {}
+        for member in members:
+            stream = archive.extractfile(member)
+            if stream is None:
+                raise ValueError("missing archive member")
+            data = stream.read(member.size + 1)
+            if len(data) != member.size:
+                raise ValueError("truncated archive member")
+            contents[member.name] = data
     manifest = json.loads(contents["manifest.json"])
     if manifest.get("schema") != 1 or manifest.get("product") != "julius":
         raise ValueError("unsupported manifest")

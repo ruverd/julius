@@ -10,7 +10,7 @@ case "${1:-help}" in
   setup) uv sync --frozen ;;
   test)
     uv run --no-sync pytest -q
-    uv run --no-sync ruff check python tests/python scripts/wheel_smoke.py
+    uv run --no-sync ruff check python tests/python scripts
     uv run --no-sync mypy python/julius
     cargo test --workspace --locked
     ;;
