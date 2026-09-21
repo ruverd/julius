@@ -8,6 +8,7 @@ from typing import Any, Mapping
 
 from .artifacts import ArtifactStore
 from .optimizer import optimize
+from .request_measurement import TokenCounter, measure_request_pair
 
 RECOVERY_TOOL = "julius_restore_artifact"
 
@@ -16,6 +17,7 @@ RECOVERY_TOOL = "julius_restore_artifact"
 class PreparedXAIRequest:
     request: dict[str, Any]
     receipts: tuple[dict[str, Any], ...]
+    measurement: dict[str, Any] | None = None
     candidate_only: bool = True
 
 
@@ -47,6 +49,9 @@ def prepare_optimized_request(
     policy: dict[str, Any],
     artifacts: ArtifactStore,
     recovery_handler_available: bool = False,
+    token_counter: TokenCounter | None = None,
+    tokenizer_model_id: str | None = None,
+    tokenizer_id: str | None = None,
 ) -> PreparedXAIRequest:
     """Prepare a copy; never send, alter the caller's request, or claim realized savings.
 
@@ -102,6 +107,10 @@ def prepare_optimized_request(
                 artifacts.delete(project_id, artifact_id)
                 retained.remove(artifact_id)
             receipts.append(receipt)
+        measurement = measure_request_pair(
+            request, candidate_request, token_counter=token_counter,
+            model_id=tokenizer_model_id, tokenizer_id=tokenizer_id,
+        )
     except BaseException:
         for artifact_id in retained:
             try:
@@ -109,4 +118,4 @@ def prepare_optimized_request(
             except (OSError, ValueError):
                 pass
         raise
-    return PreparedXAIRequest(candidate_request, tuple(receipts))
+    return PreparedXAIRequest(candidate_request, tuple(receipts), measurement)
