@@ -158,6 +158,7 @@ def _task_explanation(data: dict) -> str:
         f"Observed output tokens: {value(data['observedOutputTokens'])}",
         f"Direct sent-request input reduction: {value(data['directInputReductionTokens'])}",
         f"Comparative task output difference: {value(data['outputSavingsTokens'])}; evidence: {value(data['outputSavingsEvidence'])}",
+        f"Output comparison identity: {value(data['outputComparisonIdentity'])}",
         f"Baseline: {value(data['baselineId'])}; evidence: {value(data['baselineEvidence'])}",
         f"Baseline modeled cost USD: {value(data['baselineModeledCostUsd'])}",
         f"Current cost USD (provider charge or modeled): {value(data['currentCostUsd'])}",

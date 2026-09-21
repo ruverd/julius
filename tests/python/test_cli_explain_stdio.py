@@ -7,11 +7,30 @@ from uuid import uuid4
 
 import pytest
 
-from julius.cli import _stored_task_prices, run
+from julius.cli import _stored_task_prices, _task_explanation, run
 from julius.price_store import PriceSnapshot, PriceStore
 from julius.sdk import Julius
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "events.jsonl"
+
+
+def test_task_explanation_displays_output_comparison_provenance() -> None:
+    data = {
+        "taskId": "task", "coverageComplete": True, "observedInputTokens": 100,
+        "observedOutputTokens": 10, "directInputReductionTokens": None,
+        "outputSavingsTokens": -2, "outputSavingsEvidence": "controlled_experiment",
+        "outputComparisonIdentity": {
+            "providerId": "vendor", "modelId": "model", "tokenizerId": "tok",
+            "tokenizerSources": ["fixture"],
+        },
+        "baselineId": "base", "baselineEvidence": "controlled_experiment",
+        "baselineModeledCostUsd": None, "currentCostUsd": None,
+        "extraOverheadUsd": 0, "netModeledSavingsUsd": None,
+        "usageRecordsWithoutCallId": 0,
+    }
+    explanation = _task_explanation(data)
+    assert "Comparative task output difference: -2" in explanation
+    assert "'tokenizerId': 'tok'" in explanation
 
 
 def test_task_explanation_preserves_unknown_baseline(tmp_path: Path, capsys) -> None:
