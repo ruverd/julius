@@ -29,7 +29,7 @@ Local discovery found Claude Code 2.1.278 and codex-cli 0.154.0. Version probes 
 
 A read-only `claude --mcp-config <temporary-file> mcp get julius-recovery` probe on this installation returned `not configured` (exit 1). The subcommand may list only persisted servers; this does not establish whether a normal Claude session would load the temporary server. Session-level connection and restoration remain unverified. No Claude model call was made.
 
-No live xAI or Jev request was made during this validation. The xAI adapter has no measured input or output savings; Jev remains shadow-only. xAI's provider charge field is recognized from its documented response shape, but actual account billing has not been reconciled. Safe xAI dispatch remains experimental pending a live function-call, restoration, and quality test.
+No live xAI request was made during this validation. A single live TypeSafe Choice gateway request with synthetic state succeeded: it returned `compress`, confidence `0.77`, 373 input tokens, 31 output tokens, and actual model `jev-1.13.0`. No price was configured, so dollar cost remained unavailable. This verifies the gateway's current wire shape for that one account and request, not task quality, calibrated confidence, or active Jev decisions. Jev remains shadow-only in Julius. The xAI adapter has no measured input or output savings; its provider charge field is recognized from the documented response shape, but actual account billing has not been reconciled. Safe xAI dispatch remains experimental pending a live function-call, restoration, and quality test.
 
 ## Open quality gates
 

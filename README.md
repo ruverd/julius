@@ -4,7 +4,7 @@ Local context optimization with evidence you can inspect.
 
 Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
 
-An explicit, experimental xAI Responses command can send an authorized Grok request and record provider-reported input/output usage. A guarded safe mode prepares recoverable tool-output candidates and handles Julius-only restore calls. Optional Jev shadow decisions can be requested separately. None of these paths proves measured savings or live client compatibility; they have fixture tests only.
+An explicit, experimental xAI Responses command can send an authorized Grok request and record provider-reported input/output usage. A guarded safe mode prepares recoverable tool-output candidates and handles Julius-only restore calls. Optional Jev shadow decisions can be requested separately. xAI paths have fixture tests only; one live Jev Choice gateway call validated its observed wire shape. None proves measured savings or agent quality.
 
 ## Develop and run
 
@@ -121,7 +121,7 @@ The observe-mode xAI request file must contain an explicit Responses API `model`
 
 An offline [xAI optimization helper](docs/xai-optimization.md) prepares recoverable tool-output candidates. The [restore loop](docs/xai-tool-loop.md) now serves only Julius originals and records each provider attempt. These flows have fixture tests; real account behavior and quality remain unverified.
 
-Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, or `compress`. Shadow mode always applies `keep` to production content and records any auxiliary call. Its budget is a post-call threshold, not a guaranteed pre-call charge cap; use only with a separately authorized spending limit. No live Jev account has been tested. See [Jev boundary](docs/jev.md).
+Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, or `compress`. Shadow mode always applies `keep` to production content and records any auxiliary call. Its budget is a post-call threshold, not a guaranteed pre-call charge cap; use only with a separately authorized spending limit. One live synthetic Choice call returned usage and actual model, with dollar cost unavailable; Julius has not benchmarked Jev task decisions. See [Jev boundary](docs/jev.md).
 
 The offline [`analyze_task` API](docs/economics.md) can calculate modeled task cost and net savings when a caller supplies complete call coverage, a comparable baseline, and dated price snapshots. CLI savings remains unavailable without that evidence. Observed output tokens are usage; a signed task-level output difference requires an explicit comparable output baseline and complete coverage. It is not proof that Julius shortened generated answers.
 
