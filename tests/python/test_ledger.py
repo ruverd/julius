@@ -66,6 +66,53 @@ def test_strict_envelope_rejects_bool_counter_and_unknown_cost() -> None:
         validate_event({**good, "occurredAt": "2026-09-21T12:00:00Z"})
 
 
+def test_usage_tokenizer_identity_requires_explicit_source() -> None:
+    event = usage()
+    payload = event["payload"]
+    identified = {**event, "payload": {**payload, "tokenizerId": "model-tokenizer-v1",
+                                      "tokenizerSource": "pinned-model-manifest"}}
+    assert validate_event(identified)["payload"]["tokenizerId"] == "model-tokenizer-v1"
+    for invalid in (
+        {"tokenizerId": "model-tokenizer-v1"},
+        {"tokenizerSource": "pinned-model-manifest"},
+        {"tokenizerId": "", "tokenizerSource": "pinned-model-manifest"},
+        {"tokenizerId": "model-tokenizer-v1", "tokenizerSource": " "},
+    ):
+        with pytest.raises(ValueError, match="Tokenizer"):
+            validate_event({**event, "payload": {**payload, **invalid}})
+
+
+def test_usage_tokenizer_alias_conflict_needs_append_only_reconciliation(tmp_path: Path) -> None:
+    ledger = Ledger(tmp_path / "ledger.db")
+    try:
+        original = usage()
+        assert ledger.record(original)["inserted"]
+        annotated = {**original, "eventId": str(uuid4()), "sourceId": "model-registry",
+                     "sourceEventId": "registry-1", "payload": {
+                         **original["payload"], "tokenizerId": "tok-v1",
+                         "tokenizerSource": "registered-model-snapshot",
+                     }}
+        with pytest.raises(ValueError, match="Conflicting call measurements"):
+            ledger.record(annotated)
+        correction = {**original, "eventId": str(uuid4()), "sourceEventId": "fix-tokenizer",
+                      "eventType": "reconciliation", "payload": {
+                          "targetEventId": original["eventId"],
+                          "effectiveInputTokens": 10, "effectiveOutputTokens": 5,
+                          "effectiveCacheReadTokens": None, "effectiveCacheWriteTokens": None,
+                          "effectiveTokenizerId": "tok-v1",
+                          "effectiveTokenizerSource": "registered-model-snapshot",
+                          "effectiveCostUsd": None, "effectiveComplete": True,
+                          "reason": "verified tokenizer identity",
+                      }}
+        assert ledger.record(correction)["inserted"]
+        effective = ledger.events()[0]["payload"]
+        assert effective["tokenizerId"] == "tok-v1"
+        assert effective["tokenizerSource"] == "registered-model-snapshot"
+        assert ledger.history()[0]["payload"]["tokenizerId"] is None
+    finally:
+        ledger.close()
+
+
 def test_source_aliases_project_identity_and_retry(tmp_path: Path) -> None:
     ledger = Ledger(tmp_path / "ledger.db")
     try:

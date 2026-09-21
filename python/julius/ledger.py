@@ -195,6 +195,8 @@ class Ledger:
                         "cacheReadTokens",
                         "cacheWriteTokens",
                         "complete",
+                        "tokenizerId",
+                        "tokenizerSource",
                         "costUsd",
                         "costProvenance",
                         "observationScope",
@@ -354,6 +356,9 @@ class Ledger:
                     payload[old] = fix[new]
                 if fix["effectiveComplete"] is not None:
                     payload["complete"] = fix["effectiveComplete"]
+                if fix["effectiveTokenizerId"] is not None:
+                    payload["tokenizerId"] = fix["effectiveTokenizerId"]
+                    payload["tokenizerSource"] = fix["effectiveTokenizerSource"]
                 event = {**event, "payload": payload}
             effective.append(event)
         return effective

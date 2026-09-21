@@ -103,6 +103,8 @@ class TransformPayload(StrictModel):
 class UsagePayload(StrictModel):
     inputTokens: TokenCount | None
     outputTokens: TokenCount | None
+    tokenizerId: str | None = None
+    tokenizerSource: str | None = None
     cacheReadTokens: TokenCount | None
     cacheWriteTokens: TokenCount | None
     complete: bool
@@ -117,6 +119,12 @@ class UsagePayload(StrictModel):
 
     @model_validator(mode="after")
     def valid_cost(self) -> UsagePayload:
+        if (self.tokenizerId is None) != (self.tokenizerSource is None):
+            raise ValueError("Tokenizer ID and source must be supplied together")
+        if (self.tokenizerId is not None
+                and (not self.tokenizerId.strip() or self.tokenizerSource is None
+                     or not self.tokenizerSource.strip())):
+            raise ValueError("Tokenizer ID and source must be nonempty")
         if self.costUsd is not None and self.costProvenance is None:
             raise ValueError("Known cost requires provenance")
         if (
@@ -143,6 +151,8 @@ class ReconciliationPayload(StrictModel):
     targetEventId: str
     effectiveInputTokens: TokenCount | None
     effectiveOutputTokens: TokenCount | None
+    effectiveTokenizerId: str | None = None
+    effectiveTokenizerSource: str | None = None
     effectiveCacheReadTokens: TokenCount | None
     effectiveCacheWriteTokens: TokenCount | None
     effectiveCostUsd: Money | None
@@ -152,6 +162,13 @@ class ReconciliationPayload(StrictModel):
 
     @model_validator(mode="after")
     def valid_cost(self) -> ReconciliationPayload:
+        if (self.effectiveTokenizerId is None) != (self.effectiveTokenizerSource is None):
+            raise ValueError("Corrected tokenizer ID and source must be supplied together")
+        if (self.effectiveTokenizerId is not None
+                and (not self.effectiveTokenizerId.strip()
+                     or self.effectiveTokenizerSource is None
+                     or not self.effectiveTokenizerSource.strip())):
+            raise ValueError("Corrected tokenizer ID and source must be nonempty")
         if self.effectiveCostUsd is not None and self.effectiveCostProvenance is None:
             raise ValueError("Known corrected cost requires provenance")
         return self
