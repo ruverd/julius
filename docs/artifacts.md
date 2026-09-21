@@ -1,5 +1,22 @@
 # Artifact exports
 
+`julius artifacts delete-project --project ID` exposes project-wide original deletion through the CLI. It returns `removedArtifacts` and `leftovers` as JSON; nonempty leftovers make the command exit with status 2. Run it separately from event and memory deletion.
+
+`ArtifactStore.delete_project(project_id)` removes verified originals and metadata
+from that project's artifact directory. It returns `{"removedArtifacts": count,
+"leftovers": [filenames...]}` and is idempotent. It checks every directory
+entry before deleting: unexpected names, symlinks, and unsafe file types or
+permissions cause a clear error without deleting any entries. A body without
+metadata, or a pair with invalid metadata, is left in place and reported as a
+leftover because its project membership cannot be verified. A valid metadata
+file without its body is removed. Deletion does not follow symlinks and does
+not touch another project's directory.
+
+Deletion removes active artifact files only. It does not erase prior exports,
+filesystem or SQLite backups, snapshots, or SQLite WAL data. A deleted original
+cannot be restored or recounted by Julius from the artifact store; existing
+ledger measurements remain historical records.
+
 `ArtifactStore.export(project_id, destination, artifact_ids, *, authorized=True)`
 exports selected, unexpired originals from one project. The caller must obtain
 the user's authorization for each export and pass `authorized=True`. The method

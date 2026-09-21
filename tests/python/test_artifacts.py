@@ -139,3 +139,75 @@ def test_failed_export_only_removes_its_own_files(tmp_path: Path, monkeypatch):
         )
     assert (destination / "other.txt").read_text() == "keep"
     assert not (destination / "manifest.json").exists()
+
+
+def test_delete_project_is_scoped_and_idempotent(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    one = store.put("one", "secret")
+    two = store.put("two", "keep")
+    assert store.delete_project("one") == {"removedArtifacts": 1, "leftovers": []}
+    assert store.delete_project("one") == {"removedArtifacts": 0, "leftovers": []}
+    assert store.get("two", two["id"]) == "keep"
+    with pytest.raises(FileNotFoundError):
+        store.get("one", one["id"])
+
+
+def test_delete_project_reports_partial_and_corrupt_files(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    good = store.put("one", "good")
+    partial = store.put("one", "partial")
+    corrupt = store.put("one", "corrupt")
+    directory = store.root / hashlib.sha256(b"one").hexdigest()
+    (directory / f"{partial['id']}.json").unlink()
+    (directory / f"{corrupt['id']}.json").write_text("{}")
+    result = store.delete_project("one")
+    assert result == {"removedArtifacts": 1, "leftovers": sorted([
+        f"{partial['id']}.txt", f"{corrupt['id']}.txt", f"{corrupt['id']}.json"
+    ])}
+    assert not (directory / f"{good['id']}.txt").exists()
+    assert (directory / f"{partial['id']}.txt").exists()
+    assert (directory / f"{corrupt['id']}.json").exists()
+
+
+def test_delete_project_rejects_symlinks_and_unexpected_files(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "secret")
+    directory = store.root / hashlib.sha256(b"one").hexdigest()
+    outside = tmp_path / "outside"
+    outside.write_text("keep")
+    link = directory / f"{item['id']}.txt"
+    link.unlink()
+    link.symlink_to(outside)
+    with pytest.raises(ValueError, match="Unsafe artifact file"):
+        store.delete_project("one")
+    assert outside.read_text() == "keep"
+    assert (directory / f"{item['id']}.json").exists()
+    link.unlink()
+    (directory / "unexpected.txt").write_text("unexpected")
+    with pytest.raises(ValueError, match="Unexpected artifact file"):
+        store.delete_project("one")
+    assert (directory / f"{item['id']}.json").exists()
+
+
+def test_delete_project_rejects_directory_symlink(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (store.root / hashlib.sha256(b"one").hexdigest()).symlink_to(outside)
+    with pytest.raises(ValueError, match="Unsafe artifact directory"):
+        store.delete_project("one")
+
+
+def test_delete_project_leaves_foreign_metadata(tmp_path: Path):
+    store = ArtifactStore(tmp_path / "artifacts")
+    item = store.put("one", "secret")
+    directory = store.root / hashlib.sha256(b"one").hexdigest()
+    metadata_path = directory / f"{item['id']}.json"
+    metadata = json.loads(metadata_path.read_text())
+    metadata["projectId"] = "two"
+    metadata_path.write_text(json.dumps(metadata))
+    result = store.delete_project("one")
+    assert result == {"removedArtifacts": 0, "leftovers": sorted([
+        f"{item['id']}.txt", f"{item['id']}.json"
+    ])}
+    assert (directory / f"{item['id']}.txt").exists()

@@ -55,6 +55,7 @@ uv run --no-sync julius restore '<artifact-id>' --project app
 uv run --no-sync julius artifacts delete '<artifact-id>' --project app
 uv run --no-sync julius artifacts export '<artifact-id>' --project app --output ./private-export
 uv run --no-sync julius artifacts purge --project app
+uv run --no-sync julius artifacts delete-project --project app
 ```
 
 `observe` is the default profile. `safe` replaces eligible repeated neutral lines only when shorter and recoverable. Version 3 can reduce neutral repetition in a mixed log while preserving an error line and its neighbors exactly. Permission, approval, instruction, and wholly protected content still block the entire candidate, as do opaque data, expired policies, missing approval, and implicit recompression. Rust performs the eligible text operation; Python retains permissions and storage boundaries. A missing native extension returns an unchanged candidate with `native_unavailable`.
@@ -74,6 +75,8 @@ uv run --no-sync julius usage --since 7d --by category
 uv run --no-sync julius savings --task DEV-123 --json
 uv run --no-sync julius export --format csv --since 7d > usage.csv
 uv run --no-sync julius export --format events-jsonl --project app --since 7d > events.jsonl
+uv run --no-sync julius events purge --project app --before 2026-09-21T00:00:00Z
+uv run --no-sync julius events delete-project --project app
 uv run --no-sync julius dashboard --output ./julius-report.html
 uv run --no-sync julius models list
 uv run --no-sync julius models list --runtime lmstudio
@@ -84,6 +87,7 @@ uv run --no-sync julius symbols index src/module.py --project app --project-root
 uv run --no-sync julius symbols search process_request --project app --project-root ./project --snapshot '<revision-id>'
 uv run --no-sync julius memory put record.json --project app --snapshot '<revision-id>'
 uv run --no-sync julius memory search compiler --project app --snapshot '<revision-id>'
+uv run --no-sync julius memory delete-project --project app
 uv run --no-sync julius mcp recovery --project app --project-root ./project
 uv run --no-sync julius prices record --state-file ./price-snapshot.json
 uv run --no-sync julius prices lookup --endpoint https://api.example.test --provider example \
@@ -93,7 +97,7 @@ uv run --no-sync julius prices lookup --endpoint https://api.example.test --prov
 
 Transcript importers are experimental and fixture-tested, reading only explicitly supplied files. [Integration contracts](docs/integrations.md) describe supported record shapes. Codex cumulative deltas are not an exact call count. Executable detection does not establish live compatibility. Ollama and [LM Studio](docs/lmstudio.md) discovery are read-only, bypass environment proxies, reject redirects, and are restricted to loopback; they never download or load models. [Model snapshots](docs/model-registry.md) retain caller-supplied historical facts by endpoint; an explicit [local scan](docs/model-scan.md) records facts from a selected runtime. No listing or snapshot proves hardware fitness.
 
-`7d` means a rolling window, with inclusive start and exclusive end. Local date inputs convert to UTC; the report names its timezone. Unknown values stay unavailable. Negative reductions remain signed. Provider usage does not establish the cost of a counterfactual trajectory. Financial savings remain unavailable in CLI reports until an explicit comparable baseline is integrated. Subscription refunds and proprietary limits are never inferred.
+`7d` means a rolling window; `previous-week` selects the preceding Monday-to-Monday local calendar week. Both use an inclusive start and exclusive end. Local date inputs convert to UTC; the report names its timezone. Unknown values stay unavailable. Negative reductions remain signed. Provider usage does not establish the cost of a counterfactual trajectory. Financial savings remain unavailable in CLI reports until an explicit comparable baseline is integrated. Subscription refunds and proprietary limits are never inferred.
 
 Aggregate exports omit prompts and raw payloads. Project/model/source labels may still be private. The [dashboard](docs/dashboard.md) is self-contained HTML with no listener or external resources; it supports system light/dark appearance, accessible tables, and local filters by the selected model or client grouping. Existing output files are not overwritten.
 

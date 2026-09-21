@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -158,6 +159,20 @@ def test_query_window_is_rolling_and_rejects_invalid_calendar_dates():
     assert window["since"] == "2026-09-14T12:34:56.000Z"
     with pytest.raises(ValueError):
         query_window({"since": "2026-02-30"})
+
+
+def test_previous_week_is_calendar_bound_with_dst_and_exclusive_end():
+    now = datetime(2026, 3, 9, 12, tzinfo=ZoneInfo("America/New_York"))
+    window = query_window({"since": "previous-week"}, now)
+    assert window == {
+        "since": "2026-03-02T05:00:00.000Z",
+        "until": "2026-03-09T04:00:00.000Z",
+        "timezone": "America/New_York",
+    }
+    rolling = query_window({"since": "7d"}, now)
+    assert rolling["since"] != window["since"]
+    with pytest.raises(ValueError, match="previous-week"):
+        query_window({"since": "previous-week", "until": "2026-03-10T00:00:00Z"}, now)
 
 
 def test_task_outcomes_and_separate_usage_measures():

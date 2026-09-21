@@ -410,6 +410,105 @@ class Ledger:
             effective.append(event)
         return effective
 
+    def delete_project_events(self, project_id: str) -> dict[str, int]:
+        """Delete one project's canonical events and their source aliases atomically."""
+        self._check_project_id(project_id)
+        with self._write():
+            rows = self.db.execute(
+                "SELECT event_id FROM events WHERE project_id=?", (project_id,)
+            ).fetchall()
+            ids = [row["event_id"] for row in rows]
+            aliases = self._delete_event_ids(ids)
+            return {"removedEvents": len(ids), "removedAliases": aliases}
+
+    def purge_project_events_before(self, project_id: str, before: str) -> dict[str, int]:
+        """Purge old dependency components, retaining any component with a newer event."""
+        self._check_project_id(project_id)
+        if not isinstance(before, str):
+            raise ValueError("Invalid cutoff")
+        cutoff = normalize_utc(before)
+        with self._write():
+            rows = self.db.execute("SELECT * FROM events WHERE project_id=?", (project_id,)).fetchall()
+            events: dict[str, dict[str, Any]] = {}
+            transforms: dict[str, str] = {}
+            for row in rows:
+                event = validate_event(json.loads(row["body"]))
+                if (event["eventId"] != row["event_id"] or
+                    event["projectId"] != project_id or
+                    event["occurredAt"] != row["occurred_at"] or
+                    event["eventType"] != row["event_type"]):
+                    raise ValueError("Inconsistent event row")
+                events[row["event_id"]] = event
+                if event["eventType"] == "transform":
+                    transform_id = event["payload"]["transformId"]
+                    if transform_id in transforms:
+                        raise ValueError("Duplicate transform ID")
+                    transforms[transform_id] = event["eventId"]
+            parent = {event_id: event_id for event_id in events}
+
+            def root(event_id: str) -> str:
+                while parent[event_id] != event_id:
+                    parent[event_id] = parent[parent[event_id]]
+                    event_id = parent[event_id]
+                return event_id
+
+            def link(left: str, right: str) -> None:
+                parent[root(left)] = root(right)
+
+            identities: dict[tuple[str, str, str], str] = {}
+            for event_id, event in events.items():
+                identity = (event["sessionId"], event["requestId"], event["attemptId"])
+                if all(part is not None for part in identity):
+                    key = (identity[0], identity[1], identity[2])
+                    if key in identities:
+                        link(event_id, identities[key])
+                    else:
+                        identities[key] = event_id
+                if event["eventType"] == "transform":
+                    parent_id = event["payload"]["parentTransformId"]
+                    if parent_id is not None:
+                        if parent_id not in transforms:
+                            raise ValueError("Missing parent transform")
+                        link(event_id, transforms[parent_id])
+                if event["eventType"] == "reconciliation":
+                    target_id = event["payload"]["targetEventId"]
+                    if target_id not in events or events[target_id]["eventType"] != "usage":
+                        raise ValueError("Missing owned reconciliation target")
+                    link(event_id, target_id)
+
+            protected = {
+                root(event_id) for event_id, event in events.items()
+                if event["occurredAt"] >= cutoff
+            }
+            deleted = [event_id for event_id in events if root(event_id) not in protected]
+            retained = sum(
+                event["occurredAt"] < cutoff and root(event_id) in protected
+                for event_id, event in events.items()
+            )
+            aliases = self._delete_event_ids(deleted)
+            return {
+                "removedEvents": len(deleted),
+                "removedAliases": aliases,
+                "retainedByDependency": retained,
+            }
+
+    @staticmethod
+    def _check_project_id(project_id: str) -> None:
+        if not isinstance(project_id, str) or not project_id.strip():
+            raise ValueError("Invalid project ID")
+
+    def _delete_event_ids(self, ids: list[str]) -> int:
+        if not ids:
+            return 0
+        aliases = 0
+        for event_id in ids:
+            cursor = self.db.execute(
+                "DELETE FROM event_aliases WHERE canonical_event_id=?", (event_id,)
+            )
+            aliases += cursor.rowcount
+            self.db.execute("DELETE FROM events WHERE event_id=?", (event_id,))
+        return aliases
+
     def reserve_budget(self, input: dict[str, Any]) -> bool:
         budget_id = input["budgetId"]
         reservation_id = input["reservationId"]

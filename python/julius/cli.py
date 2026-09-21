@@ -77,6 +77,7 @@ def _parser() -> argparse.ArgumentParser:
             "optimize",
             "restore",
             "artifacts",
+            "events",
             "savings",
             "usage",
             "export",
@@ -95,9 +96,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("arguments", nargs="*")
     parser.add_argument("--data-dir", default=os.environ.get("JULIUS_HOME", ".julius"))
     parser.add_argument(
-        "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
+        "--since", default="7d", help="Rolling days/hours/minutes, previous-week, or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
+    parser.add_argument("--before", help="Exclusive timezone-qualified cutoff for events purge; converted to UTC")
     for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead", "work-dir", "claude-executable", "trusted-context-file"):
         parser.add_argument(f"--{option}")
     parser.add_argument("--invalidation-reason", help="Reason recorded when invalidating memory")
@@ -325,9 +327,9 @@ def run(argv: list[str] | None = None) -> int:
     if command == "memory":
         project_id = _required(args.project, "--project")
         action = argument
-        if action not in ("put", "search", "invalidate", "history", "purge"):
-            raise ValueError("Use memory put <json-file>|search <query>|invalidate <id>|history [id]|purge --project <id>")
-        if (len(args.arguments) != (1 if action == "purge" else 2)
+        if action not in ("put", "search", "invalidate", "history", "purge", "delete-project"):
+            raise ValueError("Use memory put <json-file>|search <query>|invalidate <id>|history [id]|purge|delete-project --project <id>")
+        if (len(args.arguments) != (1 if action in ("purge", "delete-project") else 2)
                 and not (action == "history" and len(args.arguments) == 1)):
             raise ValueError("Invalid memory arguments")
         memory = MemoryStore(Path(args.data_dir).absolute() / "memory.sqlite3")
@@ -358,8 +360,11 @@ def run(argv: list[str] | None = None) -> int:
                 )
                 _json({"records": records, "limit": args.limit, "offset": args.offset,
                        "nextOffset": args.offset + len(records) if len(records) == args.limit else None})
-            else:
+            elif action == "purge":
                 _json({"removed": memory.purge_expired(project_id)})
+            else:
+                _json({"removedMemories": memory.delete_project(project_id),
+                       "symbolsAndRootsDeleted": True})
         finally:
             memory.close()
         return 0
@@ -951,8 +956,23 @@ def run(argv: list[str] | None = None) -> int:
                     project, _required(args.output, "--output"), args.arguments[1:],
                     authorized=True, include_raw=args.include_originals,
                 ))
+            elif args.arguments == ["delete-project"]:
+                result = julius.artifacts.delete_project(project)
+                _json(result)
+                return 2 if result["leftovers"] else 0
             else:
-                raise ValueError("Use artifacts delete <id>, purge, or export <id> --project <id>")
+                raise ValueError("Use artifacts delete <id>, purge, export <id>, or delete-project --project <id>")
+        elif command == "events":
+            project = _required(args.project, "--project")
+            if args.arguments == ["purge"]:
+                _json(julius.ledger.purge_project_events_before(
+                    project, _required(args.before, "--before timezone-qualified cutoff")))
+            elif args.arguments == ["delete-project"]:
+                if args.before is not None:
+                    raise ValueError("--before is only valid with events purge")
+                _json(julius.ledger.delete_project_events(project))
+            else:
+                raise ValueError("Use events purge --before <UTC time> or events delete-project --project <id>")
         else:
             window = query_window({"since": args.since, "until": args.until})
             filters = {"since": window["since"], "until": window["until"]}

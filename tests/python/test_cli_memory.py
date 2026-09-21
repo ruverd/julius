@@ -105,3 +105,25 @@ def test_mcp_memory_search_requires_explicit_flag(tmp_path: Path):
     ]
     hits = json.loads(replies[2]["result"]["content"][0]["text"])["hits"]
     assert len(hits) == 1 and hits[0]["projectId"] == "one"
+
+
+def test_memory_cli_delete_project_is_scoped_and_idempotent(tmp_path: Path):
+    data_dir = tmp_path / "data"
+    for project in ("one", "other"):
+        record = tmp_path / f"{project}.json"
+        record.write_text(json.dumps(memory(projectId=project)))
+        inserted = _run(data_dir, "memory", "put", str(record), "--project", project)
+        assert inserted.returncode == 0, inserted.stderr
+
+    deleted = _run(data_dir, "memory", "delete-project", "--project", "one")
+    assert deleted.returncode == 0, deleted.stderr
+    assert json.loads(deleted.stdout) == {
+        "removedMemories": 1, "symbolsAndRootsDeleted": True,
+    }
+    assert json.loads(_run(data_dir, "memory", "history", "--project", "one").stdout)["records"] == []
+    assert len(json.loads(_run(
+        data_dir, "memory", "history", "--project", "other",
+    ).stdout)["records"]) == 1
+    again = _run(data_dir, "memory", "delete-project", "--project", "one")
+    assert json.loads(again.stdout)["removedMemories"] == 0
+    assert _run(data_dir, "memory", "delete-project", "--project", "").returncode == 1

@@ -214,6 +214,8 @@ class MemoryStore:
         ]
 
     def delete_project(self, project_id: str) -> int:
+        if not isinstance(project_id, str) or not 0 < len(project_id) <= 256:
+            raise ValueError("Project required")
         with self.db:
             cursor = self.db.execute("DELETE FROM memories WHERE project_id=?", (project_id,))
             removed = cursor.rowcount
@@ -223,7 +225,11 @@ class MemoryStore:
                 self.db.execute("DELETE FROM symbols WHERE project_id=?", (project_id,))
                 self.db.execute("DELETE FROM symbol_files WHERE project_id=?", (project_id,))
                 self.db.execute("DELETE FROM symbol_roots WHERE project_id=?", (project_id,))
-            return removed
+        try:
+            self.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except sqlite3.OperationalError:
+            pass  # The deletion committed; checkpoint is best effort.
+        return removed
 
     def purge_expired(self, project_id: str) -> int:
         with self.db:

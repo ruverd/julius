@@ -124,6 +124,78 @@ class ArtifactStore:
         body.unlink()
         meta.unlink()
 
+    def delete_project(self, project_id: str) -> dict:
+        """Delete verified project artifacts; report files that cannot be attributed safely."""
+        if not isinstance(project_id, str) or not project_id or len(project_id) > 256:
+            raise ValueError("Invalid project ID")
+        name = hashlib.sha256(project_id.encode()).hexdigest()
+        flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+        root_fd = os.open(self.root, flags)
+        try:
+            try:
+                directory_fd = os.open(name, flags, dir_fd=root_fd)
+            except FileNotFoundError:
+                return {"removedArtifacts": 0, "leftovers": []}
+            except OSError as exc:
+                raise ValueError("Unsafe artifact directory") from exc
+            try:
+                names = os.listdir(directory_fd)
+                files: dict[str, os.stat_result] = {}
+                for filename in names:
+                    match = re.fullmatch(r"([a-f0-9-]{36})\.(txt|json)", filename)
+                    if match is None or not _ID.fullmatch(match.group(1)):
+                        raise ValueError(f"Unexpected artifact file: {filename}")
+                    info = os.stat(filename, dir_fd=directory_fd, follow_symlinks=False)
+                    if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+                        raise ValueError(f"Unsafe artifact file: {filename}")
+                    files[filename] = info
+
+                removable: list[tuple[str, str | None]] = []
+                leftovers: list[str] = []
+                for artifact_id in sorted({filename[:36] for filename in names}):
+                    meta = f"{artifact_id}.json"
+                    body = f"{artifact_id}.txt"
+                    if meta not in files:
+                        leftovers.append(body)
+                        continue
+                    try:
+                        fd = os.open(meta, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0), dir_fd=directory_fd)
+                        try:
+                            info = os.fstat(fd)
+                            if (info.st_dev, info.st_ino) != (files[meta].st_dev, files[meta].st_ino) or info.st_size > MAX_BYTES + 1024:
+                                raise ValueError("Unsafe artifact metadata")
+                            with os.fdopen(os.dup(fd), "r", encoding="utf-8") as stream:
+                                self._metadata(stream.read(), project_id, artifact_id)
+                        finally:
+                            os.close(fd)
+                    except (OSError, ValueError, UnicodeError, json.JSONDecodeError):
+                        leftovers.extend(filename for filename in (body, meta) if filename in files)
+                        continue
+                    removable.append((meta, body if body in files else None))
+
+                removed = 0
+                for meta, paired_body in removable:
+                    # Keep metadata until the original has been removed.
+                    for entry in (paired_body, meta):
+                        if entry is None:
+                            continue
+                        info = os.stat(entry, dir_fd=directory_fd, follow_symlinks=False)
+                        original = files[entry]
+                        if not stat.S_ISREG(info.st_mode) or (info.st_dev, info.st_ino) != (original.st_dev, original.st_ino):
+                            raise ValueError(f"Artifact changed during deletion: {entry}")
+                        os.unlink(entry, dir_fd=directory_fd)
+                    removed += 1
+                if not leftovers:
+                    try:
+                        os.rmdir(name, dir_fd=root_fd)
+                    except OSError:
+                        leftovers = sorted(os.listdir(directory_fd))
+                return {"removedArtifacts": removed, "leftovers": sorted(leftovers)}
+            finally:
+                os.close(directory_fd)
+        finally:
+            os.close(root_fd)
+
     def purge_expired(self, project_id: str) -> int:
         directory = self.root / hashlib.sha256(project_id.encode()).hexdigest()
         if not directory.exists():

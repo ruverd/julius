@@ -36,6 +36,10 @@ Budget reservations are SQLite transactions shared by processes. IDs are idempot
 
 ## Privacy and limits
 
+`julius events delete-project --project ID` removes one project's event history. `julius events purge --project ID --before 2026-09-21T00:00:00Z` removes eligible events before an exclusive timezone-qualified cutoff, normalized to UTC. Export an audit copy first if needed. These commands do not delete originals or memory.
+
 Aggregate reports omit raw payloads and originals. Source/model/client labels can still identify private work. The SDK accepts trusted local callers, not arbitrary remote clients. Artifact possession alone does not bypass project scope. This release has no network server or sandboxed code execution.
 
-The event store currently retains metadata until the user removes the selected local store. Artifact expiry and deletion are separate. Automatic metadata retention, durable schema migration across released versions, and billing-grade decimal arithmetic remain release work.
+The ledger can delete all events for one project or purge events before an exclusive UTC cutoff. Purging retains an older event if its transform chain, reconciliation target, or matching session/request/attempt identity connects it to an event at or after the cutoff. Source aliases are removed with their canonical events. These operations return counts of removed canonical events, removed aliases, and, for a purge, older events retained by dependency. Repeating a deletion is safe. Budget reservations are not project keyed and are unaffected.
+
+Event bodies can contain `rawUsage` and other sensitive metadata. Retention can make historical reports incomplete, including baselines and corrections whose events were deleted. SQLite WAL transactions make each deletion atomic, but old bytes can persist in WAL files, filesystem snapshots, or backups until those are checkpointed, replaced, or expired under the user's storage policy. Artifact expiry and deletion are separate. Automatic metadata retention, durable schema migration across released versions, and billing-grade decimal arithmetic remain release work.

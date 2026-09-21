@@ -19,10 +19,13 @@ julius memory history --project app --limit 100 --offset 0
 julius memory history '<record-id>' --project app
 julius memory invalidate '<record-id>' --project app --invalidation-reason source_changed --source manual-review
 julius memory purge --project app
+julius memory delete-project --project app
 julius mcp recovery --project app --memory-search
 ```
 
 `put` validates the supplied hash, provenance, expiry, and optional snapshot match. `history` returns metadata-only JSON with `records`, `limit`, `offset`, and `nextOffset`; request successive pages until `nextOffset` is `null`. Offset pagination is not a transaction across pages, so concurrent memory writes may shift rows. `purge` removes only expired records. The MCP command exposes `search_memory` only for its fixed project; the default recovery server advertises no memory search tool. The CLI does not infer memories or inject search results into a model request.
+
+`delete-project` removes all memory records and indexed symbols for the selected project, including unexpired records. The receipt counts memory rows and confirms the symbol/root deletion operation; it does not claim a count of removed symbols. Run it separately from original-artifact and ledger retention. Deletion is idempotent. SQLite checkpointing is best effort, and filesystem snapshots or backups can retain older bytes.
 
 ## Code symbols
 
