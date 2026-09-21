@@ -1,6 +1,7 @@
 """Versioned local harness interface with no hidden model execution."""
 
 from pathlib import Path
+import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Mapping
 from uuid import uuid4
@@ -9,6 +10,8 @@ from .artifacts import ArtifactStore
 from .events import validate_event
 from .ledger import Ledger
 from .optimizer import optimize
+from .quality_guard import GuardPolicy, Scope
+from .quality_store import QualityStore
 from .query import query_window
 from .reporting import report
 from .xai import XAIAdapter, XAIResult, Transport
@@ -22,10 +25,27 @@ from datetime import date
 class Julius:
     def __init__(self, directory: str | Path):
         directory = Path(directory)
+        self.directory = directory
         self.artifacts = ArtifactStore(directory / "artifacts")
         self.ledger = Ledger(directory / "ledger.sqlite")
 
-    def optimize(self, context: dict, policy: dict) -> dict:
+    def optimize(
+        self, context: dict, policy: dict, *,
+        quality_scope: Scope | None = None,
+        quality_policy: GuardPolicy | None = None,
+    ) -> dict:
+        if (quality_scope is None) != (quality_policy is None):
+            raise ValueError("Quality scope and policy must be supplied together")
+        if quality_scope is not None and quality_policy is not None:
+            if context.get("projectId") != quality_scope.project_id:
+                raise ValueError("Quality scope does not match optimization project")
+            try:
+                with QualityStore(self.directory / "quality.sqlite") as store:
+                    decision = store.decision(quality_scope, quality_policy)
+            except (OSError, sqlite3.Error, ValueError) as exc:
+                raise RuntimeError("Quality guard unavailable; optimization blocked") from exc
+            if decision["status"] != "enabled":
+                raise RuntimeError(f"Quality guard blocked optimization: {decision['status']}")
         eligibility = optimize({**context, "recovery": None}, policy)
         if eligibility["receipt"]["reason"] != "recovery_required":
             return {**eligibility, "original": None}
