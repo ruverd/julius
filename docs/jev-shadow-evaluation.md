@@ -60,3 +60,6 @@ and makes no Jev call. Captures contain typed metadata, counts, choice, model,
 and modeled cost, not the API key or raw prompts. The result measures agreement
 with five synthetic labels and does not validate production task quality or
 calibrate confidence for target workloads.
+
+The [September 21 live shadow result](live-jev-shadow.md) and its
+[capture file](evidence/jev-shadow-pilot-v2.json) are available for offline replay.

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "scope": "live_synthetic_jev_shadow_capture",
+  "registrationId": "jev-policy-choice-pilot-v2",
+  "registrationCommit": "b3c854c",
+  "registrationSha256": "668cd4459f1fec4734960a533ee7c9acc03806595a23b754dedcc17f564ae576",
+  "requestedModel": "jev-1.13.0",
+  "priceSource": "typesafe-public-model-page",
+  "priceDate": "2026-09-21",
+  "inputUsdPerMillion": 0.042,
+  "outputUsdPerMillion": 0.0,
+  "maxInputTokensPerCallAssumption": 64000,
+  "totalBudgetUsd": 0.02,
+  "modeledMaximumUsdAssumption": 0.01344,
+  "providerInvoiceVerified": false,
+  "captures": [
+    {
+      "case_id": "recoverable-short-context",
+      "choice": "compress",
+      "confidence": 0.52,
+      "cost_usd": 0.000016674,
+      "input_tokens": 397,
+      "output_tokens": 38,
+      "actual_model": "jev-1.13.0"
+    },
+    {
+      "case_id": "missing-recoverable-source",
+      "choice": "keep",
+      "confidence": 0.24,
+      "cost_usd": 0.00001596,
+      "input_tokens": 380,
+      "output_tokens": 31,
+      "actual_model": "jev-1.13.0"
+    },
+    {
+      "case_id": "recoverable-large-context",
+      "choice": "compress",
+      "confidence": 0.69,
+      "cost_usd": 0.000016842000000000002,
+      "input_tokens": 401,
+      "output_tokens": 38,
+      "actual_model": "jev-1.13.0"
+    },
+    {
+      "case_id": "repeated-large-context",
+      "choice": "compress",
+      "confidence": 0.86,
+      "cost_usd": 0.000016128,
+      "input_tokens": 384,
+      "output_tokens": 31,
+      "actual_model": "jev-1.13.0"
+    },
+    {
+      "case_id": "local-model-long-context",
+      "choice": "compress",
+      "confidence": 0.77,
+      "cost_usd": 0.000016884,
+      "input_tokens": 402,
+      "output_tokens": 38,
+      "actual_model": "jev-1.13.0"
+    }
+  ]
+}
