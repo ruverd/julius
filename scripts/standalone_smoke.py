@@ -63,6 +63,16 @@ def main() -> None:
         ).stdout)
         if len(hits) != 1 or hits[0]["contentSha256"] != record["contentSha256"]:
             raise AssertionError("Bundled memory search did not restore its indexed evidence")
+        _run(binary, "memory", "invalidate", "smoke", "--project", "smoke",
+             "--invalidation-reason", "smoke_complete", data_dir=data_dir)
+        history = json.loads(_run(
+            binary, "memory", "history", "smoke", "--project", "smoke",
+            data_dir=data_dir,
+        ).stdout)
+        if (len(history["records"]) != 1 or not history["records"][0]["invalidated"]
+                or history["records"][0]["invalidationReason"] != "smoke_complete"
+                or "content" in history["records"][0]):
+            raise AssertionError("Bundled memory history lost invalidation audit or exposed content")
     print(f"Standalone smoke passed: {version}; hook/MCP recovery and memory search")
 
 
