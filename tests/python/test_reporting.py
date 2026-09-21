@@ -117,8 +117,9 @@ def test_task_outcomes_and_separate_usage_measures():
                "payload": {"outcome": "resolved", "reason": None}}
     result = report([base, outcome], WINDOW)
     assert result["taskSummary"] == {
+        "observedTaskIds": 1,
         "attempted": 1, "resolved": 1, "withOutcome": 1,
-        "scope": "Tasks with an observed task ID in this period; outcome and call coverage may be incomplete.",
+        "scope": "Attempted requires usage, outcome, or a sent transform; outcome and call coverage may be incomplete.",
     }
     task = result["tasks"][0]
     assert (task["input"]["total"], task["output"]["total"]) == (10, None)
@@ -126,6 +127,19 @@ def test_task_outcomes_and_separate_usage_measures():
     assert task["auxiliaryUsageRecords"] == 1
     assert task["incompleteUsageRecords"] == 1
     page = render_html(result)
-    assert "Attempted: 1; resolved: 1; with outcome: 1" in page
+    assert "Observed task IDs: 1; attempted: 1; resolved: 1; with outcome: 1" in page
     assert "[since, until)" in page
     assert "#usage-table tbody tr" in page
+
+
+def test_candidate_only_task_id_is_not_attempted():
+    event = json.loads(FIXTURE.read_text().splitlines()[0])
+    event["taskId"] = "candidate-only"
+    event["payload"]["sent"] = False
+    result = report([event], WINDOW)
+    assert result["taskSummary"]["observedTaskIds"] == 1
+    assert result["taskSummary"]["attempted"] == 0
+    assert result["tasks"] == []
+    event["payload"]["sent"] = True
+    sent = report([event], WINDOW)
+    assert sent["taskSummary"]["attempted"] == 1

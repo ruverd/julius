@@ -63,8 +63,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     observed = {request_key(event) for event in usage} - {None}
     transformed = {request_key(event) for event in transforms} & observed
 
-    # A task is evidenced by a task ID on an event. Outcome is a separate fact;
-    # usage alone cannot establish that the task was resolved.
+    # A task ID can be attached to a preview or decision before any attempt.
+    # Outcome is a separate fact; usage alone cannot establish resolution.
     task_events: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for event in events:
         if event.get("taskId"):
@@ -76,6 +76,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         latest = max(outcomes, key=lambda item: (item["occurredAt"], item["eventId"])) if outcomes else None
         outcome = latest["payload"]["outcome"] if latest else None
         task_transforms = [item for item in items if item["eventType"] == "transform" and item["payload"]["sent"]]
+        if not (task_usage or outcomes or task_transforms):
+            continue
         task_rows.append({
             "projectId": project_id, "taskId": task_id, "outcome": outcome,
             "resolved": outcome == "resolved",
@@ -152,10 +154,11 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         "baseline": "Unavailable: no comparable financial baseline was recorded.",
         "taskMeasurement": "Incomplete: instrumentation does not establish that every call of a task was captured.",
         "taskSummary": {
+            "observedTaskIds": len(task_events),
             "attempted": len(task_rows),
             "resolved": sum(item["resolved"] for item in task_rows),
             "withOutcome": sum(item["outcome"] is not None for item in task_rows),
-            "scope": "Tasks with an observed task ID in this period; outcome and call coverage may be incomplete.",
+            "scope": "Attempted requires usage, outcome, or a sent transform; outcome and call coverage may be incomplete.",
         },
         "tasks": task_rows,
         "groups": [
@@ -379,9 +382,10 @@ def render_html(data: dict) -> str:
         f"<div class='card'>Estimated cost USD (non-provider)<strong>{measure(data['modeledCostUsd'])}</strong></div>"
         f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
         "<section aria-labelledby='tasks-title'><h2 id='tasks-title'>Observed tasks</h2>"
-        f"<p>Attempted: {cell(task_summary.get('attempted'))}; resolved: {cell(task_summary.get('resolved'))}; "
+        f"<p>Observed task IDs: {cell(task_summary.get('observedTaskIds'))}; "
+        f"attempted: {cell(task_summary.get('attempted'))}; resolved: {cell(task_summary.get('resolved'))}; "
         f"with outcome: {cell(task_summary.get('withOutcome'))}. "
-        "A task ID establishes an observed task, not full call coverage. Resolved requires an explicit resolved outcome.</p>"
+        "Attempted requires usage, an outcome, or a sent transform. Resolved requires an explicit resolved outcome. Full call coverage remains unknown.</p>"
         "<div class='table-wrap'><table><caption>Task usage and sent transformations</caption>"
         "<thead><tr><th scope='col'>Task</th><th scope='col'>Project</th><th scope='col'>Outcome</th>"
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
