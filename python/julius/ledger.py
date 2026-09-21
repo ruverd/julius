@@ -123,6 +123,23 @@ class Ledger:
                 event = {**event, "occurredAt": prior["occurredAt"]}
             return event, self._record_validated(event)
 
+    def record_generated_pair(
+        self, generated: dict[str, Any], companion: dict[str, Any]
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Record a generated event and its companion under one SQLite write lock."""
+        event = validate_event(generated)
+        other = validate_event(companion)
+        with self._write():
+            existing = self.db.execute(
+                "SELECT body FROM events WHERE source_id=? AND source_event_id=?",
+                (event["sourceId"], event["sourceEventId"]),
+            ).fetchone()
+            if existing:
+                prior = validate_event(json.loads(existing["body"]))
+                event = {**event, "occurredAt": prior["occurredAt"]}
+            receipts = [self._record_validated(event), self._record_validated(other)]
+            return event, receipts
+
     def _record_validated(self, event: dict[str, Any]) -> dict[str, Any]:
         body = json.dumps(event, separators=(",", ":"), ensure_ascii=False, sort_keys=True)
         existing = self.db.execute(

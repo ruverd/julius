@@ -117,6 +117,27 @@ class Julius:
             output_artifact_id=output_artifact_id,
         )
 
+    def record_embedded_attempt(
+        self, *, project_id: str, session_id: str, request_id: str,
+        attempt_id: str, client_id: str, model_id: str, actual_model_id: str,
+        response_id: str, before_input: str, after_input: str, sent_input: str,
+        token_counter: TokenCounter, tokenizer_id: str, complete_model_input: bool,
+        usage_event: dict[str, Any], task_id: str | None = None,
+        input_artifact_id: str | None = None, output_artifact_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Atomically record caller-attested input and separately observed usage."""
+        return record_embedded_request(
+            self.ledger, project_id=project_id, session_id=session_id,
+            request_id=request_id, attempt_id=attempt_id, client_id=client_id,
+            model_id=model_id, actual_model_id=actual_model_id,
+            response_id=response_id, before_input=before_input,
+            after_input=after_input, sent_input=sent_input,
+            token_counter=token_counter, tokenizer_id=tokenizer_id,
+            complete_model_input=complete_model_input, task_id=task_id,
+            input_artifact_id=input_artifact_id,
+            output_artifact_id=output_artifact_id, usage_event=usage_event,
+        )
+
     def send_xai(
         self,
         request: Mapping[str, Any],

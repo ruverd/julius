@@ -2,6 +2,8 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
+from uuid import NAMESPACE_URL, uuid5
+import json
 
 import pytest
 
@@ -20,6 +22,113 @@ def evidence(**changes):
         "complete_model_input": True, "task_id": "task",
     }
     return {**base, **changes}
+
+
+def usage(**changes):
+    base = {
+        "schemaVersion": 1, "eventId": "usage-event", "occurredAt": "2026-09-21T12:00:00.000Z",
+        "sourceId": "harness", "sourceEventId": "usage-event", "projectId": "project",
+        "taskId": "task", "sessionId": "session", "requestId": "request",
+        "attemptId": "attempt", "clientId": "harness", "adapterVersion": "harness-1",
+        "modelId": "pinned-model", "providerId": None, "executionLocation": "unknown",
+        "eventType": "usage", "evidence": "runtime_reported",
+        "payload": {"inputTokens": None, "outputTokens": None, "cacheReadTokens": None,
+                    "cacheWriteTokens": None, "complete": False, "category": "primary",
+                    "callId": "observed-call", "costUsd": None, "observationScope": "call"},
+    }
+    return {**base, **changes}
+
+
+def test_atomic_embedded_attempt_and_report_coverage(tmp_path):
+    with Julius(tmp_path) as julius:
+        first = julius.record_embedded_attempt(**evidence(), usage_event=usage())
+        replay = julius.record_embedded_attempt(**evidence(), usage_event=usage())
+        assert first["ledgerReceipt"]["inserted"] is True
+        assert first["usageReceipt"]["inserted"] is True
+        assert replay["ledgerReceipt"]["inserted"] is False
+        assert replay["usageReceipt"]["inserted"] is False
+        assert replay["event"]["occurredAt"] == first["event"]["occurredAt"]
+        assert len(julius.ledger.events()) == 2
+        report = julius.report({"by": "client"})
+        assert report["observedCalls"] == 1
+        assert report["incompleteCalls"] == 1
+        assert report["coverage"]["transformedObservedRequests"] == 1
+        assert report["coverage"]["observedRequestsWithId"] == 1
+    raw = (tmp_path / "ledger.sqlite").read_bytes()
+    assert b"tool definitions" not in raw
+
+
+@pytest.mark.parametrize("change", [
+    {"projectId": "other"}, {"taskId": "other"}, {"sessionId": "other"}, {"requestId": "other"},
+    {"attemptId": "other"}, {"clientId": "other"}, {"modelId": "other"},
+    {"eventId": ""}, {"eventType": "outcome"},
+])
+def test_atomic_attempt_rejects_bad_usage_without_partial_write(tmp_path, change):
+    with Julius(tmp_path) as julius:
+        with pytest.raises(ValueError):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(**change))
+        assert julius.ledger.events() == []
+
+
+def test_atomic_attempt_rejects_missing_call_and_conflicting_replay(tmp_path):
+    with Julius(tmp_path) as julius:
+        with pytest.raises(ValueError, match="observationScope"):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(
+                payload={**usage()["payload"], "observationScope": "session_delta"}))
+        assert julius.ledger.events() == []
+        with pytest.raises(ValueError, match="callId"):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(
+                payload={**usage()["payload"], "callId": None}))
+        assert julius.ledger.events() == []
+        julius.record_embedded_attempt(**evidence(), usage_event=usage())
+        with pytest.raises(ValueError, match="Conflicting source event"):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(
+                payload={**usage()["payload"], "outputTokens": 5}))
+        assert len(julius.ledger.events()) == 2
+
+
+def test_atomic_attempt_rolls_back_transform_on_usage_collision(tmp_path):
+    with Julius(tmp_path) as julius:
+        julius.record_usage(usage())
+        with pytest.raises(ValueError, match="Conflicting source event"):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(
+                payload={**usage()["payload"], "outputTokens": 5}))
+        assert len(julius.ledger.events()) == 1
+
+
+def test_atomic_attempt_requires_distinct_id_and_retry_attempt(tmp_path):
+    key = json.dumps(("project", "session", "request", "attempt", "harness"),
+                     separators=(",", ":"), ensure_ascii=False)
+    transform_id = str(uuid5(NAMESPACE_URL, "julius-embedded-request:" + key))
+    with Julius(tmp_path) as julius:
+        with pytest.raises(ValueError, match="IDs must differ"):
+            julius.record_embedded_attempt(**evidence(), usage_event=usage(eventId=transform_id))
+        assert julius.ledger.events() == []
+        julius.record_embedded_attempt(**evidence(), usage_event=usage())
+        retry = julius.record_embedded_attempt(
+            **evidence(attempt_id="retry"),
+            usage_event=usage(eventId="retry-usage", sourceEventId="retry-usage",
+                              attemptId="retry", payload={**usage()["payload"],
+                                                             "callId": "retry-call"}),
+        )
+        assert retry["ledgerReceipt"]["inserted"] is True
+        assert retry["usageReceipt"]["inserted"] is True
+        assert len(julius.ledger.events()) == 4
+
+
+def test_atomic_attempt_first_open_concurrent_replay(tmp_path):
+    barrier = Barrier(4)
+
+    def record() -> dict:
+        with Julius(tmp_path) as julius:
+            barrier.wait(timeout=5)
+            return julius.record_embedded_attempt(**evidence(), usage_event=usage())
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(lambda _: record(), range(4)))
+    assert sum(item["ledgerReceipt"]["inserted"] for item in results) == 1
+    assert sum(item["usageReceipt"]["inserted"] for item in results) == 1
+    assert len({item["event"]["occurredAt"] for item in results}) == 1
 
 
 def test_records_sent_caller_count_and_idempotent_duplicate(tmp_path):

@@ -36,11 +36,21 @@ The ledger stores counts, SHA-256 digests, byte lengths, IDs, and the response
 identity. It does not store the input text. Repeating the same attempt returns
 an idempotent receipt; changing its attestation raises a conflict.
 
-This operation records a transform, not provider usage. Call `record_usage`
-separately with the same request and attempt IDs to report actual output,
-cache, cost, and an observed-call denominator. Without that usage event, those
-amounts and request coverage remain unavailable even when direct input
-reduction was counted.
+For a harness that has a usage event, call `record_embedded_attempt` with the
+same arguments and `usage_event=<validated usage event>`. It writes the
+caller-attested transform and the usage event in one SQLite transaction. The
+usage event must have a distinct event ID, a nonempty `callId`, and matching
+project, task, session, request, attempt, client, and actual model IDs. Its
+observation scope must be `call`. A rejection
+leaves neither event from that call behind. Replay with identical inputs is
+idempotent; each retry needs its own attempt ID and observed call ID.
+
+Usage remains separate evidence. Supply observed counters and cost only when
+the harness actually has them; use `None` for unknown input, output, cache, or
+cost values and `complete=False` for incomplete usage. Julius does not infer
+provider usage, cost, or a response identity from the token counter. The
+existing `record_embedded_request` method still records only the transform;
+`record_usage` can be called separately with the same request and attempt IDs.
 
 The separate `send_xai_optimized` path remains fail-closed for caller counters:
 it does not promote serialized request counts to verified model-input counts.

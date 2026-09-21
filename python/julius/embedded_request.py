@@ -10,6 +10,7 @@ from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 from .ledger import Ledger
+from .events import validate_event
 
 TokenCounter = Callable[[str], int]
 
@@ -21,6 +22,7 @@ def record_embedded_request(
     token_counter: TokenCounter, tokenizer_id: str, complete_model_input: bool,
     task_id: str | None = None, input_artifact_id: str | None = None,
     output_artifact_id: str | None = None,
+    usage_event: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Record one attested sent attempt; inputs are used in memory only.
 
@@ -73,8 +75,24 @@ def record_embedded_request(
             "afterBytes": len(after_bytes),
         },
     }
-    event, receipt = ledger.record_generated_event(event)
-    return {
+    if usage_event is None:
+        event, receipt = ledger.record_generated_event(event)
+    else:
+        usage = validate_event(usage_event)
+        if usage["eventType"] != "usage":
+            raise ValueError("Companion must be a usage event")
+        if usage["eventId"] == event_id:
+            raise ValueError("Usage and transform IDs must differ")
+        for field in ("projectId", "taskId", "sessionId", "requestId", "attemptId", "clientId", "modelId"):
+            if usage[field] != event[field]:
+                raise ValueError(f"Usage {field} does not match embedded attempt")
+        if usage["payload"]["observationScope"] != "call":
+            raise ValueError("Usage observationScope must be call")
+        if not isinstance(usage["payload"]["callId"], str) or not usage["payload"]["callId"].strip():
+            raise ValueError("Usage callId is required")
+        event, receipts = ledger.record_generated_pair(event, usage)
+        receipt = receipts[0]
+    result = {
         "event": event, "ledgerReceipt": receipt,
         "attestation": "caller_attested_model_input", "responseId": response_id,
         "providerMeasured": False, "causalSavingsEstablished": False,
@@ -83,3 +101,7 @@ def record_embedded_request(
         "beforeBytes": len(before_bytes), "afterBytes": len(after_bytes),
         "deltaTokens": counts[0] - counts[1],
     }
+    if usage_event is not None:
+        result["usageEvent"] = usage
+        result["usageReceipt"] = receipts[1]
+    return result
