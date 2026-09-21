@@ -89,6 +89,14 @@ def validate_parents(prefix: Path) -> None:
             raise ValueError(f"refusing symlink in prefix path: {parent}")
 
 
+def validate_history_backups(state: dict, backups: Path) -> None:
+    for entry in state["history"]:
+        backup = backups / entry["hash"]
+        regular_or_absent(backup)
+        if not backup.exists() or digest(backup.read_bytes()) != entry["hash"]:
+            raise ValueError("managed history backup missing or modified; refusing operation")
+
+
 def complete_pending(journal_path: Path, state_path: Path, binary_path: Path,
                      backups: Path, apply: bool) -> str | None:
     regular_or_absent(journal_path)
@@ -107,6 +115,8 @@ def complete_pending(journal_path: Path, state_path: Path, binary_path: Path,
     new_hash = after["current"]["hash"] if after else None
     if actual_state not in (before, after) or actual_hash not in (old_hash, new_hash):
         raise ValueError("pending transaction has unexpected files; refusing recovery")
+    if after is not None and (actual_hash == new_hash or actual_state == after):
+        validate_history_backups(after, backups)
     if not apply:
         return f"Preview: recover interrupted {journal['action']} transaction. Re-run with --apply."
     if actual_hash == old_hash and actual_state == before:
@@ -172,6 +182,7 @@ def execute(action: str, prefix: Path, archive: Path | None, apply: bool) -> str
     elif backups.exists():
         raise ValueError("unmanaged backup directory exists; refusing operation")
     if state is not None:
+        validate_history_backups(state, backups)
         for backup in backups.iterdir() if backups.exists() else ():
             regular_or_absent(backup)
             if not backup.is_file() or digest(backup.read_bytes()) != backup.name:

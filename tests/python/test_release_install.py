@@ -160,3 +160,29 @@ def test_recovers_interrupted_removal(tmp_path: Path, monkeypatch: pytest.Monkey
     assert not (prefix / "bin" / "julius").exists()
     assert not (prefix / installer.STATE_NAME).exists()
     assert not (prefix / installer.BACKUP_NAME).exists()
+
+
+def test_recovery_refuses_missing_history_backup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    first = archive(tmp_path, monkeypatch, "0.2.0", b"first")
+    second = archive(tmp_path, monkeypatch, "0.3.0", b"second")
+    prefix = tmp_path / "prefix"
+    installer.execute("install", prefix, first, True)
+    original = installer.write_atomic
+
+    def fail_state(path: Path, data: bytes, mode: int) -> None:
+        if path.name == installer.STATE_NAME:
+            raise OSError("simulated crash")
+        original(path, data, mode)
+
+    monkeypatch.setattr(installer, "write_atomic", fail_state)
+    with pytest.raises(OSError, match="simulated crash"):
+        installer.execute("update", prefix, second, True)
+    monkeypatch.setattr(installer, "write_atomic", original)
+    (prefix / installer.BACKUP_NAME / installer.digest(b"first")).unlink()
+    with pytest.raises(ValueError, match="history backup missing"):
+        installer.execute("rollback", prefix, None, False)
+    with pytest.raises(ValueError, match="history backup missing"):
+        installer.execute("rollback", prefix, None, True)
+    assert json.loads((prefix / installer.STATE_NAME).read_text())["current"]["version"] == "0.2.0"
+    assert (prefix / installer.JOURNAL_NAME).exists()
+    assert (prefix / "bin" / "julius").read_bytes() == b"second"

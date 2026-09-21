@@ -21,7 +21,7 @@ The first command only previews. `--apply` is required for every change. Use `--
 
 The installer verifies archive hashes and the current platform and architecture. It refuses to replace an unrelated binary, symlink, or modified managed binary. The managed state file is `.julius-install.json` within the prefix. Keep the state file and backup directory with the install if you want update and rollback. All operations use local files; the installer downloads nothing.
 
-The installer writes `.julius-install-pending.json` while applying a change. If a process stops between executable and state updates, the next preview reports the pending recovery; run any action with `--apply` to finish recovery, then run the intended action again. Keep this journal with the installation after an interrupted operation. Managed changes are not authenticated: only install archives from a source you trust.
+The installer writes `.julius-install-pending.json` while applying a change. If a process stops between executable and state updates, the next preview reports the pending recovery; run any action with `--apply` to finish recovery, then run the intended action again. Keep this journal and the history backups with the installation after an interrupted operation. Recovery refuses to complete when a backup needed for rollback is missing or modified. Managed changes are not authenticated: only install archives from a source you trust.
 
 `python3 scripts/archive_smoke.py PATH_TO_ARCHIVE` checks a preview without file changes, applies a temporary managed install, launches the installed executable, removes it, and checks repeated removal. The standalone CI recipe runs this check for its macOS and Linux archives after building them.
 
