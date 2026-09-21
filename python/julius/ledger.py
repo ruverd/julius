@@ -331,34 +331,34 @@ class Ledger:
 
     def events(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
         history = self.history(filters)
-        corrections = {}
+        corrections: dict[str, list[dict[str, Any]]] = {}
         for row in self.db.execute(
             "SELECT body FROM events WHERE event_type='reconciliation' ORDER BY rowid"
         ):
             event = validate_event(json.loads(row["body"]))
-            corrections[event["payload"]["targetEventId"]] = event
+            corrections.setdefault(event["payload"]["targetEventId"], []).append(event)
         effective = []
         for event in history:
             if event["eventType"] == "reconciliation":
                 continue
-            correction = corrections.get(event["eventId"])
-            if correction and event["eventType"] == "usage":
+            if event["eventType"] == "usage" and event["eventId"] in corrections:
                 payload = dict(event["payload"])
-                fix = correction["payload"]
-                for old, new in (
-                    ("inputTokens", "effectiveInputTokens"),
-                    ("outputTokens", "effectiveOutputTokens"),
-                    ("cacheReadTokens", "effectiveCacheReadTokens"),
-                    ("cacheWriteTokens", "effectiveCacheWriteTokens"),
-                    ("costUsd", "effectiveCostUsd"),
-                    ("costProvenance", "effectiveCostProvenance"),
-                ):
-                    payload[old] = fix[new]
-                if fix["effectiveComplete"] is not None:
-                    payload["complete"] = fix["effectiveComplete"]
-                if fix["effectiveTokenizerId"] is not None:
-                    payload["tokenizerId"] = fix["effectiveTokenizerId"]
-                    payload["tokenizerSource"] = fix["effectiveTokenizerSource"]
+                for correction in corrections[event["eventId"]]:
+                    fix = correction["payload"]
+                    for old, new in (
+                        ("inputTokens", "effectiveInputTokens"),
+                        ("outputTokens", "effectiveOutputTokens"),
+                        ("cacheReadTokens", "effectiveCacheReadTokens"),
+                        ("cacheWriteTokens", "effectiveCacheWriteTokens"),
+                        ("costUsd", "effectiveCostUsd"),
+                        ("costProvenance", "effectiveCostProvenance"),
+                    ):
+                        payload[old] = fix[new]
+                    if fix["effectiveComplete"] is not None:
+                        payload["complete"] = fix["effectiveComplete"]
+                    if fix["effectiveTokenizerId"] is not None:
+                        payload["tokenizerId"] = fix["effectiveTokenizerId"]
+                        payload["tokenizerSource"] = fix["effectiveTokenizerSource"]
                 event = {**event, "payload": payload}
             effective.append(event)
         return effective

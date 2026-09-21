@@ -105,9 +105,15 @@ def test_usage_tokenizer_alias_conflict_needs_append_only_reconciliation(tmp_pat
                           "reason": "verified tokenizer identity",
                       }}
         assert ledger.record(correction)["inserted"]
+        later = {**correction, "eventId": str(uuid4()), "sourceEventId": "fix-output",
+                 "payload": {**correction["payload"], "effectiveOutputTokens": 6,
+                             "effectiveTokenizerId": None, "effectiveTokenizerSource": None,
+                             "reason": "final output counter"}}
+        assert ledger.record(later)["inserted"]
         effective = ledger.events()[0]["payload"]
         assert effective["tokenizerId"] == "tok-v1"
         assert effective["tokenizerSource"] == "registered-model-snapshot"
+        assert effective["outputTokens"] == 6
         assert ledger.history()[0]["payload"]["tokenizerId"] is None
     finally:
         ledger.close()

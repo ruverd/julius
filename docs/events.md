@@ -26,7 +26,7 @@ The pure optimizer and CLI preview are not evidence that a request was sent. Har
 
 ## Corrections and budgets
 
-A reconciliation targets a usage event within matching ownership boundaries. The latest appended correction supplies effective values while history remains available. It may add a paired `effectiveTokenizerId` and `effectiveTokenizerSource`; absent values leave the earlier tokenizer identity unchanged. Query dates select the original usage occurrence; later corrections can update that historical view.
+A reconciliation targets a usage event within matching ownership boundaries. Corrections apply in append order while original history remains available; the latest correction supplies current counters. A correction may add a paired `effectiveTokenizerId` and `effectiveTokenizerSource`; absent values preserve the tokenizer identity from an earlier usage or reconciliation event. Query dates select the original usage occurrence; later corrections can update that historical view.
 
 `julius export --format events-jsonl` emits the immutable event history selected by project/task/model and time. It includes later reconciliations targeting selected events, required earlier transform ancestors, and matching source aliases, so the stream can be imported into a fresh ledger. Alias rows follow canonical events because the database does not store a cross-table insertion order. This export differs from reports, which use reconciled effective values. `rawUsage` is null by default; `--include-raw` preserves it. Event labels and free-text reasons may still be sensitive, so the explicit event export should be reviewed before sharing. Original artifact contents live separately and are not included.
 
