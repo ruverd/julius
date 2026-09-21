@@ -7,3 +7,11 @@ Each request has exactly four fields: `protocolVersion` (integer `1`), `id` (non
 A successful response is `{"protocolVersion":1,"id":"example","ok":true,"result":{...}}`. A failed response is `{"protocolVersion":1,"id":"example","ok":false,"error":"invalid_params"}`. Framing or JSON errors use a null ID when it cannot be recovered. Errors are data; the process continues to the next line. Consumers must check `ok` before reading `result`.
 
 Requests are capped at 1 MiB per line, including the newline; responses are capped at 2 MiB of JSON, excluding the newline. Oversize requests are consumed through their newline and return `request_too_large`. Oversize results return `response_too_large`. Keep each request on one line, encoded as UTF-8, and read one response line before assuming completion. Do not send secrets in requests; the transport intentionally does not provide remote calls or authentication.
+
+## Subprocess acceptance
+
+`tests/python/test_bulma_stdio_subprocess.py` launches `python -m julius serve --data-dir <temporary path>` and sends synthetic JSON Lines through stdin. It checks that `recordUsage` returns `inserted: true` on the first call and `inserted: false` with `duplicateOf` on the repeated event with the same `(sourceId, sourceEventId)`. A retry with a distinct source event, attempt ID, and call ID is inserted and counted as a second observed call. `recordOutcome` is inserted in the same SQLite ledger. A `report` request returns two usage records and two observed calls; the same report survives process restart. The test also checks that no socket connection is attempted and supplies no API key. These are local accounting events, not model invocations or provider measurements.
+
+The framing check sends malformed JSON, an unsupported protocol version, an empty ID, then a valid report request in one process. Each input line gets one response line. Unparseable JSON and invalid IDs respond with `id: null`; a valid ID is echoed even for an unsupported version. The final valid request succeeds, proving the earlier errors did not end the stream.
+
+This acceptance proves Julius-side subprocess behavior only. Actual Bulma launch, event emission, parsing, and end-to-end adoption remain unverified because no Bulma client was exercised.
