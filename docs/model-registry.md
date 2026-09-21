@@ -1,0 +1,7 @@
+# Local model registry
+
+`ModelRegistry` stores append-only model observations in SQLite WAL. A snapshot records the endpoint and provider, requested and responded model identifiers, alias, digest, quantization, tokenizer, template, context window, tool capabilities, state, source, source update timestamp, and local observation timestamp. Missing facts stay `null`; missing capability facts stay unknown. The registry does not discover models or send network requests.
+
+Identity includes the endpoint, provider, requested and responded model, digest, and quantization. Thus the same alias on two local servers is not treated as one model. A newly loaded model appends a snapshot; it does not rewrite an earlier installed or unknown observation. `latest(endpoint=..., requested_model=...)` returns the last local observation for that exact endpoint and requested name. `history(...)` returns all observations in insertion order. SQLite triggers reject updates and deletes to the snapshot table.
+
+The state vocabulary is `installed`, `loaded`, `available_remote`, `unavailable`, and `unknown`. A snapshot describes what its source observed at that time. It does not imply a model is usable now, fits hardware, supports tools, or has been live-tested unless that fact was supplied explicitly by a source. Callers should use the source timestamp to judge staleness and never convert absent values to zero.
