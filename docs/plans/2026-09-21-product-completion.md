@@ -9,8 +9,10 @@ Status: active. Existing Python/Rust repository is a foundation, not the deliver
 - D1: explicit TypeSafe Choice gateway and Jev shadow command. It records decision plus auxiliary usage and never applies the suggested action. The configured cost threshold is post-call, so active use needs enforceable pre-call budget control.
 - E: versioned JSONL/stdio transport for the four requested SDK operations. Bulma adoption and shared process ownership remain untested.
 - A/B: read-only doctor feature statuses for two exact locally observed client versions, with live capture and rewriting still unsupported.
-- Validation: offline paired-trial analyzer with failed-run and retry denominators. No task runner, frozen corpus, non-inferiority test, confidence interval, or empirical result yet.
+- Validation: offline paired-trial analyzer with failed-run and retry denominators and bootstrap confidence intervals. No task runner, frozen corpus, non-inferiority test, or empirical result yet.
 - Verification: local Python/Rust tests, Ruff, mypy, wheel build, and isolated wheel smoke pass on macOS arm64. Exact count is recorded in [validation](../validation.md). No live provider or agent quality benchmark ran.
+- Follow-up: offline Claude `PostToolUse` replacement helper and CLI entry point, project-scoped MCP artifact recovery over stdio, additive-only Codex hook helper, reversible managed-config primitives, and cache-aware decision helper. The Claude hook and MCP server pass a local subprocess round trip; client acceptance and sent-request coverage remain unverified.
+- Evaluation follow-up: paired bootstrap confidence intervals for measured trial differences. No causal product result is claimed from these fixtures.
 
 ## Scope decisions
 

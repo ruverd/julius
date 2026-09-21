@@ -72,3 +72,32 @@ def test_cache_tokens_cannot_exceed_input() -> None:
               cache_read_tokens=2, cache_write_tokens=2)
     Trial(arm_id="base", task_id="x", success=True, input_tokens=None,
           cache_read_tokens=2, cache_write_tokens=2)
+
+
+def test_bootstrap_is_deterministic_and_preserves_negative_interval() -> None:
+    records = [
+        trial("base", "a", cost=1.0), trial("new", "a", cost=4.0),
+        trial("base", "b", cost=1.0), trial("new", "b", cost=3.0),
+        trial("base", "c", cost=1.0), trial("new", "c", cost=2.0),
+    ]
+    first = analyze_paired_trials(records, baseline_arm="base", candidate_arm="new",
+                                  seed=42, resamples=200, confidence=0.9)
+    second = analyze_paired_trials(list(reversed(records)), baseline_arm="base",
+                                   candidate_arm="new", seed=42, resamples=200, confidence=0.9)
+    assert first["bootstrap"] == second["bootstrap"]
+    cost_interval = first["bootstrap"]["intervals"]["cost_usd"]
+    assert cost_interval["sample_count"] == 3
+    assert cost_interval["upper"] < 0
+    assert first["bootstrap"]["intervals"]["success_rate_difference"]["lower"] == 0
+
+
+def test_bootstrap_null_for_missing_or_insufficient_pairs() -> None:
+    records = [trial("base", "a", cost=None), trial("new", "a"),
+               trial("base", "b"), trial("new", "b")]
+    result = analyze_paired_trials(records, baseline_arm="base", candidate_arm="new",
+                                   resamples=100)
+    cost_interval = result["bootstrap"]["intervals"]["cost_usd"]
+    assert cost_interval == {"sample_count": 1, "lower": None, "upper": None}
+    assert result["bootstrap"]["intervals"]["input_tokens"]["sample_count"] == 2
+    with pytest.raises(ValueError, match="Bootstrap"):
+        analyze_paired_trials([], baseline_arm="base", candidate_arm="new", resamples=10)

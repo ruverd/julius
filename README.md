@@ -93,7 +93,9 @@ Public Python functions use snake_case; versioned event and receipt dictionaries
 
 `julius serve --data-dir <path>` exposes the same four SDK operations over bounded, versioned JSON Lines on stdin/stdout for a future Bulma harness. It does not run a model or own the harness workflow. See [stdio contract](docs/bulma-stdio.md).
 
-Optional modules provide [caller-supplied pricing](docs/pricing.md) and [snapshot-scoped FTS5 memory](docs/memory.md). They do not automatically change agent requests or create financial baselines in CLI reports.
+Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-scoped FTS5 memory](docs/memory.md), and a [cache-aware decision helper](docs/cache-policy.md). They do not automatically change agent requests or create financial baselines in CLI reports.
+
+The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI but require explicit client configuration and a working recovery registration. The [Codex hook adapter](docs/codex-hooks.md) provides trusted additive context only. Local tests verify protocol shapes and recovery; neither client has passed a live rewrite test. [Managed configuration primitives](docs/managed-config.md) are not yet connected to setup/remove commands.
 
 ## Explicit remote calls and task economics
 
@@ -110,12 +112,12 @@ Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, 
 
 The offline [`analyze_task` API](docs/economics.md) can calculate modeled task cost and net savings when a caller supplies complete call coverage, a comparable baseline, and dated price snapshots. CLI savings remains unavailable without that evidence. Observed output tokens are usage; output token savings require a comparable output baseline and are not currently calculated.
 
-An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline and candidate trials, keeps failed runs and retries in totals, and reports unknown measurements as unavailable. It has no built-in task runner or benchmark corpus yet.
+An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline and candidate trials, keeps failed runs and retries in totals, and reports unknown measurements as unavailable. It calculates bootstrap confidence intervals when enough paired trials exist. It has no built-in task runner or benchmark corpus yet.
 
 ## Delivery status
 
 Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, model discovery, reports/exports/HTML, optional pricing and lexical memory, experimental xAI single-send and Jev shadow gateways, offline task economics, native wheels, and tests.
 
-Pending: verified live Claude/Codex/xAI/Jev integrations, tool-output interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, agent-facing recovery integration, structured memory, cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed settings/rollback, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
+Pending: verified live Claude/Codex/xAI/Jev integrations, confirmed sent-request interception, routing, exact tokenizers, automatic pricing/baselines, symbol retrieval, client-verified recovery registration, structured memory, automatic cache-aware policy, quality-based suspension, isolated task benchmarks, interactive dashboard, managed setup/remove, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
 
 The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [product completion plan](docs/plans/2026-09-21-product-completion.md), [event contract](docs/events.md), and [validation](docs/validation.md).

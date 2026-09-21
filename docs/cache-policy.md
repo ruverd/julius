@@ -1,0 +1,7 @@
+# Cache-aware compression decision
+
+`julius.cache_policy.decide_cache_aware` compares two complete requests offline. Both candidates must use the same model, provider, tokenizer, and request time. Supply full input and output counts, including all context and cache read/write input counts, for each candidate. Mark each candidate's cache counters `observed` or `estimated` with `cacheEvidence`. Mark the whole request's counters with `counterEvidence`: `provider_reported`, `tokenizer_counted`, or `estimated`. This includes output tokens, which may be estimated for a candidate. The result repeats both provenance labels and marks `decisionEvidence` as `expected`; it never claims a measured saving.
+
+Supply a dated USD price snapshot selected by each request's `priceSnapshotId`. The snapshot must state uncached input, cache read, cache write, and output rates. Julius ships no implicit rates. Supply optimizer overhead in USD and a nonnegative risk margin in USD explicitly. Use `None` for unknown overhead or margin. `price_usage` checks the snapshot date and prices each input category once.
+
+`expectedBenefitUsd = baselineModeledCostUsd - candidateModeledCostUsd - optimizerOverheadUsd`. The decision is true only when this benefit strictly exceeds the risk margin. A warm cache can make the original request cheaper than a shorter uncached request; that produces a false decision and a negative benefit. Unknown counters, prices, or overhead produce a null benefit. An unknown margin produces a null decision. No model request or external operation is made.

@@ -19,6 +19,9 @@ from .reporting import render_csv, render_html, render_text, report
 from .sdk import Julius
 from .jev import Action, ShadowPolicy, TypeSafeGateway
 from .stdio_api import serve_stdio
+from .artifacts import ArtifactStore
+from .claude_hooks import post_tool_use
+from .mcp_recovery import serve_stdio as serve_recovery_stdio
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -52,6 +55,8 @@ def _parser() -> argparse.ArgumentParser:
             "integrations",
             "jev",
             "serve",
+            "hook",
+            "mcp",
         ],
     )
     parser.add_argument("arguments", nargs="*")
@@ -70,6 +75,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--explain", action="store_true")
     parser.add_argument("--coverage-complete", action="store_true", help="Attest that every call in this task window was observed")
+    parser.add_argument("--recovery-available", action="store_true", help="Attest that the same project-scoped recovery MCP tool is registered and working")
     return parser
 
 
@@ -125,6 +131,37 @@ def run(argv: list[str] | None = None) -> int:
         return 0
     if command == "doctor":
         _json(doctor())
+        return 0
+    if command == "mcp":
+        if args.arguments != ["recovery"]:
+            raise ValueError("Use mcp recovery --project <id>")
+        root = Path(args.data_dir).absolute() / "artifacts"
+        serve_recovery_stdio(ArtifactStore(root), _required(args.project, "--project"))
+        return 0
+    if command == "hook":
+        if args.arguments != ["claude-post-tool-use"]:
+            raise ValueError("Use hook claude-post-tool-use --project <id> --profile safe")
+        project_id = _required(args.project, "--project")
+        raw = sys.stdin.buffer.read(64 * 1024 + 1)
+        if len(raw) > 64 * 1024:
+            return 0
+        try:
+            event = json.loads(raw)
+        except (UnicodeError, json.JSONDecodeError):
+            return 0
+        if not isinstance(event, dict):
+            return 0
+        if args.profile != "safe" or not args.recovery_available:
+            return 0
+        result = post_tool_use(
+            event,
+            policy={"mode": "safe", "approved": True, "version": "1.0.0"},
+            store=ArtifactStore(Path(args.data_dir).absolute() / "artifacts"),
+            project_id=project_id,
+            recovery_available=True,
+        )
+        if result is not None:
+            print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 0
     if command == "models":
         if argument != "list":

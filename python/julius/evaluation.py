@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import math
+import random
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr, model_validator
 
 
 class Trial(BaseModel):
-    """One resolved task run; usage, cost and latency include all retry attempts."""
+    """One successful or failed task run; totals include all retry attempts."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -85,8 +87,39 @@ def _summary(trials: Sequence[Trial]) -> dict[str, Any]:
     }
 
 
+def _percentile(sorted_values: Sequence[float], proportion: float) -> float:
+    position = (len(sorted_values) - 1) * proportion
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    return sorted_values[lower] + (sorted_values[upper] - sorted_values[lower]) * (
+        position - lower
+    )
+
+
+def _bootstrap_interval(
+    differences: Sequence[float | None], *, seed: int, resamples: int, confidence: float
+) -> dict[str, float | int | None]:
+    known = [value for value in differences if value is not None]
+    result: dict[str, float | int | None] = {
+        "sample_count": len(known), "lower": None, "upper": None,
+    }
+    if len(known) != len(differences) or len(known) < 2:
+        return result
+    rng = random.Random(seed)
+    size = len(known)
+    estimates = sorted(
+        sum(known[rng.randrange(size)] for _ in range(size)) / size
+        for _ in range(resamples)
+    )
+    tail = (1 - confidence) / 2
+    result["lower"] = _percentile(estimates, tail)
+    result["upper"] = _percentile(estimates, 1 - tail)
+    return result
+
+
 def analyze_paired_trials(
-    trials: Sequence[Trial], *, baseline_arm: str, candidate_arm: str
+    trials: Sequence[Trial], *, baseline_arm: str, candidate_arm: str,
+    seed: int = 0, resamples: int = 2000, confidence: float = 0.95,
 ) -> dict[str, Any]:
     """Compare arms only on identical task IDs, with signed baseline-minus-candidate savings.
 
@@ -95,6 +128,9 @@ def analyze_paired_trials(
     values include failed-run expenditure divided by successful runs. Neither
     reconstructs individual attempt usage or outcome. Unknown inputs propagate to null metrics.
     """
+    if (type(seed) is not int or type(resamples) is not int or not 100 <= resamples <= 10_000
+            or type(confidence) is not float or not 0 < confidence < 1):
+        raise ValueError("Bootstrap requires an integer seed, 100–10000 resamples, and 0 < confidence < 1")
     if not baseline_arm or not candidate_arm or baseline_arm == candidate_arm:
         raise ValueError("Distinct, nonempty arm IDs required")
     by_key: dict[tuple[str, str], Trial] = {}
@@ -121,7 +157,29 @@ def analyze_paired_trials(
         )
         for metric in _METRICS
     }
+    interval_metrics = ("input_tokens", "output_tokens", "cost_usd", "latency_ms")
+    intervals = {
+        metric: _bootstrap_interval(
+            [
+                float(getattr(base, metric) - getattr(new, metric))
+                if getattr(base, metric) is not None and getattr(new, metric) is not None
+                else None
+                for base, new in zip(baseline, candidate, strict=True)
+            ],
+            seed=seed, resamples=resamples, confidence=confidence,
+        )
+        for metric in interval_metrics
+    }
+    intervals["success_rate_difference"] = _bootstrap_interval(
+        [float(new.success) - float(base.success)
+         for base, new in zip(baseline, candidate, strict=True)],
+        seed=seed, resamples=resamples, confidence=confidence,
+    )
     return {
+        "bootstrap": {
+            "method": "paired_percentile", "seed": seed, "resamples": resamples,
+            "confidence": confidence, "intervals": intervals,
+        },
         "baseline_arm": baseline_arm,
         "candidate_arm": candidate_arm,
         "paired_task_ids": paired_ids,
