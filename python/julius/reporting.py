@@ -63,6 +63,37 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     observed = {request_key(event) for event in usage} - {None}
     transformed = {request_key(event) for event in transforms} & observed
 
+    # A task is evidenced by a task ID on an event. Outcome is a separate fact;
+    # usage alone cannot establish that the task was resolved.
+    task_events: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for event in events:
+        if event.get("taskId"):
+            task_events[(event["projectId"], event["taskId"])].append(event)
+    task_rows = []
+    for (project_id, task_id), items in sorted(task_events.items()):
+        task_usage = [item for item in items if item["eventType"] == "usage"]
+        outcomes = [item for item in items if item["eventType"] == "outcome"]
+        latest = max(outcomes, key=lambda item: (item["occurredAt"], item["eventId"])) if outcomes else None
+        outcome = latest["payload"]["outcome"] if latest else None
+        task_transforms = [item for item in items if item["eventType"] == "transform" and item["payload"]["sent"]]
+        task_rows.append({
+            "projectId": project_id, "taskId": task_id, "outcome": outcome,
+            "resolved": outcome == "resolved",
+            "observedCalls": len({call_identity(item) for item in task_usage} - {None}),
+            "usageRecords": len(task_usage),
+            "incompleteUsageRecords": sum(not item["payload"]["complete"] for item in task_usage),
+            "input": _sum([item["payload"]["inputTokens"] for item in task_usage]),
+            "output": _sum([item["payload"]["outputTokens"] for item in task_usage]),
+            "cacheRead": _sum([item["payload"]["cacheReadTokens"] for item in task_usage]),
+            "cacheWrite": _sum([item["payload"]["cacheWriteTokens"] for item in task_usage]),
+            "auxiliaryUsageRecords": sum(item["payload"]["category"] != "primary" for item in task_usage),
+            "directInputReduction": _sum([
+                None if item["payload"]["inputTokens"] is None or item["payload"]["outputTokens"] is None
+                else item["payload"]["inputTokens"] - item["payload"]["outputTokens"]
+                for item in task_transforms
+            ]),
+        })
+
     def costs(items: list[dict], *, basis: str = "estimated") -> list[float | None]:
         values: list[float | None] = []
         for event in items:
@@ -120,6 +151,13 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         "financialSavingsUsd": None,
         "baseline": "Unavailable: no comparable financial baseline was recorded.",
         "taskMeasurement": "Incomplete: instrumentation does not establish that every call of a task was captured.",
+        "taskSummary": {
+            "attempted": len(task_rows),
+            "resolved": sum(item["resolved"] for item in task_rows),
+            "withOutcome": sum(item["outcome"] is not None for item in task_rows),
+            "scope": "Tasks with an observed task ID in this period; outcome and call coverage may be incomplete.",
+        },
+        "tasks": task_rows,
         "groups": [
             {
                 "key": key,
@@ -300,6 +338,21 @@ def render_html(data: dict) -> str:
         else "unavailable"
     )
     period = data["period"]
+    task_summary = data.get("taskSummary", {})
+    task_rows = []
+    for task in data.get("tasks", []):
+        task_rows.append(
+            "<tr>"
+            f"<th scope='row'>{cell(public_label(task['taskId']))}</th>"
+            f"<td>{cell(public_label(task['projectId']))}</td>"
+            f"<td>{cell(task['outcome'])}</td>"
+            f"<td>{cell(task['observedCalls'])}</td>"
+            f"<td>{cell(task['incompleteUsageRecords'])}</td>"
+            f"<td>{measure(task['input'])}</td><td>{measure(task['output'])}</td>"
+            f"<td>{measure(task['cacheRead'])}</td><td>{measure(task['cacheWrite'])}</td>"
+            f"<td>{cell(task['auxiliaryUsageRecords'])}</td>"
+            f"<td>{measure(task['directInputReduction'])}</td></tr>"
+        )
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width'>"
@@ -315,7 +368,8 @@ def render_html(data: dict) -> str:
         "tbody tr:hover{background:CanvasText;color:Canvas}tr[hidden]{display:none}"
         "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}"
         "</style></head><body><main><header><h1>Julius evidence report</h1>"
-        f"<p>Local aggregate for {cell(period['since'])} to {cell(period['until'])}. "
+        f"<p>Local aggregate for {cell(period['since'])} to {cell(period['until'])} "
+        f"({cell(period.get('timezone'))}; [since, until)). "
         "No model calls or external resources.</p></header>"
         "<section class='cards' aria-label='Summary'>"
         f"<div class='card'>Observed calls with IDs<strong>{cell(data['observedCalls'])}</strong></div>"
@@ -324,16 +378,27 @@ def render_html(data: dict) -> str:
         f"<div class='card'>Session usage deltas<strong>{cell(data.get('sessionUsageDeltas'))}</strong></div>"
         f"<div class='card'>Estimated cost USD (non-provider)<strong>{measure(data['modeledCostUsd'])}</strong></div>"
         f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
+        "<section aria-labelledby='tasks-title'><h2 id='tasks-title'>Observed tasks</h2>"
+        f"<p>Attempted: {cell(task_summary.get('attempted'))}; resolved: {cell(task_summary.get('resolved'))}; "
+        f"with outcome: {cell(task_summary.get('withOutcome'))}. "
+        "A task ID establishes an observed task, not full call coverage. Resolved requires an explicit resolved outcome.</p>"
+        "<div class='table-wrap'><table><caption>Task usage and sent transformations</caption>"
+        "<thead><tr><th scope='col'>Task</th><th scope='col'>Project</th><th scope='col'>Outcome</th>"
+        "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
+        "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
+        "<th scope='col'>Cache write</th><th scope='col'>Auxiliary records</th>"
+        "<th scope='col'>Direct input reduction</th></tr></thead>"
+        f"<tbody>{''.join(task_rows)}</tbody></table></div></section>"
         f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
         "<section aria-labelledby='usage-title'><h2 id='usage-title'>Observed usage</h2>"
         f"<div class='filters' aria-label='Filter usage table'>{filters}</div>"
         "<p id='row-count' role='status' aria-live='polite'></p>"
-        "<div class='table-wrap'><table><caption>Aggregated usage by group</caption>"
+        "<div class='table-wrap'><table id='usage-table'><caption>Aggregated usage by group</caption>"
         "<thead><tr><th scope='col'>Group</th><th scope='col'>Records</th>"
         "<th scope='col'>Input tokens</th><th scope='col'>Output tokens</th>"
         "<th scope='col'>Modeled cost USD</th><th scope='col'>Evidence</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div></section></main>"
-        "<script type='module'>(()=>{const rows=[...document.querySelectorAll('tbody tr')];"
+        "<script type='module'>(()=>{const rows=[...document.querySelectorAll('#usage-table tbody tr')];"
         "const selects=[...document.querySelectorAll('select[data-filter]')];"
         "const count=document.getElementById('row-count');"
         "function update(){let shown=0;for(const row of rows){"

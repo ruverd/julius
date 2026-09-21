@@ -103,3 +103,29 @@ def test_query_window_is_rolling_and_rejects_invalid_calendar_dates():
     assert window["since"] == "2026-09-14T12:34:56.000Z"
     with pytest.raises(ValueError):
         query_window({"since": "2026-02-30"})
+
+
+def test_task_outcomes_and_separate_usage_measures():
+    base = json.loads(FIXTURE.read_text().splitlines()[-1])
+    base.update(taskId="task-1", eventType="usage", eventId="usage-1")
+    base["payload"] = {
+        "callId": "call-1", "observationScope": "call", "complete": False,
+        "category": "auxiliary", "inputTokens": 10, "outputTokens": None,
+        "cacheReadTokens": 3, "cacheWriteTokens": 2, "costUsd": None,
+    }
+    outcome = {**base, "eventId": "outcome-1", "eventType": "outcome",
+               "payload": {"outcome": "resolved", "reason": None}}
+    result = report([base, outcome], WINDOW)
+    assert result["taskSummary"] == {
+        "attempted": 1, "resolved": 1, "withOutcome": 1,
+        "scope": "Tasks with an observed task ID in this period; outcome and call coverage may be incomplete.",
+    }
+    task = result["tasks"][0]
+    assert (task["input"]["total"], task["output"]["total"]) == (10, None)
+    assert (task["cacheRead"]["total"], task["cacheWrite"]["total"]) == (3, 2)
+    assert task["auxiliaryUsageRecords"] == 1
+    assert task["incompleteUsageRecords"] == 1
+    page = render_html(result)
+    assert "Attempted: 1; resolved: 1; with outcome: 1" in page
+    assert "[since, until)" in page
+    assert "#usage-table tbody tr" in page
