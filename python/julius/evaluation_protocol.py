@@ -69,7 +69,8 @@ class BenchmarkProtocol(BaseModel):
     protocol_id: StrictStr = Field(min_length=1)
     phase: Phase
     seed: StrictInt = Field(ge=0)
-    planned_pairs_per_stratum: StrictInt = Field(ge=1)
+    planned_pairs_by_candidate: dict[str, dict[str, StrictInt]] = Field(min_length=1)
+    sample_size_rationale: StrictStr | None = None
     baseline_arm_id: StrictStr = Field(min_length=1)
     arms: tuple[ProtocolArm, ...] = Field(min_length=2)
     tasks: tuple[ProtocolTask, ...] = Field(min_length=2)
@@ -86,18 +87,26 @@ class BenchmarkProtocol(BaseModel):
             raise ValueError("Task IDs must be unique")
         if len({task.fixture.fixture_id for task in self.tasks}) != len(self.tasks):
             raise ValueError("Snapshot hashes must be unique")
-        strata: dict[tuple[str, str], int] = {}
+        if self.phase == "confirmatory" and not (self.sample_size_rationale or "").strip():
+            raise ValueError("Confirmatory protocol requires a sample-size rationale")
+        candidates = set(arms) - {self.baseline_arm_id}
+        if set(self.planned_pairs_by_candidate) != candidates:
+            raise ValueError("Planned sample counts must name every candidate arm")
+        strata: dict[str, dict[str, int]] = {candidate: {} for candidate in candidates}
         for task in self.tasks:
             eligible = task.eligible_arm_ids
-            if (len(set(eligible)) != len(eligible) or set(eligible) != set(arms)
-                    or self.baseline_arm_id not in eligible):
-                raise ValueError("Every frozen task must be eligible for every registered arm")
-            key = (task.locale, task.stratum)
-            strata[key] = strata.get(key, 0) + 1
-        if {locale for locale, _ in strata} != {"en", "pt"}:
-            raise ValueError("English and Portuguese task strata are both required")
-        if any(count != self.planned_pairs_per_stratum for count in strata.values()):
-            raise ValueError("Every locale stratum must match planned sample size")
+            if (len(set(eligible)) != len(eligible) or self.baseline_arm_id not in eligible
+                    or not set(eligible).issubset(arms) or len(eligible) < 2):
+                raise ValueError("Each task needs the baseline and at least one registered candidate")
+            key = f"{task.locale}/{task.stratum}"
+            for candidate in set(eligible) - {self.baseline_arm_id}:
+                strata[candidate][key] = strata[candidate].get(key, 0) + 1
+        for candidate, actual in strata.items():
+            planned = self.planned_pairs_by_candidate[candidate]
+            if (set(key.split("/", 1)[0] for key in planned) != {"en", "pt"}
+                    or any(type(count) is not int or count < 1 for count in planned.values())
+                    or planned != actual):
+                raise ValueError("Candidate locale strata must match predeclared sample counts")
         return self
 
 
@@ -112,6 +121,8 @@ def assignment_plan(protocol: BenchmarkProtocol) -> dict[str, Any]:
     for task in sorted(protocol.tasks, key=lambda item: (item.locale, item.stratum,
                                                          item.fixture.task_id)):
         for candidate in candidates:
+            if candidate not in task.eligible_arm_ids:
+                continue
             order = [protocol.baseline_arm_id, candidate]
             rng.shuffle(order)
             assignments.append({
