@@ -1,0 +1,7 @@
+# Offline HTML dashboard
+
+`julius dashboard --output report.html` writes a self-contained aggregate report. It loads no external scripts, styles, fonts, or images and makes no model request. The page has a keyboard-operable table, responsive layout, light and dark color support, and local dropdown filters for dimensions present on every displayed group. The current `report()` contract supplies grouped keys without dimension metadata, so its standard dashboard shows the full table without filters. A caller supplying aggregate groups with explicit model, client, project, task, or strategy fields gets filters for complete, safe dimensions. The dropdowns hide rows locally and do not recompute aggregate totals.
+
+Unknown totals display as unavailable with a known subtotal and unknown-record count. Incomplete calls remain visible. Signed financial values are shown as supplied, including negative savings; the dashboard does not derive a baseline, price, or savings figure. If no financial comparison was supplied, it shows unavailable. The page omits source IDs and redacts path-shaped group labels. It contains no raw prompts or event bodies. Existing report data can still contain sensitive non-path labels, so review the aggregate before sharing an exported HTML file.
+
+The filters use inline JavaScript under a restrictive document policy and need a browser with JavaScript enabled. Without JavaScript, the full table remains readable. The page is a local view of supplied evidence, not a task-quality or provider-billing certification.

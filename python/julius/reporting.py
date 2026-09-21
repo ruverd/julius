@@ -3,6 +3,7 @@
 import csv
 import html
 import io
+import re
 from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any
@@ -194,15 +195,111 @@ def render_csv(data: dict) -> str:
 
 
 def render_html(data: dict) -> str:
-    rows = "".join(
-        f"<tr><th scope='row'>{html.escape(group['key'])}</th><td>{group['calls']}</td><td>{_display(group['input']['total'])}</td><td>{_display(group['output']['total'])}</td></tr>"
-        for group in data["groups"]
+    def cell(value: Any) -> str:
+        return html.escape(_display(value), quote=True)
+
+    def measure(value: dict[str, Any]) -> str:
+        total = value.get("total")
+        unknown = value.get("unknownRecords", 0)
+        if total is None:
+            return f"unavailable <span class='muted'>(known subtotal {cell(value.get('known'))}; {cell(unknown)} unknown)</span>"
+        return cell(total)
+
+    def safe_dimension(value: Any) -> str | None:
+        # Project/task labels can originate in client data. Never export path-shaped IDs.
+        if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", value):
+            return value
+        return None
+
+    def public_label(value: Any) -> str:
+        label = _display(value)
+        if label.startswith(("/", "~/", "\\\\")) or re.match(r"^[A-Za-z]:[\\/]", label):
+            return "[redacted path]"
+        return label
+
+    group_by = data.get("groupBy")
+    dimensions = {"model": "modelId", "client": "clientId"}
+    active: dict[str, list[str]] = {}
+    for dimension in ("model", "client", "project", "task", "strategy"):
+        field = dimensions.get(dimension, {"project": "projectId", "task": "taskId", "strategy": "strategy"}.get(dimension))
+        values = []
+        for group in data["groups"]:
+            value = group.get(field)
+            if dimension == group_by and value is None:
+                value = group.get("key")
+            if dimension in ("project", "task", "strategy"):
+                value = safe_dimension(value)
+            elif value is not None:
+                value = public_label(value)
+            if isinstance(value, str) and value:
+                values.append(value)
+        if values and len(values) == len(data["groups"]):
+            active[dimension] = sorted(set(values))
+    filters = "".join(
+        f"<label for='filter-{name}'>{name.title()}</label>"
+        f"<select id='filter-{name}' data-filter='{name}'>"
+        f"<option value=''>All {name}s</option>"
+        + "".join(f"<option value='{cell(value)}'>{cell(value)}</option>" for value in values)
+        + "</select>"
+        for name, values in active.items()
     )
+    rows = []
+    for group in data["groups"]:
+        attributes = []
+        for name in active:
+            field = dimensions.get(name, {"project": "projectId", "task": "taskId", "strategy": "strategy"}.get(name))
+            value = group.get(field)
+            if name == group_by and value is None:
+                value = group.get("key")
+            if name in ("model", "client"):
+                value = public_label(value)
+            attributes.append(f"data-{name}='{cell(value)}'")
+        rows.append(
+            f"<tr {' '.join(attributes)}><th scope='row'>{cell(public_label(group['key']))}</th>"
+            f"<td>{cell(group['calls'])}</td><td>{measure(group['input'])}</td>"
+            f"<td>{measure(group['output'])}</td><td>{measure(group['costUsd'])}</td>"
+            f"<td>{cell(', '.join(group.get('evidence', [])))}</td></tr>"
+        )
+    savings = data.get("financialSavingsUsd")
+    savings_text = cell(savings) if savings is not None else "unavailable"
+    period = data["period"]
     return (
-        "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
-        "<meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; style-src 'unsafe-inline'\">"
-        "<title>Julius evidence report</title><style>:root{color-scheme:light dark}body{font:16px system-ui;max-width:1000px;margin:3rem auto;padding:1rem}pre{white-space:pre-wrap;line-height:1.7}table{border-collapse:collapse;width:100%}td,th{padding:.7rem;text-align:left;border-bottom:1px solid #888}</style>"
-        f"<main><h1>Julius</h1><p>Local evidence report. No model calls or external resources.</p><pre>{html.escape(render_text(data))}</pre>"
-        "<table><caption>Observed usage</caption><thead><tr><th scope='col'>Group</th><th scope='col'>Records</th><th scope='col'>Input</th><th scope='col'>Output</th></tr></thead>"
-        f"<tbody>{rows}</tbody></table></main></html>"
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width'>"
+        "<meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; "
+        "style-src 'unsafe-inline'; script-src 'unsafe-inline'\">"
+        "<title>Julius evidence report</title><style>"
+        ":root{color-scheme:light dark;font:16px system-ui}body{max-width:1100px;margin:2rem auto;padding:1rem;line-height:1.5}"
+        "main{display:grid;gap:1.5rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.8rem}"
+        ".card{border:1px solid #888;border-radius:.5rem;padding:1rem}.card strong{display:block;font-size:1.5rem}"
+        ".muted{opacity:.75;font-size:.9em}.filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}"
+        "select{font:inherit;padding:.35rem}select:focus-visible,th:focus-visible{outline:3px solid Highlight}"
+        ".table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:.65rem;text-align:left;border-bottom:1px solid #888;vertical-align:top}"
+        "tbody tr:hover{background:CanvasText;color:Canvas}tr[hidden]{display:none}"
+        "@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}"
+        "</style></head><body><main><header><h1>Julius evidence report</h1>"
+        f"<p>Local aggregate for {cell(period['since'])} to {cell(period['until'])}. "
+        "No model calls or external resources.</p></header>"
+        "<section class='cards' aria-label='Summary'>"
+        f"<div class='card'>Observed calls<strong>{cell(data['observedCalls'])}</strong></div>"
+        f"<div class='card'>Incomplete calls<strong>{cell(data['incompleteCalls'])}</strong></div>"
+        f"<div class='card'>Modeled cost USD<strong>{measure(data['modeledCostUsd'])}</strong></div>"
+        f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
+        f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
+        "<section aria-labelledby='usage-title'><h2 id='usage-title'>Observed usage</h2>"
+        f"<div class='filters' aria-label='Filter usage table'>{filters}</div>"
+        "<p id='row-count' role='status' aria-live='polite'></p>"
+        "<div class='table-wrap'><table><caption>Aggregated usage by group</caption>"
+        "<thead><tr><th scope='col'>Group</th><th scope='col'>Records</th>"
+        "<th scope='col'>Input tokens</th><th scope='col'>Output tokens</th>"
+        "<th scope='col'>Modeled cost USD</th><th scope='col'>Evidence</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table></div></section></main>"
+        "<script type='module'>(()=>{const rows=[...document.querySelectorAll('tbody tr')];"
+        "const selects=[...document.querySelectorAll('select[data-filter]')];"
+        "const count=document.getElementById('row-count');"
+        "function update(){let shown=0;for(const row of rows){"
+        "const match=selects.every(select=>!select.value||row.dataset[select.dataset.filter]===select.value);"
+        "row.hidden=!match;if(match)shown++}count.textContent=`${shown} of ${rows.length} groups shown`;}"
+        "for(const select of selects)select.addEventListener('change',update);update()})();</script>"
+        "</body></html>"
     )
