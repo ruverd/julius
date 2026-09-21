@@ -64,6 +64,32 @@ def test_session_delta_is_recorded_without_becoming_a_call():
     assert "Session usage deltas" in render_html(result)
 
 
+def test_client_estimates_and_provider_charges_have_distinct_evidence():
+    def usage(name: str, provenance: dict, cost: float) -> dict:
+        return {
+            "eventType": "usage", "sourceId": name, "projectId": "p",
+            "sessionId": "s", "requestId": name, "attemptId": name,
+            "clientId": "cli", "modelId": "m", "providerId": "vendor",
+            "executionLocation": "remote", "evidence": "runtime_reported",
+            "payload": {"callId": name, "observationScope": "call",
+                        "complete": True, "category": "primary",
+                        "inputTokens": 10, "outputTokens": 2,
+                        "cacheReadTokens": 0, "cacheWriteTokens": 0,
+                        "costUsd": cost, "costProvenance": provenance},
+        }
+
+    result = report([
+        usage("client", {"estimateSource": "client_result"}, 0.02),
+        usage("price", {"priceSource": "fixture"}, 0.01),
+        usage("provider", {"chargeSource": "provider_usage"}, 0.03),
+    ], WINDOW)
+    assert result["modeledCostUsd"]["known"] == pytest.approx(0.03)
+    assert result["clientEstimatedCostUsd"]["known"] == pytest.approx(0.02)
+    assert result["priceModeledCostUsd"]["known"] == pytest.approx(0.01)
+    assert result["providerChargedUsd"]["known"] == pytest.approx(0.03)
+    assert result["modeledCostUsd"]["total"] is None
+
+
 def test_exports_escape_active_content():
     event = json.loads(FIXTURE.read_text().splitlines()[-1])
     event["clientId"] = "<script>alert(1)</script>"

@@ -63,15 +63,20 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
     observed = {request_key(event) for event in usage} - {None}
     transformed = {request_key(event) for event in transforms} & observed
 
-    def costs(items: list[dict], *, provider_charge: bool = False) -> list[float | None]:
-        return [
-            event["payload"]["costUsd"]
-            if event["modelId"]
-            and ((event["payload"].get("costProvenance") or {}).get("chargeSource") == "provider_usage")
-            == provider_charge
-            else None
-            for event in items
-        ]
+    def costs(items: list[dict], *, basis: str = "estimated") -> list[float | None]:
+        values: list[float | None] = []
+        for event in items:
+            provenance = event["payload"].get("costProvenance") or {}
+            charge = provenance.get("chargeSource") == "provider_usage"
+            client = provenance.get("estimateSource") == "client_result"
+            included = (
+                charge if basis == "provider_charge" else
+                client if basis == "client_estimate" else
+                not charge and not client if basis == "price_model" else
+                not charge
+            )
+            values.append(event["payload"]["costUsd"] if event["modelId"] and included else None)
+        return values
 
     result = {
         "schemaVersion": 1,
@@ -107,6 +112,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             event["eventType"] == "transform" and not event["payload"]["sent"] for event in events
         ),
         "modeledCostUsd": _sum(costs(usage)),
+        "clientEstimatedCostUsd": _sum(costs(usage, basis="client_estimate")),
+        "priceModeledCostUsd": _sum(costs(usage, basis="price_model")),
         "auxiliaryCostUsd": _sum(
             costs([e for e in usage if e["payload"]["category"] != "primary"])
         ),
@@ -128,6 +135,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
                     )
                 },
                 "costUsd": _sum(costs(items)),
+                "clientEstimatedCostUsd": _sum(costs(items, basis="client_estimate")),
+                "priceModeledCostUsd": _sum(costs(items, basis="price_model")),
                 "evidence": sorted({item["evidence"] for item in items}),
                 "locations": sorted({item["executionLocation"] for item in items}),
             }
@@ -135,9 +144,9 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         ],
     }
     if any((event["payload"].get("costProvenance") or {}).get("chargeSource") == "provider_usage" for event in usage):
-        result["providerChargedUsd"] = _sum(costs(usage, provider_charge=True))
+        result["providerChargedUsd"] = _sum(costs(usage, basis="provider_charge"))
         for group, items in zip(result["groups"], groups.values(), strict=True):
-            group["providerChargedUsd"] = _sum(costs(items, provider_charge=True))
+            group["providerChargedUsd"] = _sum(costs(items, basis="provider_charge"))
     return result
 
 
@@ -164,7 +173,9 @@ def render_text(data: dict) -> str:
         lines.append("Direct input reduction: unavailable (no sent transformation evidence)")
     lines.extend(
         [
-            f"Modeled cost USD: {_display(data['modeledCostUsd']['total'])}; known subtotal: {data['modeledCostUsd']['known']}",
+            f"Estimated cost USD (non-provider): {_display(data['modeledCostUsd']['total'])}; known subtotal: {data['modeledCostUsd']['known']}",
+            f"Client-estimated cost USD: {_display(data['clientEstimatedCostUsd']['total'])}; known subtotal: {data['clientEstimatedCostUsd']['known']}",
+            f"Price-modeled cost USD: {_display(data['priceModeledCostUsd']['total'])}; known subtotal: {data['priceModeledCostUsd']['known']}",
             f"Observed auxiliary modeled cost USD: {_display(data['auxiliaryCostUsd']['total'])}",
             f"Estimated financial savings USD: unavailable. {data['baseline']}",
             f"Task measurement: {data['taskMeasurement']}",
@@ -311,7 +322,7 @@ def render_html(data: dict) -> str:
         f"<div class='card'>Incomplete usage records<strong>{cell(data.get('incompleteUsageRecords', data['incompleteCalls']))}</strong></div>"
         f"<div class='card'>Transformed observed requests<strong>{coverage_text}</strong></div>"
         f"<div class='card'>Session usage deltas<strong>{cell(data.get('sessionUsageDeltas'))}</strong></div>"
-        f"<div class='card'>Modeled cost USD<strong>{measure(data['modeledCostUsd'])}</strong></div>"
+        f"<div class='card'>Estimated cost USD (non-provider)<strong>{measure(data['modeledCostUsd'])}</strong></div>"
         f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
         f"<p>{cell(data['baseline'])} {cell(data['taskMeasurement'])}</p>"
         "<section aria-labelledby='usage-title'><h2 id='usage-title'>Observed usage</h2>"
