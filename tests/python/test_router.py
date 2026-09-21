@@ -9,7 +9,8 @@ NOW = datetime(2026, 9, 21, tzinfo=timezone.utc)
 
 def model(name="current", **changes):
     data = dict(endpoint="https://example.test/a", provider="example", requested_model=name,
-                actual_model=name, digest="sha1", quantization="q4", state="available_remote",
+                actual_model=name, digest="sha1", quantization="q4", tokenizer_id="tok-a",
+                state="available_remote",
                 location="remote", context_window=8192, supports_tools=True,
                 supports_structured_output=True, observed_latency_ms=100,
                 observed_concurrency_capacity=2, observed_concurrency_used=0,
@@ -21,7 +22,8 @@ def model(name="current", **changes):
 def boundary(**changes):
     data = dict(boundary_id="turn-1", safe_to_switch=True, requires_tools=True,
                 requires_structured_output=True, input_tokens=1000,
-                expected_output_tokens=1000, minimum_context_tokens=2000,
+                expected_output_tokens=1000, forecast_tokenizer_id="tok-a",
+                forecast_evidence_id="forecast-1", minimum_context_tokens=2000,
                 allowed_locations=frozenset({"remote", "local"}),
                 allowed_endpoints=frozenset({"https://example.test/a", "https://example.test/b"}),
                 maximum_latency_ms=300, maximum_spend=Decimal("1"))
@@ -123,3 +125,21 @@ def test_unsafe_switch_can_still_allow_verified_current_dispatch():
     decision = route(model("small"), task=boundary(safe_to_switch=False))
     assert decision.switched is False
     assert decision.dispatch_allowed is True
+
+
+def test_different_or_missing_candidate_tokenizer_cannot_borrow_forecast():
+    assert not route(model("small", tokenizer_id="tok-b")).switched
+    assert not route(model("small", tokenizer_id=None)).switched
+
+
+def test_unknown_current_tokenizer_denies_dispatch_and_cost_claim():
+    current = model(tokenizer_id=None)
+    decision = route(model("small"), current=current)
+    assert decision.dispatch_allowed is False
+    assert decision.current_predicted_cost is None
+    assert decision.predicted_savings is None
+
+
+def test_forecast_provenance_is_recorded():
+    decision = route(model("small"))
+    assert decision.forecast_evidence_id == "forecast-1"

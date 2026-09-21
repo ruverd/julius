@@ -20,6 +20,7 @@ class ModelChoice(StrictModel):
     actual_model: str | None = None
     digest: str | None = None
     quantization: str | None = None
+    tokenizer_id: str | None = None
     state: Literal["installed", "loaded", "available_remote", "unavailable", "unknown"]
     location: Literal["local", "remote"]
     context_window: int | None = Field(default=None, gt=0)
@@ -66,6 +67,8 @@ class TaskBoundary(StrictModel):
     requires_structured_output: bool
     input_tokens: int = Field(ge=0)
     expected_output_tokens: int = Field(ge=0)
+    forecast_tokenizer_id: str
+    forecast_evidence_id: str
     minimum_context_tokens: int = Field(ge=0)
     allowed_locations: frozenset[Literal["local", "remote"]]
     allowed_endpoints: frozenset[str]
@@ -75,8 +78,9 @@ class TaskBoundary(StrictModel):
 
     @model_validator(mode="after")
     def valid_boundary(self) -> TaskBoundary:
-        if not self.boundary_id.strip():
-            raise ValueError("Boundary ID must be nonempty")
+        if not all((self.boundary_id.strip(), self.forecast_tokenizer_id.strip(),
+                    self.forecast_evidence_id.strip())):
+            raise ValueError("Boundary and token forecast evidence must be nonempty")
         return self
 
 
@@ -88,6 +92,7 @@ class RouteDecision(StrictModel):
     reason: str
     current_evidence_id: str
     selected_evidence_id: str
+    forecast_evidence_id: str
     current_predicted_cost: Decimal | None
     selected_predicted_cost: Decimal | None
     predicted_savings: Decimal | None
@@ -97,6 +102,8 @@ class RouteDecision(StrictModel):
 
 def _cost(model: ModelChoice, prices: tuple[PriceEvidence, ...], boundary: TaskBoundary,
           now: datetime, max_price_age: timedelta) -> tuple[Decimal, str] | None:
+    if model.tokenizer_id is None or model.tokenizer_id != boundary.forecast_tokenizer_id:
+        return None
     matching = [p for p in prices if p.model_identity == model.identity
                 and p.effective_at <= now and now - p.effective_at <= max_price_age]
     if not matching:
@@ -109,6 +116,8 @@ def _cost(model: ModelChoice, prices: tuple[PriceEvidence, ...], boundary: TaskB
 
 
 def _eligible(model: ModelChoice, boundary: TaskBoundary) -> bool:
+    if model.tokenizer_id is None or model.tokenizer_id != boundary.forecast_tokenizer_id:
+        return False
     if model.authorization_granted is not True:
         return False
     if model.endpoint not in boundary.allowed_endpoints or model.location not in boundary.allowed_locations:
@@ -181,6 +190,7 @@ def decide_route(*, boundary: TaskBoundary, current: ModelChoice,
                                or (selected_price is not None
                                    and selected_price[0] <= boundary.maximum_spend))),
         current_evidence_id=current.evidence_id, selected_evidence_id=selected.evidence_id,
+        forecast_evidence_id=boundary.forecast_evidence_id,
         current_predicted_cost=current_price[0] if current_price else None,
         selected_predicted_cost=selected_price[0] if selected_price else None,
         predicted_savings=(current_price[0] - selected_price[0]
