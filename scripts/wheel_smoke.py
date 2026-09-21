@@ -86,6 +86,17 @@ def main() -> None:
         assert optimized["receipt"]["applied"] is True
         reference = optimized["original"]["id"]
         assert run("-m", "julius", "restore", reference, "--project", "demo") == source.read_text()
+        block_source = root / "blocks.txt"
+        first = "ordinary alpha status with additional stable descriptive detail for a large result"
+        second = "ordinary beta status with additional stable descriptive detail for a large result"
+        block_source.write_text("\n".join([first, second, "separator"] * 3))
+        block_result = json.loads(run(
+            "-m", "julius", "optimize", str(block_source), "--project", "demo", "--profile", "safe",
+        ))
+        assert block_result["receipt"]["applied"] is True
+        assert "[repeated exact block " in block_result["candidate"]
+        assert run("-m", "julius", "restore", block_result["original"]["id"],
+                   "--project", "demo") == block_source.read_text()
         run("-m", "julius", "dashboard", *window, "--output", str(root / "report.html"))
         assert "group" in run("-m", "julius", "export", *window, "--format", "csv")
         model_file = root / "model.json"
@@ -128,7 +139,7 @@ def main() -> None:
         assert not (project / ".codex" / "hooks.json").exists()
         print(
             "Isolated wheel smoke passed: native and optional imports, event idempotency, "
-            "7,000 marginal reduction, unknown money, optimize/restore, HTML/CSV, model snapshots, "
+            "7,000 marginal reduction, unknown money, exact-block optimize/restore, HTML/CSV, model snapshots, "
             "Codex hook, packaged evaluation corpora, and reversible Claude/Codex setup."
         )
 

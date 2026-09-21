@@ -433,7 +433,7 @@ class Julius:
             state=state, eligible_actions=eligible_actions, policy=policy, gateway=gateway
         )
         no_call = {
-            "disabled", "gateway_unavailable", "budget_unavailable", "invalid_timeout",
+            "disabled", "gateway_unavailable", "budget_unavailable", "precall_guard_rejected", "invalid_timeout",
             "invalid_eligible_action", "no_eligible_action", "invalid_confidence_threshold",
         }
         now = datetime.now(timezone.utc)

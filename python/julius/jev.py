@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 import re
 from typing import Literal, Mapping, Protocol
 import json
@@ -13,6 +14,10 @@ from urllib import request
 
 Action = Literal["keep", "retrieve", "compress"]
 SAFE_ACTION: Action = "keep"
+
+
+class PreflightRejected(ValueError):
+    """A live request was refused before transport dispatch."""
 
 
 @dataclass(frozen=True)
@@ -78,6 +83,11 @@ class TypeSafeGateway:
         output_usd_per_million: float | None = None,
         model_id: str = "jev-latest",
         transport: JevTransport | None = None,
+        max_cost_usd: float | None = None,
+        max_input_tokens: int | None = None,
+        max_output_tokens: int | None = None,
+        price_source: str | None = None,
+        price_date: str | None = None,
     ) -> None:
         if not api_key or api_key != api_key.strip() or any(character in api_key for character in "\r\n\x00"):
             raise ValueError("Valid TypeSafe API key required")
@@ -91,6 +101,34 @@ class TypeSafeGateway:
         self._output_rate = output_usd_per_million
         self.model_id = model_id
         self._transport = transport or HttpsTypeSafeTransport()
+        self._max_cost_usd = max_cost_usd
+        self._max_input_tokens = max_input_tokens
+        self._max_output_tokens = max_output_tokens
+        self._price_source = price_source
+        self._price_date = price_date
+
+    def _preflight(self, body: bytes) -> None:
+        """Refuse dispatch unless caller-declared usage ceilings fit the modeled budget."""
+        if self._max_cost_usd is None:
+            return  # Legacy injected/explicit gateway callers retain their own policy.
+        if self.model_id == "jev-latest" or self._input_rate is None or self._output_rate is None:
+            raise PreflightRejected("Pinned TypeSafe model and both price rates required")
+        if not self._price_source or not self._price_date:
+            raise PreflightRejected("Dated TypeSafe price source required")
+        try:
+            if date.fromisoformat(self._price_date).isoformat() != self._price_date:
+                raise PreflightRejected("Invalid TypeSafe price date")
+        except ValueError as error:
+            raise PreflightRejected("Invalid TypeSafe price date") from error
+        if not math.isfinite(self._max_cost_usd) or self._max_cost_usd <= 0:
+            raise PreflightRejected("Positive TypeSafe pre-call budget required")
+        if type(self._max_input_tokens) is not int or self._max_input_tokens < len(body):
+            raise PreflightRejected("TypeSafe input token ceiling must cover request bytes")
+        if type(self._max_output_tokens) is not int or self._max_output_tokens <= 0:
+            raise PreflightRejected("TypeSafe output token ceiling required")
+        projected = (self._max_input_tokens * self._input_rate + self._max_output_tokens * self._output_rate) / 1_000_000
+        if projected > self._max_cost_usd:
+            raise PreflightRejected("TypeSafe declared token ceilings exceed pre-call budget")
 
     def choose(
         self, state: Mapping[str, object], eligible_actions: tuple[Action, ...], timeout_seconds: float
@@ -112,6 +150,7 @@ class TypeSafeGateway:
         }, separators=(",", ":"), allow_nan=False).encode("utf-8")
         if len(body) > 16_384:
             raise ValueError("TypeSafe request too large")
+        self._preflight(body)
         payload = json.loads(self._transport.post(body, self._api_key, timeout_seconds))
         if not isinstance(payload, dict):
             raise ValueError("Invalid TypeSafe response")
@@ -133,7 +172,9 @@ class TypeSafeGateway:
         cost = None
         if (input_tokens is not None and output_tokens is not None
             and self._input_rate is not None and self._output_rate is not None
-            and actual_model == self.model_id):
+            and actual_model == self.model_id
+            and (self._max_input_tokens is None or input_tokens <= self._max_input_tokens)
+            and (self._max_output_tokens is None or output_tokens <= self._max_output_tokens)):
             cost = (input_tokens * self._input_rate + output_tokens * self._output_rate) / 1_000_000
         return JevAnswer(choice, float(confidence), cost, input_tokens, output_tokens, actual_model)
 
@@ -218,6 +259,8 @@ def shadow_decide(
     started = time.monotonic()
     try:
         answer = gateway.choose(authorized, eligible_actions, policy.timeout_seconds)
+    except PreflightRejected:
+        return ShadowReceipt(SAFE_ACTION, None, "precall_guard_rejected", time.monotonic() - started, None, None)
     except TimeoutError:
         return ShadowReceipt(SAFE_ACTION, None, "timeout", time.monotonic() - started, None, None)
     except Exception:

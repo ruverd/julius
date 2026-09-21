@@ -71,9 +71,28 @@ def test_jev_cli_shadow_records_fixture_without_applying(tmp_path: Path, monkeyp
     store = tmp_path / "store"
     assert run(["jev", "shadow", "--state-file", str(state), "--project", "app",
                 "--post-call-threshold-usd", "0.01", "--price-source", "fixture-price",
-                "--price-date", "2026-09-21", "--data-dir", str(store)]) == 0
+                "--price-date", "2026-09-21", "--model", "jev-1.13.0",
+                "--input-usd-per-million", "0.042", "--output-usd-per-million", "0",
+                "--max-input-tokens", "1000", "--max-output-tokens", "100",
+                "--data-dir", str(store)]) == 0
     printed = json.loads(capsys.readouterr().out)
     assert printed["shadow"]["applied_action"] == "keep"
     assert printed["shadow"]["proposed_action"] == "compress"
     with Julius(store) as julius:
         assert julius.report()["auxiliaryCostUsd"]["total"] == 0.002
+
+
+def test_jev_cli_missing_preflight_evidence_never_dispatches(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "fixture-key")
+    state = tmp_path / "state.json"
+    state.write_text('{"input_tokens":200}')
+    calls = []
+    monkeypatch.setattr("julius.jev.HttpsTypeSafeTransport.post",
+                        lambda self, body, key, timeout: calls.append(body))
+    store = tmp_path / "store"
+    assert run(["jev", "shadow", "--state-file", str(state), "--project", "app",
+                "--post-call-threshold-usd", "0.01", "--data-dir", str(store)]) == 0
+    assert json.loads(capsys.readouterr().out)["shadow"]["reason"] == "precall_guard_rejected"
+    assert calls == []
+    with Julius(store) as julius:
+        assert len(julius.ledger.events()) == 1

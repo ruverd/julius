@@ -83,3 +83,34 @@ def test_known_transform_requires_explicit_traceable_recompression():
     )
     assert allowed["receipt"]["lineage"]["priorTransformId"] == "prior-transform"
     assert allowed["receipt"]["reason"] != "recompression_requires_opt_in"
+
+
+def test_known_block_marker_requires_traceable_recompression():
+    marker = (
+        "[repeated exact block 2/3; original lines 1-2; restore artifact "
+        f"{RECOVERY['artifactId']}]"
+    )
+    context = {
+        "projectId": "p", "category": "tool_output",
+        "content": marker + "\n" + CONTENT, "recovery": RECOVERY,
+    }
+    result = optimize(context, POLICY)
+    assert result["candidate"] == context["content"]
+    assert result["receipt"]["reason"] == "recompression_requires_opt_in"
+
+
+def test_native_repeated_multiline_block_and_noop():
+    from julius._native import compress_repeated_lines
+
+    first = "ordinary alpha status with additional stable descriptive detail for a large result"
+    second = "ordinary beta status with additional stable descriptive detail for a large result"
+    original = "\n".join([first, second, "separator"] * 3)
+    candidate = compress_repeated_lines(original, RECOVERY["artifactId"])
+    assert len(candidate.encode()) < len(original.encode())
+    assert candidate.startswith(first + "\n" + second)
+    assert candidate.count("[repeated exact block ") == 2
+    assert "original lines 1-2" in candidate
+    assert candidate.count("separator") == 3
+    protected = "warning status with additional stable descriptive detail"
+    assert compress_repeated_lines("\n".join([protected] * 4), RECOVERY["artifactId"]) == "\n".join([protected] * 4)
+    assert compress_repeated_lines(first + "\n" + second, RECOVERY["artifactId"]) == first + "\n" + second

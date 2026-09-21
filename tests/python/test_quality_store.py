@@ -7,7 +7,7 @@ from julius.quality_store import QualityStore
 from julius.sdk import Julius
 
 
-SCOPE = Scope(project_id="p", model_id="m", strategy_id="repeated-lines", strategy_version="1")
+SCOPE = Scope(project_id="p", model_id="m", strategy_id="repeated-lines", strategy_version="2")
 POLICY = GuardPolicy(
     version="1", minimum_samples=2, max_error_rate=0.25,
     max_recovery_rate=0.5, max_rework_rate=0.5,
@@ -139,3 +139,20 @@ def test_store_rejects_symlink_and_unsafe_existing_modes(tmp_path):
     os.chmod(sidecar, 0o644)
     with pytest.raises(ValueError, match="Unsafe quality store file"):
         QualityStore(link)
+
+
+def test_v1_outcomes_cannot_clear_v2_optimizer(tmp_path):
+    old_scope = SCOPE.model_copy(update={"strategy_version": "1"})
+    with QualityStore(tmp_path / "quality.sqlite") as store:
+        store.append(outcome(1, "old-a", scope=old_scope), POLICY)
+        store.append(outcome(2, "old-b", scope=old_scope), POLICY)
+        assert store.decision(old_scope, POLICY)["status"] == "enabled"
+        assert store.decision(SCOPE, POLICY)["status"] == "insufficient_evidence"
+    with Julius(tmp_path) as julius:
+        context = {"projectId": "p", "modelId": "m", "content": "short", "category": "tool_output"}
+        policy = {"mode": "safe", "approved": True, "version": "1.0.0"}
+        with pytest.raises(ValueError, match="optimizer strategy"):
+            julius.optimize(context, policy, quality_scope=old_scope, quality_policy=POLICY)
+        with pytest.raises(RuntimeError, match="insufficient_evidence"):
+            julius.optimize(context, policy, quality_scope=SCOPE, quality_policy=POLICY)
+    assert list((tmp_path / "artifacts").rglob("*.txt")) == []

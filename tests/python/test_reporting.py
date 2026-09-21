@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from julius.query import query_window
-from julius.reporting import render_csv, render_html, report
+from julius.reporting import render_csv, render_html, render_text, report
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "events.jsonl"
 WINDOW = {
@@ -105,7 +105,7 @@ def test_session_delta_with_request_id_is_not_request_coverage() -> None:
 def test_client_estimates_and_provider_charges_have_distinct_evidence():
     def usage(name: str, provenance: dict, cost: float) -> dict:
         return {
-            "eventType": "usage", "sourceId": name, "projectId": "p",
+            "eventType": "usage", "sourceId": name, "projectId": "p", "taskId": "task",
             "sessionId": "s", "requestId": name, "attemptId": name,
             "clientId": "cli", "modelId": "m", "providerId": "vendor",
             "executionLocation": "remote", "evidence": "runtime_reported",
@@ -126,6 +126,23 @@ def test_client_estimates_and_provider_charges_have_distinct_evidence():
     assert result["priceModeledCostUsd"]["known"] == pytest.approx(0.01)
     assert result["providerChargedUsd"]["known"] == pytest.approx(0.03)
     assert result["modeledCostUsd"]["total"] is None
+    assert result["callCostUsd"] == {"known": pytest.approx(0.06), "unknownRecords": 0,
+                                     "total": pytest.approx(0.06)}
+    assert result["costSources"] == ["client_estimate", "price_model", "provider_charge"]
+    assert result["tasks"][0]["callCostUsd"]["total"] == pytest.approx(0.06)
+    assert result["groups"][0]["callCostUsd"]["total"] == pytest.approx(0.06)
+    assert "Call cost USD (mixed evidence)" in render_html(result)
+    assert "Call cost USD (mixed evidence" in render_text(result)
+    assert "call_cost_usd" in render_csv(result)
+
+
+def test_call_cost_remains_unknown_when_one_included_usage_lacks_money():
+    event = json.loads(FIXTURE.read_text().splitlines()[-1])
+    event["payload"]["costUsd"] = None
+    event["payload"]["costProvenance"] = None
+    result = report([event], WINDOW)
+    assert result["callCostUsd"] == {"known": 0, "unknownRecords": 1, "total": None}
+    assert result["costSources"] == ["unknown"]
 
 
 def test_exports_escape_active_content():

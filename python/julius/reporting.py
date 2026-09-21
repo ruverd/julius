@@ -33,6 +33,22 @@ def _reduction(events: list[dict]) -> dict[str, Any]:
     ])
 
 
+def _call_costs(events: list[dict]) -> dict[str, Any]:
+    """One recorded amount per usage record, independent of its cost basis."""
+    return _sum([event["payload"].get("costUsd") for event in events])
+
+
+def _cost_source(event: dict) -> str:
+    if event["payload"].get("costUsd") is None:
+        return "unknown"
+    provenance = event["payload"].get("costProvenance") or {}
+    if provenance.get("chargeSource") == "provider_usage":
+        return "provider_charge"
+    if provenance.get("estimateSource") == "client_result":
+        return "client_estimate"
+    return "price_model"
+
+
 def _daily_series(usage: list[dict], transforms: list[dict]) -> list[dict[str, Any]]:
     """Aggregate observed events by UTC day; counters and reductions remain separate."""
     dated_usage = [event for event in usage if event.get("occurredAt")]
@@ -169,6 +185,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
             "cacheRead": _sum([item["payload"]["cacheReadTokens"] for item in task_usage]),
             "cacheWrite": _sum([item["payload"]["cacheWriteTokens"] for item in task_usage]),
             "auxiliaryUsageRecords": sum(item["payload"]["category"] != "primary" for item in task_usage),
+            "callCostUsd": _call_costs(task_usage),
+            "costSources": sorted({_cost_source(item) for item in task_usage}),
             "modeledCostUsd": task_costs(task_usage, "modeled"),
             "clientEstimatedCostUsd": task_costs(task_usage, "client"),
             "priceModeledCostUsd": task_costs(task_usage, "price"),
@@ -245,6 +263,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
         "candidateTransformsNotCounted": sum(
             event["eventType"] == "transform" and not event["payload"]["sent"] for event in events
         ),
+        "callCostUsd": _call_costs(usage),
+        "costSources": sorted({_cost_source(event) for event in usage}),
         "modeledCostUsd": _sum(costs(usage)),
         "clientEstimatedCostUsd": _sum(costs(usage, basis="client_estimate")),
         "priceModeledCostUsd": _sum(costs(usage, basis="price_model")),
@@ -277,6 +297,8 @@ def report(events: list[dict], window: dict, by: str = "model") -> dict[str, Any
                     )
                 },
                 "costUsd": _sum(costs(items)),
+                "callCostUsd": _call_costs(items),
+                "costSources": sorted({_cost_source(item) for item in items}),
                 "clientEstimatedCostUsd": _sum(costs(items, basis="client_estimate")),
                 "priceModeledCostUsd": _sum(costs(items, basis="price_model")),
                 "evidence": sorted({item["evidence"] for item in items}),
@@ -319,6 +341,7 @@ def render_text(data: dict) -> str:
     )
     lines.extend(
         [
+            f"Call cost USD (mixed evidence, one amount per usage record): {_display(data['callCostUsd']['total'])}; known subtotal: {data['callCostUsd']['known']}; sources: {', '.join(data['costSources']) or 'none'}",
             f"Estimated cost USD (non-provider): {_display(data['modeledCostUsd']['total'])}; known subtotal: {data['modeledCostUsd']['known']}",
             f"Client-estimated cost USD: {_display(data['clientEstimatedCostUsd']['total'])}; known subtotal: {data['clientEstimatedCostUsd']['known']}",
             f"Price-modeled cost USD: {_display(data['priceModeledCostUsd']['total'])}; known subtotal: {data['priceModeledCostUsd']['known']}",
@@ -333,7 +356,7 @@ def render_text(data: dict) -> str:
             f"known subtotal: {data['providerChargedUsd']['known']}"
         )
     lines.extend(
-        f"{group['key']}: calls={group['calls']}, records={group.get('usageRecords', group['calls'])}, input={_display(group['input']['total'])}, output={_display(group['output']['total'])}, evidence={','.join(group['evidence'])}"
+        f"{group['key']}: calls={group['calls']}, records={group.get('usageRecords', group['calls'])}, input={_display(group['input']['total'])}, output={_display(group['output']['total'])}, call_cost_usd={_display(group['callCostUsd']['total'])}, cost_sources={','.join(group['costSources'])}, evidence={','.join(group['evidence'])}"
         for group in data["groups"]
     )
     return "\n".join(lines)
@@ -343,7 +366,7 @@ def render_csv(data: dict) -> str:
     output = io.StringIO(newline="")
     writer = csv.writer(output, quoting=csv.QUOTE_ALL)
     provider_charges = "providerChargedUsd" in data
-    columns = ["group", "calls", "usage_records", "input_tokens", "output_tokens", "modeled_cost_usd"]
+    columns = ["group", "calls", "usage_records", "input_tokens", "output_tokens", "call_cost_usd", "cost_sources", "modeled_cost_usd"]
     if provider_charges:
         columns.append("provider_charged_usd")
     writer.writerow([*columns, "evidence"])
@@ -354,6 +377,8 @@ def render_csv(data: dict) -> str:
             group.get("usageRecords", group["calls"]),
             group["input"]["total"],
             group["output"]["total"],
+            group["callCostUsd"]["total"],
+            ";".join(group["costSources"]),
             group["costUsd"]["total"],
         ]
         if provider_charges:
@@ -432,7 +457,10 @@ def render_html(data: dict) -> str:
         rows.append(
             f"<tr {' '.join(attributes)}><th scope='row'>{cell(public_label(group['key']))}</th>"
             f"<td>{cell(group['calls'])}</td><td>{measure(group['input'])}</td>"
-            f"<td>{measure(group['output'])}</td><td>{measure(group['costUsd'])}</td>"
+            f"<td>{measure(group['output'])}</td>"
+            f"<td>{measure(group.get('callCostUsd', group['costUsd']))}</td>"
+            f"<td>{cell(', '.join(group.get('costSources', [])) or 'unknown')}</td>"
+            f"<td>{measure(group['costUsd'])}</td>"
             f"<td>{cell(', '.join(group.get('evidence', [])))}</td></tr>"
         )
     savings = data.get("financialSavingsUsd")
@@ -480,6 +508,8 @@ def render_html(data: dict) -> str:
             f"<td>{measure(task['input'])}</td><td>{measure(task['output'])}</td>"
             f"<td>{measure(task['cacheRead'])}</td><td>{measure(task['cacheWrite'])}</td>"
             f"<td>{cell(task['auxiliaryUsageRecords'])}</td>"
+            f"<td>{measure(task['callCostUsd'])}</td>"
+            f"<td>{cell(', '.join(task['costSources']))}</td>"
             f"<td>{measure(task['modeledCostUsd'])}</td>"
             f"<td>{measure(task['clientEstimatedCostUsd'])}</td>"
             f"<td>{measure(task['priceModeledCostUsd'])}</td>"
@@ -537,6 +567,7 @@ def render_html(data: dict) -> str:
         f"<div class='card'>Incomplete usage records<strong>{cell(data.get('incompleteUsageRecords', data['incompleteCalls']))}</strong></div>"
         f"<div class='card'>Transformed observed requests<strong>{coverage_text}</strong></div>"
         f"<div class='card'>Session usage deltas<strong>{cell(data.get('sessionUsageDeltas'))}</strong></div>"
+        f"<div class='card'>Call cost USD (mixed evidence)<strong>{measure(data.get('callCostUsd', data['modeledCostUsd']))}</strong></div>"
         f"<div class='card'>Estimated cost USD (non-provider)<strong>{measure(data['modeledCostUsd'])}</strong></div>"
         f"<div class='card'>Financial savings USD<strong>{savings_text}</strong></div></section>"
         "<section aria-labelledby='tasks-title'><h2 id='tasks-title'>Observed tasks</h2>"
@@ -547,7 +578,7 @@ def render_html(data: dict) -> str:
         f"<div class='filters' aria-label='Filter task table'>{task_filters}"
         "<button type='button' id='export-tasks'>Export visible tasks as CSV</button></div>"
         "<p id='task-row-count' role='status' aria-live='polite'></p>"
-        "<p>Costs are observed USD amounts by evidence source. Modeled includes client and price estimates; "
+        "<p>Call cost counts one recorded USD amount per usage record; provider charges, client estimates, and price models can mix. It is not a verified invoice. Modeled includes client and price estimates; "
         "provider charges are separate. Primary and auxiliary modeled or provider subtotals partition those amounts. "
         "Unavailable totals show known subtotals; no financial savings are inferred.</p>"
         "<div class='table-wrap'><table id='task-table'><caption>Task usage, costs, and sent transformations</caption>"
@@ -555,6 +586,7 @@ def render_html(data: dict) -> str:
         "<th scope='col'>Observed calls</th><th scope='col'>Incomplete usage records</th>"
         "<th scope='col'>Input</th><th scope='col'>Output</th><th scope='col'>Cache read</th>"
         "<th scope='col'>Cache write</th><th scope='col'>Auxiliary records</th>"
+        "<th scope='col'>Call cost USD</th><th scope='col'>Cost sources</th>"
         "<th scope='col'>Modeled cost USD</th><th scope='col'>Client estimate USD</th>"
         "<th scope='col'>Price modeled USD</th><th scope='col'>Provider charge USD</th>"
         "<th scope='col'>Primary modeled USD</th><th scope='col'>Auxiliary modeled USD</th>"
@@ -582,6 +614,7 @@ def render_html(data: dict) -> str:
         "<div class='table-wrap'><table id='usage-table'><caption>Aggregated usage by group</caption>"
         "<thead><tr><th scope='col'>Group</th><th scope='col'>Records</th>"
         "<th scope='col'>Input tokens</th><th scope='col'>Output tokens</th>"
+        "<th scope='col'>Call cost USD</th><th scope='col'>Cost sources</th>"
         "<th scope='col'>Modeled cost USD</th><th scope='col'>Evidence</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div></section></main>"
         "<script type='module'>(()=>{const rows=[...document.querySelectorAll('#usage-table tbody tr')];"

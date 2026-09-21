@@ -202,3 +202,33 @@ def test_invalid_api_key_rejected(api_key):
 def test_invalid_price_rate_rejected(rate):
     with pytest.raises(ValueError):
         TypeSafeGateway("key", input_usd_per_million=rate)
+
+
+def test_typesafe_preflight_refuses_unbounded_or_over_budget_dispatch():
+    transport = FixtureTransport({"model": "jev-1.13.0", "answers": {"action": {"choice": "keep", "confidence": 1}},
+                                  "usage": {"input_tokens": 20, "output_tokens": 1}})
+    base = dict(input_usd_per_million=1, output_usd_per_million=2,
+                max_cost_usd=0.002, max_input_tokens=1000, max_output_tokens=100,
+                price_source="dated-test-price", price_date="2026-09-21", transport=transport)
+    for overrides in ({"model_id": "jev-latest"}, {"price_date": None},
+                      {"max_input_tokens": None}, {"max_output_tokens": None},
+                      {"max_cost_usd": 0.000001}):
+        with pytest.raises(ValueError):
+            TypeSafeGateway("key", **(base | overrides)).choose({}, ("keep",), 1)
+    assert transport.calls == []
+    answer = TypeSafeGateway("key", model_id="jev-1.13.0", **base).choose({}, ("keep",), 1)
+    assert answer.cost_usd == 0.000022
+    assert len(transport.calls) == 1
+
+
+def test_typesafe_usage_above_declared_ceiling_has_unknown_cost():
+    transport = FixtureTransport({"model": "jev-1.13.0", "answers": {"action": {"choice": "keep", "confidence": 1}},
+                                  "usage": {"input_tokens": 2000, "output_tokens": 1}})
+    gateway = TypeSafeGateway("key", model_id="jev-1.13.0", input_usd_per_million=1,
+                              output_usd_per_million=2, max_cost_usd=1, max_input_tokens=1000,
+                              max_output_tokens=100, price_source="dated-test-price",
+                              price_date="2026-09-21", transport=transport)
+    receipt = shadow_decide(state={}, eligible_actions=("keep",),
+                            policy=ShadowPolicy(enabled=True, max_cost_usd=1), gateway=gateway)
+    assert receipt.reason == "cost_unknown"
+    assert receipt.input_tokens == 2000

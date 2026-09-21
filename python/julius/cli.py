@@ -55,7 +55,8 @@ def _parser() -> argparse.ArgumentParser:
         epilog=(
             "Explicit model commands: run --agent grok --request request.json --project id "
             "or run --agent claude --project id. "
-            "and jev shadow --state-file state.json --project id --post-call-threshold-usd amount. "
+            "and jev shadow --state-file state.json --project id --model jev-version "
+            "--post-call-threshold-usd amount --max-input-tokens count --max-output-tokens count. "
             "Reports never call a model."
         ),
     )
@@ -105,6 +106,8 @@ def _parser() -> argparse.ArgumentParser:
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence", "max-budget-usd", "timeout-seconds"):
         parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--max-turns", type=int, default=4)
+    parser.add_argument("--max-input-tokens", type=int)
+    parser.add_argument("--max-output-tokens", type=int)
     parser.add_argument("--order-seed", type=int)
     parser.add_argument("--execute", action="store_true", help="Explicitly run a bounded external client probe or pilot")
     parser.add_argument("--by", choices=["model", "category", "client"])
@@ -816,6 +819,12 @@ def run(argv: list[str] | None = None) -> int:
                 key,
                 input_usd_per_million=args.input_usd_per_million,
                 output_usd_per_million=args.output_usd_per_million,
+                model_id=args.model or "jev-latest",
+                max_cost_usd=args.post_call_threshold_usd or 0.0,
+                max_input_tokens=args.max_input_tokens,
+                max_output_tokens=args.max_output_tokens,
+                price_source=args.price_source,
+                price_date=args.price_date,
             )
             result = julius.evaluate_jev_shadow(
                 state=state,

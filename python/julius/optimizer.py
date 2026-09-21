@@ -9,10 +9,10 @@ _PROTECTED = re.compile(
 )
 _ARTIFACT = re.compile(r"[a-f0-9-]{36}\Z")
 _KNOWN_TRANSFORM = re.compile(
-    r"\[repeated exact line \d+/\d+; restore artifact [a-f0-9-]{36}\]"
+    r"\[repeated exact (?:line \d+/\d+|block \d+/\d+; original lines \d+-\d+); restore artifact [a-f0-9-]{36}\]"
 )
 STRATEGY_ID = "repeated-lines"
-STRATEGY_VERSION = "1"
+STRATEGY_VERSION = "2"
 
 
 def optimize(context: dict, policy: dict) -> dict:
