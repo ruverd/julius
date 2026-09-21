@@ -2,7 +2,7 @@
 
 This records implementation evidence, not an agent benchmark claim.
 
-Current local result: 239 Python tests passed, Rust workspace tests passed, Ruff passed, and mypy checked 43 source files without errors. A freshly built macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10.
+Current local result: 247 Python tests passed, Rust workspace tests passed, Ruff passed, and mypy checked 43 source files without errors. A freshly built macOS arm64 stable-ABI wheel passed isolated installation and offline CLI smoke tests with Python 3.12.10.
 
 ## Active Python/Rust validation
 

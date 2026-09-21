@@ -3,8 +3,12 @@
 import io
 import json
 from pathlib import Path
+from uuid import uuid4
 
-from julius.cli import run
+import pytest
+
+from julius.cli import _stored_task_prices, run
+from julius.price_store import PriceSnapshot, PriceStore
 from julius.sdk import Julius
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "events.jsonl"
@@ -25,6 +29,63 @@ def test_task_explanation_preserves_unknown_baseline(tmp_path: Path, capsys) -> 
     assert result["baselineId"] is None
     assert result["netModeledSavingsUsd"] is None
     assert result["coverageComplete"] is False
+
+
+def test_task_explanation_uses_only_linked_local_price_snapshot(tmp_path: Path, capsys) -> None:
+    store = tmp_path / "store"
+    store.mkdir()
+    snapshot = PriceSnapshot.model_validate_json(json.dumps({
+        "endpoint": "https://example.test/v1", "provider": "vendor", "model": "m",
+        "currency": "USD", "tier": "standard", "cache_regime": "default",
+        "source": "fixture", "source_date": "2026-09-20",
+        "effective_at": "2026-09-20T00:00:00Z",
+        "rates_per_million": {"inputUncached": "10", "cacheRead": "1",
+                              "cacheWrite": "20", "output": "30"},
+    }))
+    with PriceStore(store / "prices.sqlite3") as prices:
+        snapshot_id = prices.record(snapshot)["snapshotId"]
+    event_id = str(uuid4())
+    event = {
+        "schemaVersion": 1, "eventId": event_id,
+        "occurredAt": "2026-09-21T12:00:00.000Z", "sourceId": "fixture",
+        "sourceEventId": event_id, "projectId": "p", "taskId": "task",
+        "sessionId": "session", "requestId": "request", "attemptId": "attempt",
+        "clientId": "fixture", "adapterVersion": "1", "modelId": "m",
+        "providerId": "vendor", "executionLocation": "remote",
+        "eventType": "usage", "evidence": "provider_reported",
+        "payload": {"inputTokens": 100, "outputTokens": 10,
+                    "cacheReadTokens": 0, "cacheWriteTokens": 0,
+                    "complete": True, "category": "primary", "callId": "call",
+                    "costUsd": None, "priceSnapshotId": snapshot_id},
+    }
+    with Julius(store) as julius:
+        julius.record_usage(event)
+    baseline = {"id": "baseline", "taskId": "task",
+                "evidence": "controlled_experiment", "calls": [{
+                    "callId": "baseline-call", "modelId": "m", "providerId": "vendor",
+                    "occurredAt": "2026-09-21T12:00:00Z", "inputTokens": 200,
+                    "cacheReadTokens": 0, "cacheWriteTokens": 0,
+                    "outputTokens": 10, "priceSnapshotId": snapshot_id,
+                }]}
+    baseline_path = tmp_path / "baseline.json"
+    baseline_path.write_text(json.dumps(baseline))
+    assert run(["savings", "--task", "task", "--explain", "--json",
+                "--coverage-complete", "--baseline", str(baseline_path),
+                "--since", "2026-09-21T00:00:00Z", "--until", "2026-09-22T00:00:00Z",
+                "--data-dir", str(store)]) == 0
+    analysis = json.loads(capsys.readouterr().out)
+    assert analysis["currentModeledCostUsd"] == pytest.approx(0.0013)
+    assert analysis["netModeledSavingsUsd"] == pytest.approx(0.001)
+
+
+def test_price_snapshot_id_cannot_cross_model_identities(tmp_path: Path) -> None:
+    events = [
+        {"eventType": "usage", "providerId": "vendor", "modelId": model,
+         "payload": {"priceSnapshotId": "same"}}
+        for model in ("one", "two")
+    ]
+    with pytest.raises(ValueError, match="conflicting model identities"):
+        _stored_task_prices(tmp_path, events, None)
 
 
 def test_cli_serve_processes_offline_jsonl(tmp_path: Path, monkeypatch) -> None:

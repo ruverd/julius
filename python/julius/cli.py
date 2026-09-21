@@ -158,6 +158,47 @@ def _task_explanation(data: dict) -> str:
     ])
 
 
+def _stored_task_prices(
+    data_dir: Path, events: list[dict], baseline: dict | None,
+) -> dict[str, dict]:
+    """Resolve only explicitly linked historical USD snapshots for this task."""
+    references: dict[str, tuple[str, str]] = {}
+
+    def add(snapshot_id: object, provider_id: object, model_id: object) -> None:
+        if not all(isinstance(item, str) and item for item in (
+            snapshot_id, provider_id, model_id,
+        )):
+            return
+        assert isinstance(snapshot_id, str)
+        assert isinstance(provider_id, str)
+        assert isinstance(model_id, str)
+        identity = (provider_id, model_id)
+        if snapshot_id in references and references[snapshot_id] != identity:
+            raise ValueError("Price snapshot ID has conflicting model identities")
+        references[snapshot_id] = identity
+
+    for event in events:
+        if event.get("eventType") == "usage":
+            add(event["payload"].get("priceSnapshotId"),
+                event.get("providerId"), event.get("modelId"))
+    if baseline is not None and isinstance(baseline.get("calls"), list):
+        for call in baseline["calls"]:
+            if isinstance(call, dict):
+                add(call.get("priceSnapshotId"), call.get("providerId"), call.get("modelId"))
+    path = data_dir / "prices.sqlite3"
+    if not references or not path.exists():
+        return {}
+    with PriceStore(path) as store:
+        resolved = {
+            snapshot_id: store.pricing_snapshot(
+                snapshot_id, provider_id=provider_id, model_id=model_id,
+            )
+            for snapshot_id, (provider_id, model_id) in references.items()
+        }
+    return {snapshot_id: snapshot for snapshot_id, snapshot in resolved.items()
+            if snapshot is not None}
+
+
 def run(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
@@ -727,8 +768,11 @@ def run(argv: list[str] | None = None) -> int:
                     raise ValueError("Prices must be a JSON object keyed by snapshot ID")
                 if not isinstance(overhead, list):
                     raise ValueError("Overhead must be a JSON array")
+                task_events = julius.ledger.events(filters)
+                if prices is None:
+                    prices = _stored_task_prices(directory, task_events, baseline)
                 analysis = analyze_task(
-                    julius.ledger.events(filters), baseline=baseline, prices=prices,
+                    task_events, baseline=baseline, prices=prices,
                     overhead=overhead, coverage_complete=args.coverage_complete,
                 )
                 if args.json:
