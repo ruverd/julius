@@ -82,3 +82,59 @@ def test_incomplete_continuation_still_records_both_attempts(tmp_path):
         incomplete = next(event for event in events if not event["payload"]["complete"])
         assert incomplete["payload"]["inputTokens"] is None
         assert incomplete["payload"]["costUsd"] is None
+
+
+def test_ledger_failure_retains_sent_attempt_evidence_without_continuation(tmp_path):
+    with Julius(tmp_path) as julius:
+        calls = []
+
+        def transport(body, headers):
+            calls.append(body)
+            return response("resp_1", [{"type": "function_call", "name": "julius_restore_artifact",
+                                        "call_id": "call_1", "arguments": "{}"}])
+
+        def fail_record(event):
+            raise OSError("ledger unavailable")
+
+        julius.record_usage = fail_record
+        outcome = julius.send_xai_with_restores(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            transport=transport,
+        )
+        assert len(calls) == 1
+        assert outcome["complete"] is False
+        assert outcome["error"] == "Attempt callback failed"
+        assert outcome["attempts"] == []
+        assert outcome["ledgerRecordingStatus"] == "unknown"
+        assert outcome["attemptEvidence"][0]["responseId"] == "resp_1"
+        assert outcome["attemptEvidence"][0]["inputTokens"] == 20
+        assert outcome["attemptEvidence"][0]["outputTokens"] == 4
+        assert julius.ledger.events() == []
+
+
+def test_single_send_ledger_failure_returns_provider_evidence(tmp_path):
+    with Julius(tmp_path) as julius:
+        calls = []
+
+        def transport(body, headers):
+            calls.append(body)
+            return response("resp_1", [{"type": "message", "content": []}])
+
+        def fail_record(event):
+            raise OSError("ledger unavailable")
+
+        julius.record_usage = fail_record
+        outcome = julius.send_xai(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            transport=transport,
+        )
+        assert len(calls) == 1
+        assert outcome["complete"] is True
+        assert outcome["recordingError"] == "ledger_recording_status_unknown"
+        assert outcome["ledgerRecordingStatus"] == "unknown"
+        assert outcome["usageEvent"] is None
+        assert outcome["usageReceipt"] is None
+        assert outcome["attemptEvidence"]["responseId"] == "resp_1"
+        assert outcome["attemptEvidence"]["inputTokens"] == 20
+        assert outcome["attemptEvidence"]["outputTokens"] == 4
+        assert julius.ledger.events() == []

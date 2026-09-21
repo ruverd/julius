@@ -29,6 +29,8 @@ from .claude_hooks import post_tool_use
 from .mcp_recovery import serve_stdio as serve_recovery_stdio
 from .claude_runner import run_claude
 from .claude_print_runner import run_claude_print
+from .claude_pilot import run_claude_pilot
+from .claude_pilot_analysis import analyze_claude_pilot_report
 from .codex_live_probe import probe_codex_usage
 from .lmstudio import discover_lmstudio
 from .model_registry import ModelRegistry, ModelSnapshot
@@ -90,7 +92,7 @@ def _parser() -> argparse.ArgumentParser:
         "--since", default="7d", help="Rolling days/hours/minutes or ISO time; inclusive start"
     )
     parser.add_argument("--until", help="Exclusive end; local dates convert to UTC")
-    for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead"):
+    for option in ("project", "project-root", "snapshot", "apply-plan", "task", "model", "source", "endpoint", "provider", "currency", "tier", "cache-regime", "at", "output", "agent", "request", "prompt-file", "session", "state-file", "guard-file", "actions", "price-source", "price-date", "baseline", "prices", "overhead", "work-dir", "claude-executable"):
         parser.add_argument(f"--{option}")
     parser.add_argument("--invalidation-reason", help="Reason recorded when invalidating memory")
     parser.add_argument("--limit", type=int, default=100, help="Memory history page size, 1-100")
@@ -98,6 +100,8 @@ def _parser() -> argparse.ArgumentParser:
     for option in ("post-call-threshold-usd", "input-usd-per-million", "output-usd-per-million", "confidence", "max-budget-usd", "timeout-seconds"):
         parser.add_argument(f"--{option}", type=float)
     parser.add_argument("--max-turns", type=int, default=4)
+    parser.add_argument("--order-seed", type=int)
+    parser.add_argument("--execute", action="store_true", help="Explicitly run the bounded external Claude pilot")
     parser.add_argument("--by", choices=["model", "category", "client"])
     parser.add_argument("--runtime", choices=["ollama", "lmstudio"], default="ollama")
     parser.add_argument("--format")
@@ -504,8 +508,33 @@ def run(argv: list[str] | None = None) -> int:
                 ))
         return 0
     if command == "evaluate":
+        if args.arguments == ["pilot-report"]:
+            payload = _json_file(_required(args.state_file, "--state-file"), 16 * 1024 * 1024)
+            if not isinstance(payload, dict):
+                raise ValueError("Pilot report must be a JSON object")
+            analysis = analyze_claude_pilot_report(payload)
+            _json({key: value for key, value in analysis.items() if key != "attempts"})
+            return 0
+        if args.arguments == ["pilot"]:
+            if not args.execute:
+                raise ValueError("evaluate pilot requires --execute because it makes 12 external Claude sessions")
+            if args.max_budget_usd is None or args.timeout_seconds is None:
+                raise ValueError("evaluate pilot requires --max-budget-usd and --timeout-seconds per arm")
+            if args.order_seed is None:
+                raise ValueError("evaluate pilot requires --order-seed")
+            _json(run_claude_pilot(
+                work_dir=Path(_required(args.work_dir, "--work-dir")),
+                project_id=_required(args.project, "--project"),
+                max_turns=args.max_turns,
+                max_budget_usd=args.max_budget_usd,
+                timeout_seconds=args.timeout_seconds,
+                order_seed=args.order_seed,
+                model=args.model,
+                claude_executable=args.claude_executable or "claude",
+            ))
+            return 0
         if args.arguments != ["replay"]:
-            raise ValueError("Use evaluate replay --state-file <json>")
+            raise ValueError("Use evaluate replay|pilot-report --state-file <json> or evaluate pilot --execute --project <id> --work-dir <path> --order-seed <int> --max-budget-usd <amount> --timeout-seconds <seconds>")
         payload = _json_file(_required(args.state_file, "--state-file"), 16 * 1024 * 1024)
         if not isinstance(payload, dict):
             raise ValueError("Evaluation input must be a JSON object")

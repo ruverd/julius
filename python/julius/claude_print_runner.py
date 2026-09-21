@@ -77,6 +77,7 @@ def parse_stream_json(stdout: str, *, exit_code: int) -> dict[str, Any]:
         ),
         "exit_code": exit_code,
         "session_id": final.get("session_id") if final and isinstance(final.get("session_id"), str) else None,
+        "result_subtype": final.get("subtype") if final and isinstance(final.get("subtype"), str) else None,
         "actual_model": next(iter(models)) if len(models) == 1 else None,
         "observed_models": sorted(models),
         "usage": totals,

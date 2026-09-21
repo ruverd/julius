@@ -26,6 +26,7 @@ def test_parser_uses_final_session_totals_without_nested_double_count():
     assert parsed["usage"]["output_tokens"] == 4
     assert parsed["actual_model"] == "claude-one"
     assert parsed["scope"] == "claude_session_delta"
+    assert parsed["result_subtype"] == "success"
     assert parsed["output"] == "synthetic answer"
 
 
@@ -38,6 +39,7 @@ def test_multi_model_unknown_and_incomplete_usage_stays_unknown():
          "total_cost_usd": -1},
     ), exit_code=1)
     assert parsed["complete"] is False
+    assert parsed["result_subtype"] == "error_max_turns"
     assert parsed["actual_model"] is None
     assert parsed["observed_models"] == ["one", "two"]
     assert parsed["usage"]["input_tokens"] is None
@@ -85,6 +87,7 @@ def test_timeout_is_incomplete_and_limits_are_required(tmp_path):
     )
     assert result["complete"] is False
     assert result["error"] == "missing_result"
+    assert result["result_subtype"] is None
     with pytest.raises(ValueError, match="max_turns"):
         run_claude_print(prompt="x", project_id="p", data_dir=tmp_path,
                          max_turns=0, max_budget_usd=1.0, timeout_seconds=1)

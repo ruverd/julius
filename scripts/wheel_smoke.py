@@ -50,6 +50,8 @@ def main() -> None:
             "from julius.request_measurement import measure_request_pair; "
             "from julius.price_store import PriceStore; "
             "from julius.claude_print_runner import run_claude_print; "
+            "from julius.claude_pilot import run_claude_pilot; "
+            "from julius.claude_pilot_analysis import analyze_claude_pilot_report; "
             "from julius.codex_live_probe import probe_codex_usage; "
             "print(XAIAdapter().prepare({'model':'grok-fixture','input':'hi'}).decode())",
         ).strip() == '{"model":"grok-fixture","input":"hi"}'

@@ -99,10 +99,18 @@ class Julius:
         request_id = str(uuid4())
         attempt_id = str(uuid4())
         result = adapter.send_once(request, api_key, transport=transport)
-        event, receipt = self._record_xai_attempt(
-            result, project_id=project_id, session_id=session_id, task_id=task_id,
-            request_id=request_id, attempt_id=attempt_id,
-        )
+        event = None
+        receipt = None
+        recording_error = None
+        try:
+            event, receipt = self._record_xai_attempt(
+                result, project_id=project_id, session_id=session_id, task_id=task_id,
+                request_id=request_id, attempt_id=attempt_id,
+            )
+        except Exception:
+            # A provider call has already happened. Preserve its returned evidence
+            # without retrying or implying that the ledger has no matching row.
+            recording_error = "ledger_recording_status_unknown"
         return {
             "requestedModel": result.requested_model,
             "actualModel": result.actual_model,
@@ -111,7 +119,29 @@ class Julius:
             "error": result.error,
             "usageEvent": event,
             "usageReceipt": receipt,
+            "recordingError": recording_error,
+            "ledgerRecordingStatus": "unknown" if recording_error else "recorded",
+            "attemptEvidence": self._xai_attempt_evidence(result),
             "response": result.raw_response,
+        }
+
+    @staticmethod
+    def _xai_attempt_evidence(result: XAIResult) -> dict[str, Any]:
+        """Expose provider observations when local recording has an unknown outcome."""
+        return {
+            "requestedModel": result.requested_model,
+            "actualModel": result.actual_model,
+            "responseId": result.response_id,
+            "complete": result.complete,
+            "inputTokens": result.input_tokens,
+            "outputTokens": result.output_tokens,
+            "cachedInputTokens": result.cached_input_tokens,
+            "reasoningTokens": result.reasoning_tokens,
+            "totalTokens": result.total_tokens,
+            "costTicks": result.cost_ticks,
+            "rawUsage": result.raw_usage,
+            "error": result.error,
+            "evidence": result.evidence,
         }
 
     def _record_xai_attempt(
@@ -198,6 +228,10 @@ class Julius:
             "complete": outcome.completed,
             "error": outcome.error,
             "attempts": records,
+            "attemptEvidence": [self._xai_attempt_evidence(item) for item in outcome.attempts],
+            "ledgerRecordingStatus": (
+                "unknown" if len(records) != len(outcome.attempts) else "recorded"
+            ),
             "responses": [attempt.raw_response for attempt in outcome.attempts],
             "restoredArtifactIds": list(outcome.restored_artifact_ids),
         }
@@ -241,6 +275,23 @@ class Julius:
             session_id=session_id, task_id=task_id, transport=transport,
             max_calls=max_calls,
         )
+        if outcome["ledgerRecordingStatus"] != "recorded":
+            # The candidate may have reached xAI, but no transform claim is
+            # durable until the attempted call is reconciled in the ledger.
+            measurement = dict(prepared.measurement or {})
+            first_evidence = outcome["attemptEvidence"][0] if outcome["attemptEvidence"] else None
+            actual_model = first_evidence["actualModel"] if first_evidence else None
+            measurement["sent"] = None
+            measurement["actualModelId"] = actual_model
+            measurement["tokenComparisonValid"] = bool(
+                measurement.get("beforeTokens") is not None
+                and measurement.get("afterTokens") is not None
+                and measurement.get("modelId") == actual_model
+            )
+            return {**outcome, "candidateReceipts": list(prepared.receipts),
+                    "requestMeasurement": measurement,
+                    "requestTransformEvent": None, "requestTransformReceipt": None,
+                    "transformEvents": []}
         first = outcome["attempts"][0] if outcome["attempts"] else None
         first_event = first["usageEvent"] if first is not None else None
         first_response = outcome["responses"][0] if outcome["responses"] else None

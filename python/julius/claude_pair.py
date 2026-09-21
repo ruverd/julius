@@ -37,8 +37,31 @@ _RECOVERY_TOOL = "mcp__julius-recovery__restore_artifact"
 _ARTIFACT_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\Z")
 _MAX_STREAM_BYTES = 10_000_000
 
+# Frozen, harmless Bash fixtures. Commands are literals, never assembled from input.
+PILOT_TASKS = (
+    {"id": "count-en", "language": "en", "command": FIXED_COMMAND,
+     "output": EXPECTED_OUTPUT, "answer": "96", "prompt": PROMPT},
+    {"id": "count-pt", "language": "pt", "command": FIXED_COMMAND,
+     "output": EXPECTED_OUTPUT, "answer": "96",
+     "prompt": "Execute este comando Bash exato uma vez e conte as linhas da saída. Responda somente com o número decimal. Não execute outro comando.\n" + FIXED_COMMAND},
+    {"id": "words-en", "language": "en", "command": "printf 'red blue green\\n%.0s' {1..64}",
+     "output": "red blue green\n" * 64, "answer": "192",
+     "prompt": "Run this exact Bash command once and count all words in its output. Answer only with the decimal count. Do not run another command.\nprintf 'red blue green\\n%.0s' {1..64}"},
+    {"id": "words-pt", "language": "pt", "command": "printf 'red blue green\\n%.0s' {1..64}",
+     "output": "red blue green\n" * 64, "answer": "192",
+     "prompt": "Execute este comando Bash exato uma vez e conte todas as palavras da saída. Responda somente com o número decimal. Não execute outro comando.\nprintf 'red blue green\\n%.0s' {1..64}"},
+    {"id": "compact-en", "language": "en", "command": "printf 'north\\nsouth\\neast\\n'",
+     "output": "north\nsouth\neast\n", "answer": "3",
+     "prompt": "Run this exact Bash command once and count its output lines. Answer only with the decimal count. Do not run another command.\nprintf 'north\\nsouth\\neast\\n'"},
+    {"id": "compact-pt", "language": "pt", "command": "printf 'north\\nsouth\\neast\\n'",
+     "output": "north\nsouth\neast\n", "answer": "3",
+     "prompt": "Execute este comando Bash exato uma vez e conte as linhas da saída. Responda somente com o número decimal. Não execute outro comando.\nprintf 'north\\nsouth\\neast\\n'"},
+)
+_TASK_BY_ID = {task["id"]: task for task in PILOT_TASKS}
 
-def gate_hook_event(event: Any, *, once_file: Path | None = None) -> dict[str, Any] | None:
+
+def gate_hook_event(event: Any, *, once_file: Path | None = None,
+                    command: str = FIXED_COMMAND) -> dict[str, Any] | None:
     """Deny any tool request except the one fixed command and project recovery."""
     allowed = False
     if isinstance(event, dict):
@@ -47,7 +70,7 @@ def gate_hook_event(event: Any, *, once_file: Path | None = None) -> dict[str, A
         if isinstance(inputs, dict):
             if name == "Bash":
                 allowed = (
-                    inputs.get("command") == FIXED_COMMAND
+                    inputs.get("command") == command
                     and set(inputs) <= {"command", "description", "timeout"}
                     and ("description" not in inputs or isinstance(inputs["description"], str))
                     and ("timeout" not in inputs or type(inputs["timeout"]) is int)
@@ -80,7 +103,7 @@ def gate_hook_event(event: Any, *, once_file: Path | None = None) -> dict[str, A
     }}
 
 
-def _stream_evidence(stdout: str) -> dict[str, Any]:
+def _stream_evidence(stdout: str, command: str = FIXED_COMMAND) -> dict[str, Any]:
     requests: list[tuple[str | None, str, dict[str, Any]]] = []
     results: set[str] = set()
     unexpected = 0
@@ -109,14 +132,14 @@ def _stream_evidence(stdout: str) -> dict[str, Any]:
                 requests.append((ident if isinstance(ident, str) else None, name, inputs))
                 if name == _RECOVERY_TOOL:
                     recovery_requests += 1
-                if gate_hook_event({"tool_name": name, "tool_input": inputs}) is not None:
+                if gate_hook_event({"tool_name": name, "tool_input": inputs}, command=command) is not None:
                     unexpected += 1
             elif block.get("type") == "tool_result":
                 ident = block.get("tool_use_id")
                 if isinstance(ident, str) and block.get("is_error") is not True:
                     results.add(ident)
     bash_ids = [ident for ident, name, inputs in requests
-                if name == "Bash" and inputs.get("command") == FIXED_COMMAND]
+                if name == "Bash" and inputs.get("command") == command]
     return {
         "bash_requests": len(bash_ids),
         "bash_results": sum(ident is not None and ident in results for ident in bash_ids),
@@ -125,7 +148,8 @@ def _stream_evidence(stdout: str) -> dict[str, Any]:
     }
 
 
-def _artifact_evidence(data_dir: Path, project_id: str, stdout: str) -> list[dict[str, Any]]:
+def _artifact_evidence(data_dir: Path, project_id: str, stdout: str,
+                       expected_output: str = EXPECTED_OUTPUT) -> list[dict[str, Any]]:
     root = data_dir / "artifacts"
     if not root.exists():
         return []
@@ -142,8 +166,8 @@ def _artifact_evidence(data_dir: Path, project_id: str, stdout: str) -> list[dic
             match = False
             matches_without_final_newline = False
         else:
-            match = original == EXPECTED_OUTPUT
-            matches_without_final_newline = original == EXPECTED_OUTPUT.rstrip("\n")
+            match = original == expected_output
+            matches_without_final_newline = original == expected_output.rstrip("\n")
         evidence.append({
             "artifact_id": ident,
             "original_matches_fixed_output": match,
@@ -164,7 +188,9 @@ def _arm(
     max_budget_usd: float, timeout_seconds: float, model: str | None,
     python_executable: str, claude_executable: str,
     runner: Callable[..., subprocess.CompletedProcess[str]],
+    task: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    task = task or _TASK_BY_ID["count-en"]
     arm_dir = run_dir / name
     arm_dir.mkdir(mode=0o700)
     project_dir = arm_dir / "project"
@@ -178,13 +204,13 @@ def _arm(
         project_id=arm_project, data_dir=data_dir,
         settings_path=settings_path, mcp_path=mcp_path,
         python_executable=python_executable, claude_executable=claude_executable,
-        task_id="synthetic-pair", enable_safe_hook=name == "safe_hook",
+        task_id=task["id"], enable_safe_hook=name == "safe_hook",
         claude_args=(
             "--print", "--output-format", "stream-json", "--verbose",
             "--include-hook-events", "--no-session-persistence", "--restricted",
             "--strict-mcp-config", "--permission-mode", "dontAsk",
             "--permission-prompts", "none", "--tools", "Bash",
-            "--allowedTools", f"Bash({FIXED_COMMAND})", _RECOVERY_TOOL,
+            "--allowedTools", f"Bash({task['command']})", _RECOVERY_TOOL,
             "--max-turns", str(max_turns), "--max-budget-usd", str(max_budget_usd),
             *(["--model", model] if model is not None else []),
         ),
@@ -193,7 +219,7 @@ def _arm(
     settings.setdefault("hooks", {})["PreToolUse"] = [{
         "matcher": "*", "hooks": [{"type": "command", "command": shlex.join([
             python_executable, "-m", "julius.claude_pair", "--gate",
-            str(arm_dir / "fixed-command-used"),
+            str(arm_dir / "fixed-command-used"), task["id"],
         ])}],
     }]
     settings_path.write_text(json.dumps(settings), encoding="utf-8")
@@ -210,7 +236,7 @@ def _arm(
     failure: str | None = None
     try:
         completed = runner(
-            list(plan.claude_command), input=PROMPT, text=True, capture_output=True,
+            list(plan.claude_command), input=task["prompt"], text=True, capture_output=True,
             timeout=timeout_seconds, check=False, cwd=project_dir, env=environment,
         )
         stdout = _text(completed.stdout)
@@ -233,17 +259,19 @@ def _arm(
     except ValueError:
         parsed = parse_stream_json("", exit_code=exit_code)
         failure = failure or "oversized_stream"
-    evidence = _stream_evidence(stdout)
-    artifacts = _artifact_evidence(data_dir, arm_project, stdout)
+    evidence = _stream_evidence(stdout, task["command"])
+    artifacts = _artifact_evidence(data_dir, arm_project, stdout, task["output"])
     passed = bool(
-        parsed["complete"] and parsed["output"] == EXPECTED_ANSWER
+        parsed["complete"] and parsed["output"] == task["answer"]
         and evidence["bash_requests"] == 1 and evidence["bash_results"] == 1
         and evidence["unexpected_tool_requests"] == 0
     )
     result = {
-        "arm": name, "project_id": arm_project,
+        "arm": name, "task_id": task["id"], "language": task["language"],
+        "project_id": arm_project,
         "complete": parsed["complete"], "passed": passed,
         "error": failure or parsed["error"], "exit_code": exit_code,
+        "result_subtype": parsed["result_subtype"],
         "session_id": parsed["session_id"],
         "actual_model": parsed["actual_model"],
         "observed_models": parsed["observed_models"],
@@ -307,14 +335,18 @@ def run_claude_pair(
 
 
 def _main() -> int:
-    if len(sys.argv) != 3 or sys.argv[1] != "--gate":
-        raise SystemExit("usage: python -m julius.claude_pair --gate ONCE_FILE")
+    if len(sys.argv) not in (3, 4) or sys.argv[1] != "--gate":
+        raise SystemExit("usage: python -m julius.claude_pair --gate ONCE_FILE [TASK_ID]")
+    task_id = sys.argv[3] if len(sys.argv) == 4 else "count-en"
+    if task_id not in _TASK_BY_ID:
+        raise SystemExit("unknown frozen task")
     raw = sys.stdin.buffer.read(65537)
     try:
         event = json.loads(raw) if len(raw) <= 65536 else None
     except (UnicodeError, json.JSONDecodeError):
         event = None
-    decision = gate_hook_event(event, once_file=Path(sys.argv[2]))
+    decision = gate_hook_event(event, once_file=Path(sys.argv[2]),
+                               command=_TASK_BY_ID[task_id]["command"])
     if decision is not None:
         print(json.dumps(decision))
     return 0

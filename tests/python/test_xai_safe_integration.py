@@ -82,6 +82,34 @@ def test_failed_send_keeps_candidate_unsent_and_usage_unknown(tmp_path):
         assert usage["payload"]["costUsd"] is None
 
 
+def test_safe_send_ledger_failure_returns_unreconciled_provider_attempt(tmp_path):
+    calls = []
+
+    def transport(body, headers):
+        calls.append(body)
+        return provider_response()
+
+    with Julius(tmp_path) as julius:
+        def fail_record(event):
+            raise OSError("ledger unavailable")
+
+        julius.record_usage = fail_record
+        result = julius.send_xai_optimized(
+            request(), api_key="fixture-key", project_id="project", session_id="session",
+            policy=POLICY, transport=transport,
+        )
+        assert len(calls) == 1
+        assert result["complete"] is False
+        assert result["ledgerRecordingStatus"] == "unknown"
+        assert result["attemptEvidence"][0]["responseId"] == "resp_1"
+        assert result["attemptEvidence"][0]["inputTokens"] == 30
+        assert result["requestMeasurement"]["sent"] is None
+        assert result["candidateReceipts"][0]["applied"] is True
+        assert result["requestTransformEvent"] is None
+        assert result["transformEvents"] == []
+        assert julius.ledger.events() == []
+
+
 def test_completed_response_without_usage_confirms_candidate_was_sent(tmp_path):
     def transport(body, headers):
         return json.dumps({"id": "resp_without_usage", "model": "grok-actual",

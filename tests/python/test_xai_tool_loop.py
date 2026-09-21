@@ -129,3 +129,32 @@ def test_unverified_state_or_missing_recovery_tool_never_sends(tmp_path):
         run_restore_loop(missing_tool, api_key="key", project_id="p", artifacts=store,
                          transport=transport)
     assert sent == []
+
+
+def test_callback_failure_returns_attempt_and_stops_before_restore(tmp_path):
+    store = ArtifactStore(tmp_path)
+    artifact_id = store.put("p", "original text")["id"]
+    sent = []
+    observed = []
+
+    def transport(body, headers):
+        sent.append(json.loads(body))
+        return response("resp_1", [{"type": "function_call", "name": "julius_restore_artifact",
+                                    "call_id": "call_1",
+                                    "arguments": json.dumps({"artifact_id": artifact_id})}])
+
+    def failing_callback(result, index):
+        observed.append((result, index))
+        raise RuntimeError("ledger unavailable")
+
+    result = run_restore_loop(initial_request(), api_key="key", project_id="p",
+                              artifacts=store, transport=transport,
+                              on_attempt=failing_callback)
+
+    assert result.completed is False
+    assert result.error == "Attempt callback failed"
+    assert result.attempts == (observed[0][0],)
+    assert observed[0][1] == 0
+    assert result.attempts[0].input_tokens == 10
+    assert result.restored_artifact_ids == ()
+    assert len(sent) == 1

@@ -54,7 +54,11 @@ def run_restore_loop(
         attempts.append(result)
         if on_attempt is not None:
             # Persist this call before any continuation can be sent.
-            on_attempt(result, len(attempts) - 1)
+            try:
+                on_attempt(result, len(attempts) - 1)
+            except Exception:
+                return XAIToolLoopResult(tuple(attempts), False,
+                                         "Attempt callback failed", tuple(restored))
         if not result.complete or result.raw_response is None:
             return XAIToolLoopResult(tuple(attempts), False,
                                      result.error or "Provider response incomplete", tuple(restored))

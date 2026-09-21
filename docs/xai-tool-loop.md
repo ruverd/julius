@@ -4,6 +4,8 @@
 
 The loop stops on any other function call, malformed arguments, repeated call ID, missing response ID, unavailable original, incomplete response, transport error, or call-limit excess. It never retries an ambiguous send. It does not execute arbitrary tools. A caller must explicitly authorize the initial request, including any xAI server-side tools in it.
 
+If the per-attempt callback fails, the loop stops before reading an artifact or sending a continuation. Its result still contains the provider attempt and any usage the provider reported. The callback failure does not establish that the ledger recorded the attempt; callers must inspect the loop result and reconcile that evidence.
+
 The initial request must declare the Julius restore function and must not set `store: false`. The loop uses `previous_response_id` for continuation, while xAI documents `store: false` as disabling later response retrieval; compatibility between those features is not verified. Julius rejects that combination before sending instead of silently changing the caller's storage choice. This is a conservative inference from the [Responses API reference](https://docs.x.ai/developers/rest-api-reference/inference/responses), not a provider guarantee about every account.
 
 This is fixture-tested plumbing, not a live compatibility claim. The caller must record all attempted usage, including an incomplete attempt, and must not turn estimates into realized savings. The loop does not itself write ledger events.

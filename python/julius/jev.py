@@ -88,9 +88,9 @@ class TypeSafeGateway:
         self._transport = transport or HttpsTypeSafeTransport()
 
     def choose(
-        self, state: Mapping[str, int | float | bool | str], eligible_actions: tuple[Action, ...], timeout_seconds: float
+        self, state: Mapping[str, object], eligible_actions: tuple[Action, ...], timeout_seconds: float
     ) -> JevAnswer:
-        minimal_state = {key: value for key, value in state.items() if key in _ALLOWED_STATE_KEYS}
+        minimal_state = _validated_state(state)
         criteria = {
             "keep": "Keep original context unchanged.",
             "retrieve": "Retrieve authorized context from source.",
@@ -135,7 +135,7 @@ class JevGateway(Protocol):
     """Injected gateway; implementation must enforce timeout and report its cost."""
 
     def choose(
-        self, state: Mapping[str, int | float | bool | str],
+        self, state: Mapping[str, object],
         eligible_actions: tuple[Action, ...],
         timeout_seconds: float,
     ) -> JevAnswer: ...
@@ -157,19 +157,36 @@ class ShadowReceipt:
 _ALLOWED_STATE_KEYS = frozenset(
     {"input_tokens", "estimated_reduction_tokens", "artifact_recoverable", "has_protected_content", "model_local"}
 )
+_TOKEN_STATE_KEYS = frozenset({"input_tokens", "estimated_reduction_tokens"})
+_MAX_STATE_TOKENS = 1_000_000_000
+
+
+def _validated_state(state: Mapping[str, object]) -> dict[str, int | bool]:
+    """Copy bounded, typed metadata before it can reach any gateway."""
+    result: dict[str, int | bool] = {}
+    for key, value in state.items():
+        if key not in _ALLOWED_STATE_KEYS:
+            continue
+        if key in _TOKEN_STATE_KEYS:
+            if type(value) is not int or not 0 <= value <= _MAX_STATE_TOKENS:
+                raise ValueError(f"Invalid Jev state field: {key}")
+        elif type(value) is not bool:
+            raise ValueError(f"Invalid Jev state field: {key}")
+        result[key] = value
+    return result
 
 
 def shadow_decide(
     *,
-    state: Mapping[str, int | float | bool | str],
+    state: Mapping[str, object],
     eligible_actions: tuple[Action, ...],
     policy: ShadowPolicy,
     gateway: JevGateway | None = None,
 ) -> ShadowReceipt:
     """Evaluate optional suggestion without changing the deterministic action.
 
-    State uses a fixed metadata allowlist. Raw prompts, paths, IDs, and secrets never
-    reach the gateway through this interface. Gateway owns transport and hard timeout.
+    State uses a fixed, typed metadata allowlist. Invalid allowed fields fail closed
+    before the gateway call. Gateway owns transport and hard timeout.
     """
 
     if not policy.enabled:
@@ -187,7 +204,10 @@ def shadow_decide(
     if not math.isfinite(policy.minimum_confidence) or not 0 <= policy.minimum_confidence <= 1:
         return ShadowReceipt(SAFE_ACTION, None, "invalid_confidence_threshold", 0.0, None, None)
 
-    authorized = {key: value for key, value in state.items() if key in _ALLOWED_STATE_KEYS}
+    try:
+        authorized = _validated_state(state)
+    except (TypeError, ValueError):
+        return ShadowReceipt(SAFE_ACTION, None, "invalid_state", 0.0, None, None)
     started = time.monotonic()
     try:
         answer = gateway.choose(authorized, eligible_actions, policy.timeout_seconds)
