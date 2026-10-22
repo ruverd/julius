@@ -32,3 +32,9 @@ Keep node-gyp on 12.x while Node 20 is supported. Version 13.1.0 requires
 `^22.22.2 || ^24.15.0 || >=26.0.0` and fails during native compilation on Node 20.
 Changing peer overrides cannot make this engine requirement compatible.
 Revisit the major upgrade only alongside an explicit minimum-Node decision.
+
+Commander 15 and OpenAI SDK 7 also require Node 22. Keep Commander on 14.x and
+OpenAI SDK on 6.x while Node 20 remains supported. Dependabot excludes those
+unsupported major versions while retaining compatible updates. CI uses
+`npm ci --engine-strict` on Node 20 and Node 24 so a future dependency engine
+change fails at installation rather than becoming a runtime surprise.
