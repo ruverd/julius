@@ -181,6 +181,7 @@ EOF
 
 Add `completeHeader`, `findLiterals`, `growSlice`, and `utf8SafeEnd` to the existing import from `../src/economy/delivery.js`. Then append:
 
+```ts
 test('utf-8 truncation lands on code point boundaries', () => {
   const bytes = Buffer.from('ação🙂');
   assert.equal(utf8SafeEnd(bytes, 0), 0);
@@ -345,6 +346,7 @@ EOF
 
 Add the `node:fs`, `node:os`, `node:path`, `Economy`, `economyTokens`, and `DeliveryChoice` imports at the top of `test/delivery.test.ts`. Then append:
 
+```ts
 function repo(): string {
   return mkdtempSync(join(tmpdir(), 'delivery-'));
 }
@@ -623,6 +625,7 @@ EOF
 
 Add `import { callCompact } from '../src/mcp/compact.js';` at the top of `test/delivery.test.ts`. Then append:
 
+```ts
 test('compact calls window a focus and return a complete body verbatim', async () => {
   const root = repo();
   try {
@@ -718,6 +721,7 @@ EOF
 
 Add `import { deliverInvestigation, type InvestigationReport } from '../src/investigation/index.js';` at the top of `test/delivery.test.ts`. Then append:
 
+```ts
 function report(unindexedFiles: number, evidence: InvestigationReport['evidence']): InvestigationReport {
   return {
     version: 1, recipe: 'failure-localization', snapshot: 'snapshot', graphRevision: 'graph',
@@ -840,6 +844,7 @@ EOF
 
 Add `INVESTIGATION_WORKFLOW` to the imports at the top of `test/delivery.test.ts`, and add `COMPACT_INSTRUCTIONS` to the existing `callCompact` import. Then append:
 
+```ts
 test('agent instructions name delivery, focus, next, and commandless use', () => {
   for (const text of [COMPACT_INSTRUCTIONS, INVESTIGATION_WORKFLOW]) {
     assert.match(text, /delivery complete/);
