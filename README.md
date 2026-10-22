@@ -1,184 +1,206 @@
 # Julius
 
-<img src="docs/assets/julius-rock.png" alt="Julius Rock from Everybody Hates Chris" width="180">
+Julius builds a local graph of a repository and gives coding agents code search, call tracing, file APIs, dependency maps and shared learnings. It is an independent TypeScript fork of Trail-Code; see [source provenance](PROVENANCE.md) and the preserved MIT [license](LICENSE).
 
-Julius Rock (Terry Crews) from *Everybody Hates Chris* inspired the project's name.
+## Install from source
 
-Local context optimization with evidence you can inspect.
-
-Julius is an early standalone implementation of the September 21, 2026 product proposal. Python owns the product core; Rust performs deterministic text processing through PyO3. It creates recoverable optimization candidates, imports usage, and reports what is known without inventing financial savings. It does not execute a coding agent or replace an inference runtime.
-
-Local macOS and container-validated Linux arm64 standalone development archives and a managed installer are now available from source; see [release instructions](docs/release.md). The binary runs without a separate Python runtime. These are not signed or broadly tested releases.
-
-An explicit, experimental xAI Responses command can send an authorized Grok request and record provider-reported input/output usage. A guarded safe mode prepares recoverable tool-output candidates and handles Julius-only restore calls. Optional Jev shadow decisions can be requested separately. xAI paths have fixture tests only; a [live Jev shadow pilot](docs/live-jev-shadow.md) matched 3 of 5 frozen synthetic labels and did not alter production content. A bounded [live Claude pair](docs/live-claude-validation.md) passed its synthetic task in both arms but Julius cost more in that run. None proves measured product savings or agent quality.
-
-## Develop and run
-
-Requirements: Python 3.11+, uv, and a Rust toolchain for building from source. Installed native wheels do not require Rust. Validation covers macOS arm64 with Python 3.12, Linux arm64 in a Debian container, and hosted macOS ARM64/Linux X64 CI. Broader native Linux and WSL certification remain open.
+The package is **not published to npm**. This reboot is on the development
+branch `feature/julius-reboot` until its pull request is merged. Build and install
+the local tarball:
 
 ```sh
-sh scripts/dev.sh setup
-sh scripts/dev.sh test
-sh scripts/dev.sh build
-uv run --no-sync julius --version
-uv run --no-sync julius setup
-uv run --no-sync julius doctor
+git clone --branch feature/julius-reboot https://github.com/ruverd/julius.git
+cd julius
+npm ci
+npm run build
+npm pack --pack-destination .
+npm install -g ./ruverd-julius-0.23.1.tgz
+julius install --dry-run
+julius install
 ```
 
-The helper uses a repository-local Rust toolchain if one exists under `.tools`; otherwise it uses your normal toolchain. It does not edit shell profiles. Dependencies are locked in `uv.lock` and `Cargo.lock`. Maturin builds wheels in `dist/wheels`. Wheels are unsigned development artifacts, not a published package or a signed standalone release.
+Setup detects Claude Code, Cursor and Codex configuration directories. Use
+`julius install --hosts claude,cursor,codex` to select them explicitly. Restart
+or reconnect the client's MCP session after setup. The registered command uses
+the installed Node executable and module path; it resolves the repository from
+each MCP process's working directory. Keep that installation in place. If you
+move Node or reinstall Julius at another path, run setup again.
 
-For an existing local wheel, install into your chosen virtual environment:
+`julius uninstall --global` undoes this setup, restoring replaced entries and
+preserving unrelated edits. `--dry-run` previews both operations; `--home <path>`
+selects an explicit home directory. Configuration tests and stdio tests cover
+these formats; they do not establish live client compatibility or guarantee that
+a client chooses Julius instead of its built-in tools.
+
+See [installation and migration](docs/installation.md) for ownership conflicts,
+rollback and copying existing Trail learnings.
+
+## Development
+
+Requires Node.js 20 or later and npm.
 
 ```sh
-uv pip install --python /path/to/venv/bin/python ./dist/wheels/<matching-wheel>.whl
+npm ci
+npm run build
+npm test
+node dist/bin/julius.js --help
 ```
 
-Verify `julius --version` identifies `julius-local 0.2.0`. Storage defaults to `.julius` in the current directory. Set `JULIUS_HOME` or pass `--data-dir` to choose a local store. Plain `setup` initializes storage and probes client versions. Project-specific `setup --project-root` previews a Claude configuration change; `--integration codex` selects a Codex hook. Both require a matching plan hash before applying. No Docker, Redis, mandatory cloud service, daemon, or model is needed for reports.
+The npm package name is `@ruverd/julius`; local packaging uses `npm pack`. Publication is a separate operation and is not configured by this repository.
 
-`julius doctor` also runs an offline subprocess roundtrip through Julius's Claude hook and recovery MCP server. Its `localProtocolProbe` result tests Julius code only; client version discovery does not certify Claude Code accepted the hook, connected the tool, or shortened a model request. The [capability matrix](docs/doctor.md) separates bounded historical exact-version evidence from checks made during the current invocation.
-
-## Offline example
+## Local navigation
 
 ```sh
-JULIUS_HOME=/tmp/julius-demo uv run --no-sync python examples/demo.py
-uv run --no-sync julius savings --data-dir /tmp/julius-demo \
-  --since 2026-09-21T00:00:00Z --until 2026-09-22T00:00:00Z --explain
+node dist/bin/julius.js build /path/to/repo
+node dist/bin/julius.js ask "Where is authentication checked?" /path/to/repo
+node dist/bin/julius.js map /path/to/repo
+node dist/bin/julius.js callers handleRequest /path/to/repo
+node dist/bin/julius.js skeleton src/index.ts /path/to/repo
+node dist/bin/julius.js build --check /path/to/repo
 ```
 
-This example is synthetic. The 10,000 → 4,000 → 3,000 stages produce 7,000 marginal token reduction, explicitly labeled as estimates. It proves arithmetic, not agent quality or causal savings. Repeat import is idempotent.
+The basic build and these navigation commands run locally without a model key. `--deep` opts into the inherited model-assisted analysis. Graph data lives in `.julius/cache/`; shared learnings live in `.julius/learnings/`; machine state lives in `~/.julius`.
 
-## Optimize and restore
+`julius init` configures the selected coding-agent integrations. Review `julius init --dry-run` first; `--no-global` limits setup to the repository. `julius mcp` serves compact discovery and invocation over stdio; `--full-tools` explicitly exposes the six inherited graph tools.
+
+## Public API
+
+```ts
+import { Julius } from '@ruverd/julius';
+const engine = new Julius();
+await engine.graph('/path/to/repo'); // local structural analysis; no model calls
+const drift = engine.check('/path/to/repo');
+```
+
+## External services
+
+There is no configured Julius cloud service, telemetry collector or automatic npm check by default. Optional external features need explicit configuration; see [TELEMETRY.md](TELEMETRY.md). No upstream publishing credentials or deployment workflow are included.
+
+### Recoverable context economy
+
+Capture noisy output locally, then retrieve exact bytes only when needed:
 
 ```sh
-uv run --no-sync julius optimize ./tool-output.txt --project app --profile safe
-uv run --no-sync julius restore '<artifact-id>' --project app
-uv run --no-sync julius artifacts delete '<artifact-id>' --project app
-uv run --no-sync julius artifacts export '<artifact-id>' --project app --output ./private-export
-uv run --no-sync julius artifacts purge --project app
-uv run --no-sync julius artifacts delete-project --project app
+printf 'some output\n' | julius capture --budget 512
+julius capture --file build.log --budget 512
+julius run --budget 512 -- npm test
+julius read sha256:<digest> --start 0 --end 1000 --budget 512
+julius read sha256:<digest> --search 'error' --budget 512
+julius read sha256:<digest> --raw > recovered.log
+julius economy stats
 ```
 
-`observe` is the default profile. `safe` replaces eligible repeated neutral lines only when shorter and recoverable. Version 3 can reduce neutral repetition in a mixed log while preserving an error line and its neighbors exactly. Permission, approval, instruction, and wholly protected content still block the entire candidate, as do opaque data, expired policies, missing approval, and implicit recompression. Rust performs the eligible text operation; Python retains permissions and storage boundaries. A missing native extension returns an unchanged candidate with `native_unavailable`.
+Every command accepts `--repo <directory>` (default: current directory). Run executes
+its argv once, without a shell, and returns the original exit status or signal.
+Its response names separate stdout/stderr handles, status, and any capture limit.
+The command's stdin is closed. Shell syntax is literal unless you explicitly run
+a shell yourself.
 
-Receipts distinguish bytes from heuristic token estimates. Originals expire after 24 hours by default; the artifact API accepts TTLs up to 30 days. Expired originals cannot be restored. Project scope and content hashes are checked. Denied and observe requests do not retain originals.
+Budgets count the entire rendered response, including handles, omission fields,
+and recovery instructions, with the bundled offline `cl100k_base` encoding.
+They are encoding counts, not universal model token counts. Small UTF-8 inputs
+are returned verbatim with no handle or added envelope. Longer inputs and binary
+inputs get SHA-256 handles for the exact original bytes. Preview envelopes label
+UTF-8 or base64 content; byte ranges use an exclusive end offset. Search finds the
+first exact UTF-8 byte sequence within the selected range. `--raw` explicitly
+bypasses preview budgeting and returns exact bytes, including binary and CRLF.
+Retrieving a missing, deleted, or corrupt object fails explicitly.
 
-Optimization never transmits a request. A harness must preserve approvals, provide an authorized recovery tool, and record a sent transformation separately. Keeping an original does not prove an agent will know when to retrieve it. The filter has no end-to-end quality benchmark yet.
+The current resource ceiling is **8 MiB per capture**, including combined stdout
+and stderr for commands. File/stdin capture fails above that limit. Commands stop at a byte limit or
+timeout and label the result `complete: false`; their handles recover only the
+bytes captured, never the uncaptured remainder. Use `--max-bytes` to lower the
+ceiling or `--timeout-ms` to change the 5-minute default (also the maximum).
+Run budgets must be at least 300 tokens; other minimums depend on the rendered
+handle envelope. Invalid and insufficient budgets fail explicitly. Retention is explicit: there is no automatic expiration or total-disk quota,
+so the store can grow across captures. Stop active captures, then run
+`julius economy clear --all --repo <directory>` to delete all economy payloads
+and reset their ledger. The required `--all` flag makes this destructive intent
+explicit; shared learnings remain untouched. Clear atomically detaches the old
+store, preserving data created in a new store afterwards. In-flight operations
+can fail during clearing, so coordinate cleanup with callers. Removal errors
+are surfaced; an interrupted removal can leave an ignored
+`.julius/economy-clearing-<id>/` directory for manual cleanup. Deleted handles
+fail as missing; no content is silently expired. Stats refuse ledgers above 100,000 events rather than silently sampling.
 
-## Import and report
+Run previews select diagnostic lines (including nearby context), the beginning,
+and the tail. They mark omissions and remain within the full response budget;
+selection is heuristic, and exact handles remain the source of truth.
 
-```sh
-uv run --no-sync julius import ./events.jsonl
-uv run --no-sync julius import ./claude.jsonl --format claude --project app --source session-1
-uv run --no-sync julius import ./codex.jsonl --format codex --project app --source session-2
-uv run --no-sync julius savings --since 7d --by model
-uv run --no-sync julius usage --since 7d --by category
-uv run --no-sync julius savings --task DEV-123 --json
-uv run --no-sync julius export --format csv --since 7d > usage.csv
-uv run --no-sync julius export --format events-jsonl --project app --since 7d > events.jsonl
-uv run --no-sync julius events purge --project app --before 2026-09-21T00:00:00Z
-uv run --no-sync julius events delete-project --project app
-uv run --no-sync julius dashboard --output ./julius-report.html
-uv run --no-sync julius models list
-uv run --no-sync julius models list --runtime lmstudio
-uv run --no-sync julius models scan --runtime ollama
-uv run --no-sync julius models record --state-file ./model-snapshot.json
-uv run --no-sync julius models history --endpoint http://127.0.0.1:11434 --model '<model-id>'
-uv run --no-sync julius symbols index src/module.py --project app --project-root ./project --snapshot '<revision-id>'
-uv run --no-sync julius symbols search process_request --project app --project-root ./project --snapshot '<revision-id>'
-uv run --no-sync julius memory put record.json --project app --snapshot '<revision-id>'
-uv run --no-sync julius memory search compiler --project app --snapshot '<revision-id>'
-uv run --no-sync julius memory delete-project --project app
-uv run --no-sync julius mcp recovery --project app --project-root ./project
-uv run --no-sync julius prices record --state-file ./price-snapshot.json
-uv run --no-sync julius prices lookup --endpoint https://api.example.test --provider example \
-  --model '<model-id>' --currency USD --tier standard --cache-regime default \
-  --at 2026-09-21T00:00:00Z
+The store is repository-local at `.julius/economy/` and ignored by Git. Shared
+`.julius/learnings/` stays Git-visible. Equal bytes reuse one object, but every
+capture counts independently. Concurrent writers publish complete objects and
+independent ledger events. A failed ledger write fails the operation; already
+stored objects may remain available, and no successful delivery is claimed.
+
+Tokenization uses bundled offline `tiktoken` WASM ranks. To bound pathological
+BPE work, a whitespace or non-whitespace run longer than 4,096 UTF-16 units has
+an **unknown** token count. Its bytes are still captured and recoverable. Stats
+return `null` for any total containing an unknown count, including savings;
+`accountedEvents`, `uncountedEvents`, `rawUncountedEvents`, and
+`deliveredUncountedEvents` disclose coverage. No partial sum is presented as a
+complete total. `economyTokens()` returns an exact count or throws an explicit
+resource error for such input; raw retrieval succeeds and records unknown cost.
+Rendered previews shrink until they can be counted exactly within budget.
+
+For fully counted payloads, stats report raw payload tokens actually captured minus all rendered capture,
+command, and retrieval deliveries. Retrieval adds cost without adding another
+raw baseline, so savings can become negative. Binary payload accounting uses its
+base64 representation. API metadata, protocol framing, schemas, requests, and
+stats reports are excluded and disclosed. These are **local payload counts, not
+provider measurements or invoice savings**. Economy operations never request a
+model or access the network; a command you explicitly execute may do either.
+
+The exported API uses the same accounting and recovery rules:
+
+```ts
+import { Economy, economyTokens } from '@ruverd/julius';
+const economy = new Economy('/path/to/repo');
+const capture = await economy.capture(output, { budget: 512 }); // string or Uint8Array
+if (capture.handle) {
+  const recovered = await economy.read(capture.handle, { budget: 512, raw: true });
+  // recovered.bytes contains exact bytes; recovered.text is UTF-8 or base64.
+}
+const command = await economy.run(['npm', 'test'], { budget: 512 });
+const stats = await economy.stats();
 ```
 
-Transcript importers are experimental and fixture-tested, reading only explicitly supplied files. [Integration contracts](docs/integrations.md) describe supported record shapes. Codex cumulative deltas are not an exact call count. Executable detection does not establish live compatibility. Ollama and [LM Studio](docs/lmstudio.md) discovery are read-only, bypass environment proxies, reject redirects, and are restricted to loopback; they never download or load models. [Model snapshots](docs/model-registry.md) retain caller-supplied historical facts by endpoint; an explicit [local scan](docs/model-scan.md) records facts from a selected runtime. No listing or snapshot proves hardware fitness.
+For budgeted integration, deliver `result.text` exactly. `bytes`, `handle`, and
+other returned metadata support callers and are outside the payload ledger;
+count any additional transport wrappers separately. Budgeted `read()` returns
+exact selected bytes in `bytes`, with start/end locations and total omitted bytes
+in its rendered envelope. A budget can shorten that selected range further.
 
-`7d` means a rolling window; `previous-week` selects the preceding Monday-to-Monday local calendar week. Both use an inclusive start and exclusive end. Local date inputs convert to UTC; the report names its timezone. Unknown values stay unavailable. Negative reductions remain signed. Provider usage does not establish the cost of a counterfactual trajectory. Financial savings remain unavailable in CLI reports until an explicit comparable baseline is integrated. Subscription refunds and proprietary limits are never inferred.
+## Compact MCP
 
-Aggregate exports omit prompts and raw payloads. Project/model/source labels may still be private. The [dashboard](docs/dashboard.md) is self-contained HTML with no listener or external resources; it supports system light/dark appearance, accessible tables, and local filters by the selected model or client grouping. Existing output files are not overwritten.
+The default server advertises only `julius_discover` and `julius_call`, even in a
+fresh repository. Discovery lists short operation descriptions; provide
+`operation` to fetch just that operation's schema. The allowlist consists of the
+six graph operations and `context.capture`, `context.read`, `context.stats`.
+There is no shell or arbitrary code execution operation. Graph calls build the
+local structural index on first use; context calls need no graph or model key.
 
-Explicit `events-jsonl` export preserves original events, aliases, and later reconciliations for replay, while replacing `rawUsage` with `null` by default. `--include-raw` restores that field for a full sensitive audit export. Event metadata and free-text reasons can still contain private information, so review this file before sharing it. The [event contract](docs/events.md) explains filtering and replay limits.
+For example, discover `julius_file_api`, then invoke:
 
-## SDK
-
-```python
-from julius.sdk import Julius
-
-with Julius('./.julius') as julius:
-    result = julius.optimize(
-        {'projectId': 'app', 'category': 'tool_output', 'content': tool_output},
-        {'mode': 'safe', 'version': '1.0.0', 'approved': True},
-    )
-    # Your harness chooses whether to send result['candidate'], with its own permissions.
-    # Record validated usage with julius.record_usage(event).
-    print(julius.report({'projectId': 'app', 'since': '7d'}))
+```json
+{"operation":"julius_file_api","args":{"file":"src/index.ts"},"budget":800}
 ```
 
-Public Python functions use snake_case; versioned event and receipt dictionaries retain camelCase JSON fields. Strict Pydantic schemas reject invalid counters, booleans used as integers, unknown envelope fields, and invalid timestamps. SQLite WAL preserves event history, explicit duplicate aliases, corrections, and atomic shared budgets. Batch import is atomic. Budget participants must use one ledger and one immutable budget definition.
+`budget` is 256–16000 `cl100k_base` tokens (default 1200) for the result text,
+including the recovery envelope, excluding MCP framing. Omitted results retain
+an exact local handle. Use `context.read` with `handle`, byte `start`/`end`, or
+`search` to retrieve more. Graph errors remain `isError: true`, including when
+bounded. Each session receives usable content; no cross-session suppression is
+assumed. Stats describe the payload ledger and do not include discovery/schema
+or protocol costs. Discovery and stats are small metadata responses, outside
+the capture ledger and result budget.
 
-An embedded harness that observes complete model-visible input and the actual response can call [`record_embedded_request`](docs/request-measurement.md) after sending. It counts before/after input with the harness's pinned tokenizer, requires exact sent-input and model identity agreement, and records signed request-scope reduction without retaining prompt text. Evidence is caller-attested `tokenizer_counted`, not provider-reported usage or causal task savings. This does not make the xAI CLI a verified full-input counter.
+## Evidence and limitations
 
-`julius serve --data-dir <path>` exposes the same four SDK operations over bounded, versioned JSON Lines on stdin/stdout for a future Bulma harness. It does not run a model or own the harness workflow. See [stdio contract](docs/bulma-stdio.md).
-
-Optional modules provide [caller-supplied pricing](docs/pricing.md), [snapshot-scoped FTS5 memory](docs/memory.md), and a [cache-aware decision helper](docs/cache-policy.md). They do not automatically change agent requests or create financial baselines in CLI reports.
-
-`julius prices record/history/lookup` manages [local dated price evidence](docs/price-store.md) without contacting a provider. Lookup requires the endpoint, provider, model, currency, tier, cache regime, and timestamp; overlapping snapshots remain ambiguous. Task explanations can resolve a stored USD price only when a usage event or explicit baseline links its exact snapshot ID and model identity.
-
-The experimental [Claude Code hook](docs/claude-hooks.md) and [project-scoped MCP recovery tool](docs/mcp-recovery.md) are callable through the CLI. An [ephemeral Claude launcher](docs/claude-runner.md) configures them for one session. Rewriting remains disabled in its default observe profile; safe mode requires an explicit recovery verification attestation. Hook candidates enter the ledger as unsent heuristic transforms. A [live synthetic test](docs/live-claude-validation.md) confirmed Claude Code 2.1.278 consumed a Bash hook candidate and restored its matching original through MCP; it did not establish sent-request token savings or task quality. The [Codex hook command](docs/codex-hooks.md) adds only explicitly trusted context; one bounded Codex CLI 0.154.0 turn accepted the real Julius command. It cannot rewrite tool output or prove savings. [Managed project configuration](docs/integration-management.md) supports reviewable opt-in preview, hash-gated apply, and exact backup restoration on removal for Claude and Codex.
-
-```sh
-uv run --no-sync julius setup --project-root ./project --project app
-# Review both diffs, then use the printed hash:
-uv run --no-sync julius setup --project-root ./project --project app --apply-plan '<planHash>'
-uv run --no-sync julius integrations remove claude --project-root ./project
-```
-
-The project must already contain a `.claude` directory. Default project setup installs an observe-only hook; persistent safe mode requires `--profile safe --recovery-verified` after checking the recovery tool in that client session. The attestation is not automatic certification. Setup changes only that project. Configuration backups live outside the project when the default `.julius` data directory is inside it; `setup` prints their path. Removal refuses drifted configuration instead of overwriting edits made afterward.
-
-For Codex, create `.codex` in the project first. Preview `julius setup --integration codex --project-root ./project`, then apply its printed hash with `--apply-plan '<planHash>'`. Remove with `julius integrations remove codex --project-root ./project`. Codex must trust the project and the exact hook definition before it runs. This observe-only command returns `{}` by default and does not save tokens.
-
-```sh
-uv run --no-sync julius run --agent claude --project app --profile observe
-# Enable safe rewriting only after verifying this project's recovery tool in Claude:
-uv run --no-sync julius run --agent claude --project app --task DEV-123 --profile safe --recovery-verified
-# Explicit bounded prompt-only observation; prompt stays out of Julius storage:
-uv run --no-sync julius run --agent claude --project app --task DEV-123 \
-  --prompt-file ./prompt.txt --model haiku --max-budget-usd 0.05
-```
-
-The [bounded print runner](docs/claude-print-runner.md) stores one client-reported `session_delta` usage event. It normalizes Claude's non-cached input, cache creation, and cache read into one input total without adding nested details twice. A CLI-reported USD total is labeled a client estimate, not a provider invoice. A [live synthetic run](docs/live-claude-validation.md) confirmed this narrow observation path. It does not expose each underlying provider call or prove saved tokens.
-
-`julius probe codex --project app --task DEV-123` makes one explicit, read-only synthetic Codex model call in a temporary directory and records its JSONL `session_delta` usage. The [live probe](docs/codex-live-probe.md) verified this narrow path on codex-cli 0.154.0. `julius probe codex-hook --execute` separately tests whether that client accepts an ephemeral `UserPromptSubmit` hook. One [live hook acceptance turn](docs/codex-hook-probe.md) succeeded on the same version. Neither probe proves tool-output rewrite, provider charge, or token savings.
-
-## Explicit remote calls and task economics
-
-```sh
-XAI_API_KEY=<dedicated-key> uv run --no-sync julius run --agent grok \
-  --request ./xai-request.json --project app --task DEV-123 --profile observe
-XAI_API_KEY=<dedicated-key> uv run --no-sync julius run --agent grok \
-  --request ./xai-tool-result.json --project app --task DEV-123 --profile safe
-TYPESAFE_API_KEY=<dedicated-key> uv run --no-sync julius jev shadow \
-  --state-file ./decision-state.json --project app --task DEV-123 --post-call-threshold-usd 0.01
-```
-
-The observe-mode xAI request file must contain an explicit Responses API `model` and `input`. It forwards caller-supplied fields once; review requested server-side tools for effects before sending. Safe mode is a narrower, opt-in path for array input containing eligible `function_call_output` text, with a declared Julius restore function and `store` not set to `false`. It may send bounded continuation calls only when the model requests restoration. Each attempted call is recorded once, including incomplete attempts. The [whole-request measurement](docs/request-measurement.md) reports signed serialized-byte change. A counter over the JSON body remains diagnostic and does not enter direct model-input savings. Token reduction requires an explicitly attested full model-input counter pinned to the responding model; Julius has no built-in verified xAI counter. Tool-output estimates and full-request counts have different scopes and must not be summed. xAI documents `store=true` by default; `"store": false` disables stateful response storage, but is not a zero-retention guarantee. Actual response model, input, output, cache, and provider-billed cost are recorded when supplied. Missing counters or charges stay unknown. Julius does not compress generated output or intercept Grok in another client. See [xAI adapter](docs/xai.md).
-
-An offline [xAI optimization helper](docs/xai-optimization.md) prepares recoverable tool-output candidates. The [restore loop](docs/xai-tool-loop.md) now serves only Julius originals and records each provider attempt. These flows have fixture tests; real account behavior and quality remain unverified.
-
-Jev receives only allowlisted context metadata and proposes `keep`, `retrieve`, or `compress`. Shadow mode always applies `keep` to production content and records any auxiliary call. The ordinary `julius jev shadow` command now requires a pinned model, dated prices, declared token ceilings, and a modeled pre-call budget before sending; these caller declarations are not a provider-enforced charge cap. A separate, journaled [live synthetic pilot](docs/live-jev-shadow.md) pinned `jev-1.13.0`, set an explicit modeled pre-call budget, and matched 3 of 5 optional frozen labels. Its USD 0.000082488 auxiliary cost is modeled from a dated public price, not a verified invoice. These cases do not benchmark target-task quality or justify active decisions. `julius evaluate jev-shadow --state-file captures.json` replays captured decisions offline; the sixth protected-content case bypasses Jev deterministically. See [Jev boundary](docs/jev.md) and [shadow replay](docs/jev-shadow-evaluation.md).
-
-The offline [`analyze_task` API](docs/economics.md) can calculate modeled task cost and net savings when a caller supplies complete call coverage, a comparable baseline, and dated price snapshots. CLI savings remains unavailable without that evidence. Observed output tokens are usage; a signed task-level output difference requires an explicit comparable output baseline and complete coverage. It is not proof that Julius shortened generated answers.
-
-An [offline paired-task analyzer](docs/evaluation.md) accepts explicit baseline and candidate trials, keeps failed runs and retries in totals, and reports unknown measurements as unavailable. A [frozen-fixture replay](docs/evaluation-runner.md) accepts individual attempt records through `julius evaluate replay --state-file replay.json` and calculates signed differences and bootstrap confidence intervals. A bounded [Claude pilot](docs/claude-pilot.md) runs six synthetic English/Portuguese tasks in both arms; its [live exploratory result](docs/live-claude-pilot.md) found five strict successes per arm and higher client-estimated cost with Julius safe mode. `julius evaluate repo-pilot --execute --project pilot --work-dir ./runs --task bug-en --model haiku --max-budget-usd 0.03 --timeout-seconds 60` runs one paired frozen [repository task](docs/repo-task-pilot.md); omit `--task` to run all four. Its [two-task exploratory result](docs/live-repo-task-pilot.md) passed both arms and cost more with the safe hook. These pilots are not representative quality benchmarks or proof of direct token savings. A [quality guard](docs/quality-guard.md) evaluates supplied scoped outcomes through `julius policy check --state-file guard.json`, persists them with `policy record`, and can block `optimize --guard-file guard.json` for an explicitly configured project/model/strategy/version. Outcome collection and enforcement in client integrations remain unverified.
-
-## Delivery status
-
-Implemented: Python CLI/SDK and JSONL/stdio transport, strict event schemas, SQLite ledger, shared budget reservations, Rust exact-line/block candidate processing, recoverable artifacts, provider normalization, experimental transcript importers, Ollama/LM Studio discovery and append-only model snapshots, reports/exports/HTML with task and daily usage counters, separate request/tool-output reductions, mixed-evidence one-cost-per-call reporting, replayable event export, optional pricing, lexical memory with paged metadata audit and snapshot-scoped code symbols, offline tokenizer-safe route recommendations, experimental xAI single-send/restore-loop and Jev shadow gateways, offline task economics, frozen benchmark registration, fixture replay and trusted-check runner, scoped quality checks, ephemeral Claude launcher, managed project configuration, local hook/MCP probe, native wheels, macOS/Linux arm64 development archives, and tests.
-
-Pending: broad Claude/Codex/xAI compatibility validation beyond narrow synthetic probes, confirmed sent-request interception, client-connected routing, exact tokenizers, automatic pricing/baselines, automatic symbol indexing in client workflows, structured memory integration, automatic cache-aware policy, measured production quality-based suspension, representative isolated task benchmarks, broader dashboard/accessibility validation, signed distributions/updates, active Jev decisions, and actual Bulma harness integration. This repository claims no universal traffic coverage, causal savings, or quality improvement.
-
-The initial TypeScript implementation is preserved in Git commit `3616024`; frozen contract fixtures check migration parity. Python and Rust are the active core. See [current product status](docs/product-status.md), [original delivery plan](docs/plans/2026-09-21-julius.md), [approved migration](docs/plans/2026-09-21-stack-migration.md), [product completion plan](docs/plans/2026-09-21-product-completion.md), [event contract](docs/events.md), and [validation](docs/validation.md).
+Run `npm run build && npm run benchmark:economy` for the offline experiment.
+[Method and limitations](docs/economy-benchmark.md) explain the three separate
+baselines and [checked-in JSON](docs/economy-benchmark.json) records reproducible
+results. Follow-up retrieval and full recovery are charged; negative differences
+and unknown totals remain visible. Fixed-fixture fact recovery does not measure
+coding-task accuracy or provider billing. [Research notes](docs/research.md)
+distinguish deployable local context techniques from model/server research.

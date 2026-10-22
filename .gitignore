@@ -1,15 +1,34 @@
 node_modules/
 dist/
-.julius/
-*.sqlite*
+*.log
+
+# julius's local graph cache — regenerable, not committed. Each dev runs
+# `julius build` locally (it re-adds this line itself), so the folder is a
+# personal cache like node_modules, never a shared artifact.
+julius/
+
+# Env
+.env
+.env.local
+
+# OS
 .DS_Store
-.venv/
-.tools/
-target/
-__pycache__/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.so
-*.dylib
-*.egg-info/
+
+# Session transcripts and prompt traces — local analysis, not product.
+transcripts/
+
+# Claude Code settings — regenerated per machine by `julius init`, never shared
+# and never part of a PR diff (the hook helpers/skills alongside them stay tracked).
+.claude/settings.json
+.claude/settings.local.json
+
+# Cursor project config — written per machine by `julius init` (hooks, MCP, rule),
+# a personal setup like the Claude settings above, not a shared artifact.
+.cursor/
+
+# julius's local repository settings — not committed.
+/.julius/economy/
+/.julius/economy-clearing-*/
+
+# Local package build staging.
+/build/
