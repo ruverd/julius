@@ -30,7 +30,7 @@ function fakeInstall(root: string, name: string, version: string): string {
   // `m.main(...)` resolves — same shape the real dist has for the shim's call.
   writeFileSync(
     join(distClaude, 'hooks.js'),
-    `module.exports.main = () => require('node:fs').writeFileSync(process.env.MARKER, ${JSON.stringify(version)});\n`,
+    "module.exports.main = () => require('node:fs').writeFileSync(process.env.MARKER, require('../../package.json').version);\n",
   );
   return distClaude;
 }
@@ -69,12 +69,12 @@ function fakeInstall(root: string, name: string, version: string): string {
 function isolate(root: string, extraPath: string[] = []): { preload: string; env: NodeJS.ProcessEnv } {
   const preload = join(root, 'no-ambient-julius.cjs');
   const execPath = join(root, 'node-prefix', 'bin', 'node');
-  writeFileSync(preload, `Object.defineProperty(process, 'execPath', { value: ${JSON.stringify(execPath)}, configurable: true });\n`);
+  writeFileSync(preload, "Object.defineProperty(process, 'execPath', { value: process.env.FIXTURE_EXEC_PATH, configurable: true });\n");
   const prefix = join(root, 'npm-prefix');
   mkdirSync(prefix, { recursive: true });
   const ambient = (d: string) => ['julius', 'julius', 'julius.cmd', 'julius.cmd'].some((b) => existsSync(join(d, b)));
   const path = [...extraPath, ...(process.env.PATH ?? '').split(delimiter).filter((d) => d && !ambient(d))];
-  return { preload, env: { npm_config_prefix: prefix, JULIUS_HOME: juliusHomeOf(root), PATH: path.join(delimiter) } };
+  return { preload, env: { FIXTURE_EXEC_PATH: execPath, npm_config_prefix: prefix, JULIUS_HOME: juliusHomeOf(root), PATH: path.join(delimiter) } };
 }
 
 function juliusHomeOf(root: string): string { return join(root, 'julius-home'); }
@@ -271,4 +271,11 @@ test('without julius, other events and a repo with no learnings stay silent', ()
   assert.equal(runBare(root, repo, 'stop'), '');
   const empty = tmpRepo('shim-offer-empty');
   assert.equal(runBare(empty, project(empty), 'session-start'), '');
+});
+
+test('fixture versions remain data when they contain JavaScript punctuation', () => {
+  const root = tmpRepo('shim-version-data');
+  const version = "0.9.1'; throw new Error('must remain data'); //\n\\\"";
+  const only = fakeInstall(root, 'only', version);
+  assert.equal(runShim(root, project(root), { remembered: only }), version);
 });

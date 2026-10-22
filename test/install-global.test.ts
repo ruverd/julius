@@ -213,3 +213,36 @@ test('a manifest changed during planning prevents stale ownership from replacing
     assert.equal(existsSync(f.cursor), false, 'newer transaction ownership remains usable');
   } finally { f.close(); }
 });
+
+
+test('Trail migration leaves Graft launchers unmanaged in global and repository configs', () => {
+  for (const launcher of [
+    { command: 'graft', args: ['mcp'] },
+    { command: 'npx', args: ['-y', '@nanonets/graft', 'mcp'] },
+  ]) {
+    const f = fixture();
+    try {
+      mkdirSync(join(f.home, '.codex'));
+      mkdirSync(join(f.repo, '.cursor'));
+      const codex = join(f.home, '.codex', 'config.toml');
+      const paths = [f.claude, f.cursor, join(f.repo, '.mcp.json'), join(f.repo, '.cursor', 'mcp.json')];
+      const original = JSON.stringify({ mcpServers: { graft: launcher, trail: { command: 'trail', args: ['mcp'] } } });
+      for (const path of paths) writeFileSync(path, original);
+      const toml = `[mcp_servers.graft]\ncommand = ${JSON.stringify(launcher.command)}\nargs = ${JSON.stringify(launcher.args)}\n`;
+      writeFileSync(codex, toml);
+      const result = f.cli('install', '--hosts', 'claude,cursor,codex', '--migrate-trail', f.repo);
+      assert.equal(result.status, 0, result.stderr);
+      for (const path of paths) {
+        const servers = JSON.parse(readFileSync(path, 'utf8')).mcpServers;
+        assert.deepEqual(servers.graft, launcher);
+        assert.equal(servers.trail, undefined);
+      }
+      assert.ok(readFileSync(codex, 'utf8').startsWith(toml));
+      const manifest = JSON.parse(readFileSync(join(f.home, '.julius', 'install', 'manifest.json'), 'utf8'));
+      assert.ok(manifest.configs.every((config: { keys: string[] }) => !config.keys.includes('graft')));
+      assert.equal(f.cli('uninstall', '--global').status, 0);
+      for (const path of paths) assert.equal(readFileSync(path, 'utf8'), original);
+      assert.equal(readFileSync(codex, 'utf8'), toml);
+    } finally { f.close(); }
+  }
+});
