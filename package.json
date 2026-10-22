@@ -57,10 +57,10 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
-    "commander": "^15.0.0",
+    "commander": "^14.0.3",
     "dotenv": "^18.0.8",
     "gray-matter": "^4.0.3",
-    "openai": "^7.39.0",
+    "openai": "^6.49.0",
     "smol-toml": "^1.9.1",
     "tiktoken": "^1.0.22",
     "tree-sitter": "^0.25.1",
