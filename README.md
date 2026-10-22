@@ -203,8 +203,8 @@ For example, discover `julius_file_api`, then invoke:
 
 `budget` is 256–16000 `cl100k_base` tokens for the result text, including the
 recovery envelope and excluding MCP framing. The default is 1200 when `budget`
-is omitted. `delivery` is `selective` or `complete`. `focus` windows a broader
-result around one literal. `delivery: "complete"` with `budget` omitted returns
+is omitted. `delivery` is `selective` or `complete`. `focus` returns the matching
+lines for one literal, each trimmed to 160 characters, and leaves the rest on the handle. `delivery: "complete"` with `budget` omitted returns
 a one-line JSON header, a newline, and the original body; an explicit `budget`
 still caps that body and returns `next`. Other omitted results retain an exact
 local handle. Use `context.read` with `handle`, byte `start`/`end`, `search`,

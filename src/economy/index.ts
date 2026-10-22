@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, lstatSync, readFileSync, writeFileSync, readdirSync, renameSync, linkSync, unlinkSync, openSync, closeSync, fstatSync, rmSync, constants } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { get_encoding } from 'tiktoken';
-import { completeHeader, findLiterals, growSlice, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
+import { completeHeader, findLiterals, growSlice, lineHits, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
 
 let encoding: ReturnType<typeof get_encoding> | undefined;
 export const ECONOMY_ENCODING = 'cl100k_base';
@@ -299,6 +299,48 @@ export class Economy {
           return { text, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
         }
         const offsets = hits.slice(1, 9).map(hit => hit.start);
+        const lines = raw.format === 'utf8' ? lineHits(bytes, choice.literals) : [];
+        if (lines.length > 0) {
+          const renderHits = (count: number) => {
+            const shown = lines.slice(0, count);
+            const kept = shown.reduce((sum, hit) => sum + (hit.end - hit.start), 0);
+            const nextHit = lines[count];
+            const next = nextHit ? { start: nextHit.start, end: bytes.length } : null;
+            return JSON.stringify({
+              ...base,
+              match: true,
+              matchCount: lines.length,
+              offsets,
+              start: shown[0]!.start,
+              end: shown[shown.length - 1]!.end,
+              omittedBytes: bytes.length - kept,
+              content: shown.map(hit => hit.text).join('\n'),
+              hits: shown.map(({ line, text }) => ({ line, text })),
+              format: 'utf8',
+              ...(next ? { next } : {}),
+            });
+          };
+          let count = 0;
+          let text = '';
+          for (let next = 1; next <= lines.length; next++) {
+            const candidate = renderHits(next);
+            let tokens = Infinity;
+            try { tokens = economyTokens(candidate); } catch { tokens = Infinity; }
+            if (tokens > budget) break;
+            count = next;
+            text = candidate;
+          }
+          if (count === 0) {
+            const missed = JSON.stringify({ ...base, match: false, matchCount: lines.length, offsets, start: lines[0]!.start, end: lines[0]!.start, omittedBytes: bytes.length, content: '', hits: [], format: 'utf8', next: { start: lines[0]!.start, end: bytes.length } });
+            if (economyTokens(missed) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(missed)} cl100k_base tokens`);
+            this.record(rawTokens, economyTokens(missed));
+            return { text: missed, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
+          }
+          this.record(rawTokens, economyTokens(text));
+          const shown = lines.slice(0, count);
+          const kept = shown.reduce((sum, hit) => sum + (hit.end - hit.start), 0);
+          return { text, handle, bytes: Buffer.concat(shown.map(hit => bytes.subarray(hit.start, hit.end))), omittedBytes: bytes.length - kept };
+        }
         const rendered = (start: number, end: number) => {
           const slice = bytes.subarray(start, end);
           const shown = representation(slice);

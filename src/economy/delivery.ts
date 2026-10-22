@@ -72,6 +72,53 @@ function largestFit(limit: number, ok: (value: number) => boolean): number {
   return good;
 }
 
+export const MAX_HIT_TEXT = 160;
+
+export interface LineHit {
+  line: number;
+  text: string;
+  start: number;
+  end: number;
+}
+
+function clipLine(line: string, literals: string[]): string {
+  const trimmed = line.trim();
+  if (trimmed.length <= MAX_HIT_TEXT) return trimmed;
+  let at = -1;
+  let literal = '';
+  for (const item of literals) {
+    const found = trimmed.indexOf(item);
+    if (found >= 0 && (at < 0 || found < at)) {
+      at = found;
+      literal = item;
+    }
+  }
+  if (at < 0 || literal.length >= MAX_HIT_TEXT) return trimmed.slice(at < 0 ? 0 : at, (at < 0 ? 0 : at) + MAX_HIT_TEXT);
+  const before = Math.min(at, Math.floor((MAX_HIT_TEXT - literal.length) / 2));
+  let start = at - before;
+  let end = start + MAX_HIT_TEXT;
+  if (end > trimmed.length) {
+    end = trimmed.length;
+    start = Math.max(0, end - MAX_HIT_TEXT);
+  }
+  return trimmed.slice(start, end);
+}
+
+export function lineHits(bytes: Buffer, literals: string[]): LineHit[] {
+  const lines = bytes.toString('utf8').split('\n');
+  const hits: LineHit[] = [];
+  let start = 0;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]!;
+    const end = start + Buffer.byteLength(line) + (index < lines.length - 1 ? 1 : 0);
+    if (literals.some(literal => literal.length > 0 && line.includes(literal))) {
+      hits.push({ line: index + 1, text: clipLine(line, literals), start, end });
+    }
+    start = end;
+  }
+  return hits;
+}
+
 export function findLiterals(bytes: Buffer, literals: string[]): Array<{ start: number; end: number }> {
   const found: Array<{ start: number; end: number; order: number }> = [];
   literals.forEach((literal, order) => {

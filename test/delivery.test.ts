@@ -250,8 +250,26 @@ test('window growth over a large body is bounded and stays within budget', async
     assert.ok(economyTokens(result.text) <= 16000);
     const parsed = JSON.parse(result.text);
     assert.equal(parsed.match, true);
-    assert.ok(parsed.content.includes('MIDDLE_LITERAL_QX'));
-    assert.ok(parsed.content.length > 1000);
+    assert.equal(parsed.content, 'MIDDLE_LITERAL_QX retry_limit=7');
+    assert.equal(parsed.content.includes('line 0 ok'), false);
+    assert.equal(parsed.content.includes('line 19999 ok'), false);
+    assert.deepEqual(parsed.hits, [{ line: 10001, text: 'MIDDLE_LITERAL_QX retry_limit=7' }]);
+    assert.equal(parsed.next, undefined);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a long matching line keeps the literal inside 160 characters', async () => {
+  const root = repo();
+  try {
+    const line = `${'pad '.repeat(2000)}retry_limit=7${' tail'.repeat(200)}`;
+    const body = `before\n${line}\nafter`;
+    const parsed = JSON.parse((await new Economy(root).present(body, { algorithm: 'targeted', label: 'targeted', budget: 400, literals: ['retry_limit=7'] }, 'mcp')).text);
+    assert.match(parsed.content, /retry_limit=7/);
+    assert.equal(parsed.content.includes('before'), false);
+    assert.equal(parsed.content.includes('after'), false);
+    assert.equal(parsed.hits[0].line, 2);
+    assert.ok(parsed.hits[0].text.length <= 160);
+    assert.ok(economyTokens(JSON.stringify(parsed)) <= 400);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
