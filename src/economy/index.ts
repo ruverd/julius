@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, lstatSync, readFileSync, writeFileSync, readdirSync, renameSync, linkSync, unlinkSync, openSync, closeSync, fstatSync, rmSync, constants } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { get_encoding } from 'tiktoken';
+import { completeHeader, findLiterals, growSlice, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
 
 let encoding: ReturnType<typeof get_encoding> | undefined;
 export const ECONOMY_ENCODING = 'cl100k_base';
@@ -117,9 +118,17 @@ export class Economy {
     writeFileSync(path + '.tmp', JSON.stringify({ rawTokens, deliveredTokens }), { flag: 'wx', mode: 0o600 });
     renameSync(path + '.tmp', path + '.json');
   }
-  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length, transport?: 'mcp'): EconomyResult {
-    const render = (part: Buffer) => JSON.stringify({ handle, start, end: start + part.length, totalBytes: total,
-      omittedBytes: total - part.length, ...representation(part), recover: transport === 'mcp' ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' } : `julius read ${handle} --raw` });
+  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length, transport?: 'mcp', label?: DeliveryChoice['label']): EconomyResult {
+    const render = (part: Buffer) => {
+      const end = start + part.length;
+      const next = transport === 'mcp' && end < total ? { start: end, end: total } : undefined;
+      return JSON.stringify({
+        ...(label ? { delivery: label } : {}),
+        handle, start, end, totalBytes: total, omittedBytes: total - part.length, ...representation(part),
+        recover: transport === 'mcp' ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' } : `julius read ${handle} --raw`,
+        ...(next ? { next } : {}),
+      });
+    };
     let size = Math.min(bytes.length, budget * 3);
     let part = bytes.subarray(0, size); let text = render(part);
     while ((countPayloadTokens(text) ?? Infinity) > budget && size > 0) { size = Math.floor(size / 2); part = bytes.subarray(0, size); text = render(part); }
@@ -208,6 +217,116 @@ export class Economy {
     this.record(outCount === null || errCount === null ? null : outCount + errCount, economyTokens(text));
     return { text, status: captured.status, signal: captured.signal, stdoutHandle, stderrHandle, complete: captured.limit === null, limit: captured.limit };
   }
+  hold(input: string | Uint8Array): string {
+    const bytes = Buffer.from(input);
+    if (bytes.length > ECONOMY_MAX_BYTES) throw new Error(`Capture exceeds ${ECONOMY_MAX_BYTES} byte limit; nothing captured`);
+    return this.save(bytes);
+  }
+
+  recordDelivery(rawTokens: number | null, deliveredTokens: number | null): void {
+    this.record(rawTokens, deliveredTokens);
+  }
+
+  async present(input: string | Uint8Array, choice: DeliveryChoice, transport?: 'mcp'): Promise<EconomyResult> {
+    if (choice.budget !== null) budgetCheck(choice.budget);
+    const bytes = Buffer.from(input);
+    if (bytes.length > ECONOMY_MAX_BYTES) throw new Error(`Capture exceeds ${ECONOMY_MAX_BYTES} byte limit; nothing captured`);
+    const raw = representation(bytes);
+    const rawTokens = countPayloadTokens(raw.content);
+    const recover = (handle: string) => transport === 'mcp'
+      ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' }
+      : `julius read ${handle} --raw`;
+    const bounded = (label: DeliveryChoice['label']) => {
+      const budget = choice.budget ?? 1200;
+      if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= budget) {
+        this.record(rawTokens, rawTokens);
+        return { text: raw.content, handle: null, bytes, omittedBytes: 0 };
+      }
+      const handle = this.save(bytes);
+      const result = this.render(bytes, handle, budget, 0, bytes.length, transport, label);
+      this.record(rawTokens, economyTokens(result.text));
+      return result;
+    };
+    switch (choice.algorithm) {
+      case 'full': {
+        const handle = this.save(bytes);
+        const format = raw.format === 'base64' ? 'base64' : 'utf8';
+        if (rawTokens === null) {
+          const text = completeHeader({ handle, totalBytes: bytes.length, omittedBytes: bytes.length, incomplete: true, next: { start: 0, end: bytes.length }, format });
+          this.record(null, null);
+          return { text, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
+        }
+        const renderAt = (end: number) => {
+          const prefix = bytes.subarray(0, end);
+          const shown = representation(prefix);
+          const incomplete = end < bytes.length;
+          return `${completeHeader({ handle, totalBytes: bytes.length, omittedBytes: bytes.length - prefix.length, incomplete, next: incomplete ? { start: end, end: bytes.length } : null, format: shown.format === 'base64' ? 'base64' : 'utf8' })}\n${shown.content}`;
+        };
+        if (choice.budget === null) {
+          const text = renderAt(bytes.length);
+          this.record(rawTokens, economyTokens(text));
+          return { text, handle, bytes, omittedBytes: 0 };
+        }
+        const empty = renderAt(0);
+        if (economyTokens(empty) > choice.budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(empty)} cl100k_base tokens`);
+        let lo = 0; let hi = bytes.length; let best = 0; let bestText = empty;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const end = format === 'utf8' ? utf8SafeEnd(bytes, mid) : mid;
+          const text = renderAt(end);
+          let tokens = Infinity;
+          try { tokens = economyTokens(text); } catch { tokens = Infinity; }
+          if (tokens <= choice.budget) { best = end; bestText = text; lo = mid + 1; }
+          else hi = mid - 1;
+        }
+        this.record(rawTokens, economyTokens(bestText));
+        return { text: bestText, handle, bytes: bytes.subarray(0, best), omittedBytes: bytes.length - best };
+      }
+      case 'targeted': {
+        const budget = choice.budget ?? 1200;
+        if (choice.literals.length === 0) return bounded(choice.label);
+        if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= budget && choice.literals.some(literal => raw.content.includes(literal))) {
+          this.record(rawTokens, rawTokens);
+          return { text: raw.content, handle: null, bytes, omittedBytes: 0 };
+        }
+        const handle = this.save(bytes);
+        const hits = findLiterals(bytes, choice.literals);
+        const base = { delivery: 'targeted' as const, handle, totalBytes: bytes.length, recover: recover(handle) };
+        if (hits.length === 0) {
+          const text = JSON.stringify({ ...base, match: false, matchCount: 0, offsets: [], start: 0, end: 0, omittedBytes: bytes.length, content: '', format: 'utf8', next: { start: 0, end: bytes.length } });
+          if (economyTokens(text) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(text)} cl100k_base tokens`);
+          this.record(rawTokens, economyTokens(text));
+          return { text, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
+        }
+        const offsets = hits.slice(1, 9).map(hit => hit.start);
+        const rendered = (start: number, end: number) => {
+          const slice = bytes.subarray(start, end);
+          const shown = representation(slice);
+          const next = end < bytes.length ? { start: end, end: bytes.length } : null;
+          return JSON.stringify({ ...base, match: true, matchCount: hits.length, offsets, start, end, omittedBytes: bytes.length - slice.length, content: shown.content, format: shown.format, ...(next ? { next } : {}) });
+        };
+        const grown = growSlice(bytes, hits[0]!.start, hits[0]!.end, (start, end) => {
+          try { return economyTokens(rendered(start, end)) <= budget; } catch { return false; }
+        });
+        if (grown === null) {
+          const text = JSON.stringify({ ...base, match: false, matchCount: hits.length, offsets, start: hits[0]!.start, end: hits[0]!.start, omittedBytes: bytes.length, content: '', format: 'utf8', next: { start: hits[0]!.start, end: bytes.length } });
+          if (economyTokens(text) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(text)} cl100k_base tokens`);
+          this.record(rawTokens, economyTokens(text));
+          return { text, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
+        }
+        const text = rendered(grown.start, grown.end);
+        this.record(rawTokens, economyTokens(text));
+        return { text, handle, bytes: bytes.subarray(grown.start, grown.end), omittedBytes: bytes.length - (grown.end - grown.start) };
+      }
+      case 'fixed':
+        return bounded(choice.label);
+      default: {
+        const never: never = choice.algorithm;
+        throw new Error(`Unknown delivery algorithm: ${String(never)}`);
+      }
+    }
+  }
+
   /** Explicit retention boundary. Stop active captures before clearing. */
   async clear(): Promise<void> {
     this.initialize();

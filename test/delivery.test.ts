@@ -1,6 +1,10 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { completeHeader, findLiterals, growSlice, selectDelivery, selectorLiterals, utf8SafeEnd } from '../src/economy/delivery.js';
+import { Economy, economyTokens } from '../src/economy/index.js';
+import { completeHeader, findLiterals, growSlice, selectDelivery, selectorLiterals, utf8SafeEnd, type DeliveryChoice } from '../src/economy/delivery.js';
 
 test('selector literals keep precedence and do not fall through', () => {
   assert.deepEqual(selectorLiterals('NEEDLE', { query: 'other', paths: ['a.ts'] }), ['NEEDLE']);
@@ -65,4 +69,102 @@ test('complete header is one JSON line with stable keys', () => {
   assert.equal(completeHeader({
     handle: 'sha256:' + 'a'.repeat(64), totalBytes: 4, omittedBytes: 0, incomplete: false, next: null, format: 'utf8',
   }), '{"delivery":"complete","handle":"sha256:' + 'a'.repeat(64) + '","totalBytes":4,"omittedBytes":0,"incomplete":false,"next":null,"format":"utf8"}');
+});
+
+function repo(): string {
+  return mkdtempSync(join(tmpdir(), 'delivery-'));
+}
+
+test('full delivery writes a header and the verbatim body', async () => {
+  const root = repo();
+  try {
+    const body = 'ação🙂\r\nretry_limit=7';
+    const choice: DeliveryChoice = { algorithm: 'full', label: 'complete', budget: null, literals: [] };
+    const result = await new Economy(root).present(body, choice, 'mcp');
+    const split = result.text.indexOf('\n');
+    const header = JSON.parse(result.text.slice(0, split));
+    assert.equal(result.text.slice(split + 1), body);
+    assert.equal(header.delivery, 'complete');
+    assert.equal(header.incomplete, false);
+    assert.equal(header.next, null);
+    assert.equal(header.handle, result.handle);
+    const raw = await new Economy(root).read(header.handle, { budget: 16000, raw: true });
+    assert.equal(raw.bytes.toString('utf8'), body);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('an explicit complete budget leaves a contiguous next cursor', async () => {
+  const root = repo();
+  try {
+    const body = 'ação🙂\r\n'.repeat(80);
+    const choice: DeliveryChoice = { algorithm: 'full', label: 'complete', budget: 256, literals: [] };
+    const economy = new Economy(root);
+    const result = await economy.present(body, choice, 'mcp');
+    const split = result.text.indexOf('\n');
+    const header = JSON.parse(result.text.slice(0, split));
+    assert.equal(header.incomplete, true);
+    assert.equal(header.next.start, Buffer.byteLength(result.text.slice(split + 1)));
+    const chunks = [result.text.slice(split + 1)];
+    let start = header.next.start as number;
+    let guard = 0;
+    while (start < Buffer.byteLength(body)) {
+      const read = await economy.read(header.handle, { start, budget: 256, transport: 'mcp' });
+      chunks.push(read.bytes.toString('utf8'));
+      const parsed = JSON.parse(read.text);
+      assert.equal(parsed.start, start);
+      start = parsed.next ? parsed.next.start : parsed.end;
+      assert.ok(++guard < 20);
+    }
+    assert.equal(chunks.join(''), body);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('targeted delivery windows the literal and a miss copies no head', async () => {
+  const root = repo();
+  try {
+    const body = `${'head '.repeat(800)}\nTARGET retry_limit=7\n${'tail '.repeat(800)}`;
+    const economy = new Economy(root);
+    const hit = await economy.present(body, { algorithm: 'targeted', label: 'targeted', budget: 300, literals: ['retry_limit=7'] }, 'mcp');
+    const hitBody = JSON.parse(hit.text);
+    assert.equal(hitBody.match, true);
+    assert.match(hitBody.content, /retry_limit=7/);
+    assert.ok(economyTokens(hit.text) <= 300);
+    assert.ok(hitBody.offsets.length <= 8);
+    const miss = await economy.present(body, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['BENCH_MARKER_MISSING'] }, 'mcp');
+    const missBody = JSON.parse(miss.text);
+    assert.equal(missBody.match, false);
+    assert.equal(missBody.content, '');
+    assert.equal(miss.text.includes('head '), false);
+    assert.deepEqual(missBody.next, { start: 0, end: Buffer.byteLength(body) });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('fixed delivery keeps the head and omits a tail fact', async () => {
+  const root = repo();
+  try {
+    const body = `${'word '.repeat(2000)}\nBENCH_MARKER_078: retry_limit=7`;
+    const result = await new Economy(root).present(body, { algorithm: 'fixed', label: 'fixed', budget: 1200, literals: [] }, 'mcp');
+    assert.equal(result.text.includes('BENCH_MARKER_078'), false);
+    const parsed = JSON.parse(result.text);
+    assert.equal(parsed.delivery, 'fixed');
+    assert.ok(parsed.next.start > 0);
+    assert.ok(economyTokens(result.text) <= 1200);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('an uncountable full body stores bytes and records null tokens', async () => {
+  const root = repo();
+  try {
+    const body = 'a'.repeat(4097);
+    const economy = new Economy(root);
+    const result = await economy.present(body, { algorithm: 'full', label: 'complete', budget: null, literals: [] }, 'mcp');
+    assert.equal(result.text.includes('\n'), false);
+    const header = JSON.parse(result.text);
+    assert.equal(header.incomplete, true);
+    assert.deepEqual(header.next, { start: 0, end: body.length });
+    const stats = await economy.stats();
+    assert.equal(stats.rawTokens, null);
+    assert.equal(stats.deliveredTokens, null);
+    assert.equal((await economy.read(header.handle, { budget: 16000, raw: true })).bytes.toString('utf8'), body);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });
