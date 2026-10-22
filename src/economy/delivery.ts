@@ -119,29 +119,29 @@ export function lineHits(bytes: Buffer, literals: string[]): LineHit[] {
   return hits;
 }
 
-export function findLiterals(bytes: Buffer, literals: string[]): Array<{ start: number; end: number }> {
-  const found: Array<{ start: number; end: number; order: number }> = [];
-  literals.forEach((literal, order) => {
-    const pattern = Buffer.from(literal);
-    if (pattern.length === 0) return;
-    let from = 0;
-    while (from <= bytes.length - pattern.length) {
-      const at = bytes.subarray(from).indexOf(pattern);
-      if (at < 0) break;
-      const start = from + at;
-      found.push({ start, end: start + pattern.length, order });
-      from = start + pattern.length;
+export function scanLiterals(bytes: Buffer, literals: string[], limit = 9): { hits: Array<{ start: number; end: number }>; count: number } {
+  const patterns = literals.filter(Boolean).map(literal => Buffer.from(literal));
+  const positions = patterns.map(pattern => bytes.indexOf(pattern));
+  const hits: Array<{ start: number; end: number }> = [];
+  let count = 0;
+  for (;;) {
+    let first = -1;
+    for (let i = 0; i < positions.length; i++) {
+      if (positions[i]! >= 0 && (first < 0 || positions[i]! < positions[first]!)) first = i;
     }
-  });
-  found.sort((a, b) => a.start - b.start || a.order - b.order);
-  const kept: Array<{ start: number; end: number }> = [];
-  let cursor = 0;
-  for (const hit of found) {
-    if (hit.start < cursor) continue;
-    kept.push({ start: hit.start, end: hit.end });
-    cursor = hit.end;
+    if (first < 0) return { hits, count };
+    const start = positions[first]!;
+    const end = start + patterns[first]!.length;
+    if (hits.length < limit) hits.push({ start, end });
+    count++;
+    for (let i = 0; i < positions.length; i++) {
+      if (positions[i]! >= 0 && positions[i]! < end) positions[i] = bytes.indexOf(patterns[i]!, end);
+    }
   }
-  return kept;
+}
+
+export function findLiterals(bytes: Buffer, literals: string[]): Array<{ start: number; end: number }> {
+  return scanLiterals(bytes, literals, Infinity).hits;
 }
 
 export function growSlice(bytes: Buffer, anchorStart: number, anchorEnd: number, fits: (start: number, end: number) => boolean): { start: number; end: number } | null {

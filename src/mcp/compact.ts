@@ -27,7 +27,7 @@ export const COMPACT_TOOLS: ToolDef[] = [
   { name: 'julius_discover', description: 'Discover local code investigation, impact analysis, failure localization and graph/context operations; fetch one schema.', inputSchema: object({ operation: string }) },
   { name: 'julius_call', description: 'Run a discovered local investigation or graph/context operation. No shell or arbitrary code execution.', inputSchema: object({ operation: string, args: { type: 'object' }, budget: integer(16000, 256), delivery: { enum: ['selective', 'complete'] }, focus: { type: 'string', minLength: 1, maxLength: 512 } }, ['operation']) },
 ];
-export const COMPACT_INSTRUCTIONS = 'For code changes or debugging, discover investigation.execute and use its change-impact (paths) or failure-localization (literal query) recipe before repeated file reads. Invoke tools yourself; never ask the user to run Julius commands. Use julius_discover for other graph/context schemas, then julius_call. When the task needs one fact, pass that literal as query, pattern, symbol, path, file, or paths, or pass focus to return the matching lines for that fact. When the task needs every item in the result, pass delivery complete and omit budget. If the result has next, continue with context.read at next.start. match false with matchCount 0 means the literal is absent; search the handle with another literal. match false with matchCount above 0 means the literal was found but did not fit, so read next. Results are bounded (default 1200 cl100k_base text tokens) unless delivery complete omits budget; recover omitted content with context.read and byte ranges/search. Graph calls build a local structural index lazily, without model calls. Context operations need no graph. Budget excludes MCP framing. Payload accounting is not provider billing; full recovery can cost more than raw output.';
+export const COMPACT_INSTRUCTIONS = 'Use julius_discover for operation schemas, then julius_call. For changes/debugging, investigation.execute offers change-impact (paths) and failure-localization (literal query). Invoke tools yourself; never ask the user to run Julius commands. Use focus for a required literal; delivery complete without budget returns all captured bytes. Otherwise results default to 1200 cl100k_base text tokens. Follow context.read with search or next.start for recovery. match false means no literal matched. Graph indexing is local and automatic. Payload counts exclude MCP framing and provider billing; full recovery can cost more.';
 
 function validate(value: unknown, schema: any, path = 'arguments'): void {
   if (schema.anyOf) {
@@ -76,7 +76,10 @@ export async function callCompact(root: string, name: string, input: unknown, di
     const operation = OPERATIONS.find(o => o.name === params.operation);
     if (!operation) throw new Error(`Unknown operation: ${params.operation}`);
     const args = params.args ?? {}; validate(args, operation.inputSchema);
-    const choice = selectDelivery({ delivery: params.delivery, focus: params.focus, budget: params.budget, args });
+    const literalArgs = operation.name === 'investigation.execute' && args.recipe === 'change-impact'
+      || operation.name === 'julius_find_code'
+      || operation.name === 'julius_find_all' && args.fixed !== true ? {} : args;
+    const choice = selectDelivery({ delivery: params.delivery, focus: params.focus, budget: params.budget, args: literalArgs });
     const economy = new Economy(root);
     if (operation.name === 'context.capture') return { text: (await economy.present(args.content as string, choice, 'mcp')).text, isError: false };
     if (operation.name === 'context.read') return { text: (await economy.read(args.handle as string, { budget: choice.budget ?? 1200, transport: 'mcp', start: args.start as number | undefined, end: args.end as number | undefined, search: args.search as string | undefined })).text, isError: false };

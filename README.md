@@ -208,11 +208,15 @@ lines for one literal, each trimmed to 160 characters, and leaves the rest on th
 a one-line JSON header, a newline, and the original body; an explicit `budget`
 still caps that body and returns `next`. Other omitted results retain an exact
 local handle. Use `context.read` with `handle`, byte `start`/`end`, `search`,
-or `next.start`. `match: false` with `matchCount` 0 means the literal was absent; with `matchCount` above 0 it was found but did not fit, so read `next`. Graph errors
+or `next.start`. `match: false` means no literal matched. A matching literal that cannot fit is marked `anchorOmitted: true`; read `next`. Graph errors
 remain `isError: true`, including when bounded. Each session receives usable
 content; no cross-session suppression is assumed. Stats describe the payload
 ledger and do not include discovery/schema or protocol costs. Discovery and
 stats are small metadata responses, outside the capture ledger and result budget.
+
+A matching literal that cannot fit uses `match: true`, `anchorOmitted: true`,
+and a `next` recovery cursor. Semantic queries, regex patterns and impact seed
+paths do not implicitly filter results as literal matches; use `focus` explicitly.
 
 ## Evidence and limitations
 

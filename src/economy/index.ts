@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, lstatSync, readFileSync, writeFileSync, readdirSync, renameSync, linkSync, unlinkSync, openSync, closeSync, fstatSync, rmSync, constants } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { get_encoding } from 'tiktoken';
-import { completeHeader, findLiterals, growSlice, lineHits, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
+import { completeHeader, scanLiterals, growSlice, lineHits, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
 
 let encoding: ReturnType<typeof get_encoding> | undefined;
 export const ECONOMY_ENCODING = 'cl100k_base';
@@ -129,9 +129,11 @@ export class Economy {
         ...(next ? { next } : {}),
       });
     };
-    let size = Math.min(bytes.length, budget * 3);
+    const utf8 = representation(bytes).format === 'utf8';
+    const boundary = (size: number) => utf8 ? utf8SafeEnd(bytes, size) : size;
+    let size = boundary(Math.min(bytes.length, budget * 3));
     let part = bytes.subarray(0, size); let text = render(part);
-    while ((countPayloadTokens(text) ?? Infinity) > budget && size > 0) { size = Math.floor(size / 2); part = bytes.subarray(0, size); text = render(part); }
+    while ((countPayloadTokens(text) ?? Infinity) > budget && size > 0) { size = boundary(Math.floor(size / 2)); part = bytes.subarray(0, size); text = render(part); }
     if (economyTokens(text) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(render(Buffer.alloc(0)))} cl100k_base tokens`);
     return { text, handle, bytes: part, omittedBytes: total - part.length };
   }
@@ -290,7 +292,7 @@ export class Economy {
           return { text: raw.content, handle: null, bytes, omittedBytes: 0 };
         }
         const handle = this.save(bytes);
-        const hits = findLiterals(bytes, choice.literals);
+        const { hits, count: matchCount } = scanLiterals(bytes, choice.literals);
         const base = { delivery: 'targeted' as const, handle, totalBytes: bytes.length, recover: recover(handle) };
         if (hits.length === 0) {
           const text = JSON.stringify({ ...base, match: false, matchCount: 0, offsets: [], start: 0, end: 0, omittedBytes: bytes.length, content: '', format: 'utf8', next: { start: 0, end: bytes.length } });
@@ -331,7 +333,7 @@ export class Economy {
             text = candidate;
           }
           if (count === 0) {
-            const missed = JSON.stringify({ ...base, match: false, matchCount: lines.length, offsets, start: lines[0]!.start, end: lines[0]!.start, omittedBytes: bytes.length, content: '', hits: [], format: 'utf8', next: { start: lines[0]!.start, end: bytes.length } });
+            const missed = JSON.stringify({ ...base, match: true, anchorOmitted: true, matchCount: lines.length, offsets, start: lines[0]!.start, end: lines[0]!.start, omittedBytes: bytes.length, content: '', hits: [], format: 'utf8', next: { start: lines[0]!.start, end: bytes.length } });
             if (economyTokens(missed) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(missed)} cl100k_base tokens`);
             this.record(rawTokens, economyTokens(missed));
             return { text: missed, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
@@ -345,13 +347,13 @@ export class Economy {
           const slice = bytes.subarray(start, end);
           const shown = representation(slice);
           const next = end < bytes.length ? { start: end, end: bytes.length } : null;
-          return JSON.stringify({ ...base, match: true, matchCount: hits.length, offsets, start, end, omittedBytes: bytes.length - slice.length, content: shown.content, format: shown.format, ...(next ? { next } : {}) });
+          return JSON.stringify({ ...base, match: true, matchCount, offsets, start, end, omittedBytes: bytes.length - slice.length, content: shown.content, format: shown.format, ...(next ? { next } : {}) });
         };
         const grown = growSlice(bytes, hits[0]!.start, hits[0]!.end, (start, end) => {
           try { return economyTokens(rendered(start, end)) <= budget; } catch { return false; }
         });
         if (grown === null) {
-          const text = JSON.stringify({ ...base, match: false, matchCount: hits.length, offsets, start: hits[0]!.start, end: hits[0]!.start, omittedBytes: bytes.length, content: '', format: 'utf8', next: { start: hits[0]!.start, end: bytes.length } });
+          const text = JSON.stringify({ ...base, match: true, anchorOmitted: true, matchCount, offsets, start: hits[0]!.start, end: hits[0]!.start, omittedBytes: bytes.length, content: '', format: 'utf8', next: { start: hits[0]!.start, end: bytes.length } });
           if (economyTokens(text) > budget) throw new Error(`budget too small: minimum envelope requires ${economyTokens(text)} cl100k_base tokens`);
           this.record(rawTokens, economyTokens(text));
           return { text, handle, bytes: Buffer.alloc(0), omittedBytes: bytes.length };
