@@ -57,6 +57,9 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Verify native grammar compatibility
+        run: node scripts/verify-native-parsers.mjs
+
   node24-wasm:
     name: Node 24 WASM regression
     runs-on: ubuntu-latest

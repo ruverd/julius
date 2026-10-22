@@ -439,8 +439,9 @@ export function mintId(base: string, minted: Set<string>): string {
 /**
  * tree-sitter-php 0.23.x cannot parse a `const` inside an enum body (#145). An
  * array initializer collapses the whole `enum_declaration` into ERROR; the
- * method is recovered as a sibling `function_definition`. 0.24.2 parses this
- * natively but is ABI 15 and cannot load on Julius's tree-sitter 0.21.1.
+ * method is recovered as a sibling `function_definition`. The current 0.24.2
+ * grammar parses this natively on the ABI-15-capable Tree-sitter 0.25 runtime.
+ * Keep recovery for malformed input with the same collapsed shape.
  *
  * Bound: only an ERROR that already contains `enum_case` + `name` is treated as
  * a collapsed enum. Only `const_declaration` / `function_definition` /
