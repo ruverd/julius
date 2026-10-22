@@ -13,6 +13,7 @@ import { contentHash } from '../util/id.js';
 import { walkDir } from '../ingest/fs.js';
 import { readBuildConfig } from '../util/state.js';
 import { Economy, economyTokens } from '../economy/index.js';
+import type { DeliveryChoice } from '../economy/delivery.js';
 
 export interface InvestigationArgs {
   recipe: 'change-impact' | 'failure-localization';
@@ -213,18 +214,35 @@ export async function runInvestigation(root: string, args: InvestigationArgs, di
   finally { release(); if (queues.get(key) === tail) queues.delete(key); }
 }
 
-export async function deliverInvestigation(root: string, report: InvestigationReport, budget: number): Promise<string> {
+export async function deliverInvestigation(root: string, report: InvestigationReport, budgetOrChoice: number | DeliveryChoice): Promise<string> {
+  const choice: DeliveryChoice = typeof budgetOrChoice === 'number'
+    ? { algorithm: 'fixed', label: 'fixed', budget: budgetOrChoice, literals: [] }
+    : budgetOrChoice;
   const full = JSON.stringify(report);
-  const result = await new Economy(root).capture(full, { budget, transport: 'mcp', preview: handle => {
-    const ranked = [...report.evidence].sort((a, b) => Number(b.role !== 'seed') - Number(a.role !== 'seed') || a.depth - b.depth || a.id.localeCompare(b.id));
-    let count = ranked.length;
-    for (;;) {
-      const text = JSON.stringify({ ...report, evidence: ranked.slice(0, count), omittedEvidence: ranked.length - count, handle,
-        recover: { operation: 'context.read', args: { handle }, instruction: 'Search a path or read byte ranges through julius_call; no user command needed.' } });
-      try { if (economyTokens(text) <= budget) return text; } catch { /* Fall back to a smaller selection. */ }
-      if (count === 0) return ''; // Economy supplies its bounded envelope instead.
-      count = Math.floor(count / 2);
-    }
-  } });
-  return result.text;
+  const economy = new Economy(root);
+  if (choice.algorithm === 'full') return (await economy.present(full, choice, 'mcp')).text;
+  const budget = choice.budget ?? 1200;
+  const ranked = [...report.evidence].sort((a, b) => Number(b.role !== 'seed') - Number(a.role !== 'seed') || a.depth - b.depth || a.id.localeCompare(b.id));
+  const pool = choice.literals.length > 0
+    ? ranked.filter(item => choice.literals.some(literal => [item.path, item.name, item.id, item.excerpt].some(field => field.includes(literal))))
+    : ranked;
+  const recover = (handle: string) => ({ operation: 'context.read', args: { handle }, instruction: 'Search a path or read byte ranges through julius_call; no user command needed.' });
+  const handle = economy.hold(full);
+  const rawTokens = (() => { try { return economyTokens(full); } catch { return null; } })();
+  if (choice.literals.length > 0 && pool.length === 0) {
+    const text = JSON.stringify({ ...report, evidence: [], omittedEvidence: ranked.length, match: false, handle, delivery: choice.label, next: { start: 0, end: Buffer.byteLength(full) }, recover: recover(handle) });
+    if (economyTokens(text) <= budget) { economy.recordDelivery(rawTokens, economyTokens(text)); return text; }
+    return (await economy.present(full, choice, 'mcp')).text;
+  }
+  let count = pool.length;
+  while (count >= 0) {
+    const text = JSON.stringify({ ...report, evidence: pool.slice(0, count), omittedEvidence: ranked.length - count, handle, delivery: choice.label, recover: recover(handle) });
+    let fits = false;
+    try { fits = economyTokens(text) <= budget; } catch { fits = false; }
+    if (fits && !(count === 0 && choice.literals.length > 0 && pool.length > 0)) { economy.recordDelivery(rawTokens, economyTokens(text)); return text; }
+    if (count === 0) break;
+    count = Math.floor(count / 2);
+  }
+  if (choice.literals.length > 0) return (await economy.present(full, { ...choice, algorithm: 'targeted' }, 'mcp')).text;
+  return (await economy.capture(full, { budget, transport: 'mcp' })).text;
 }

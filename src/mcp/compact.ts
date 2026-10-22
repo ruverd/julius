@@ -81,7 +81,7 @@ export async function callCompact(root: string, name: string, input: unknown, di
     if (operation.name === 'context.capture') return { text: (await economy.present(args.content as string, choice, 'mcp')).text, isError: false };
     if (operation.name === 'context.read') return { text: (await economy.read(args.handle as string, { budget: choice.budget ?? 1200, transport: 'mcp', start: args.start as number | undefined, end: args.end as number | undefined, search: args.search as string | undefined })).text, isError: false };
     if (operation.name === 'context.stats') return { text: JSON.stringify(await economy.stats()), isError: false };
-    if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice.budget ?? 1200), isError: false };
+    if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice), isError: false };
     if (!TOOLS.some(t => t.name === operation.name)) throw new Error('Unsupported graph operation');
     await ensureGraph(root, dir);
     const result = await callTool(root, operation.name, args, dir);

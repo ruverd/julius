@@ -1,3 +1,4 @@
+import { deliverInvestigation, type InvestigationReport } from '../src/investigation/index.js';
 import { callCompact } from '../src/mcp/compact.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -189,5 +190,39 @@ test('compact calls window a focus and return a complete body verbatim', async (
     assert.ok(header.next);
     const bad = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, delivery: 'fixed' });
     assert.equal(bad.isError, true);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+function report(unindexedFiles: number, evidence: InvestigationReport['evidence']): InvestigationReport {
+  return {
+    version: 1, recipe: 'failure-localization', snapshot: 'snapshot', graphRevision: 'graph',
+    coverage: { scope: 'repository source selection', indexedFiles: 1, sourceFiles: 3, unindexedFiles, traversalComplete: true },
+    unknowns: ['kept unknown'], evidence, reused: false,
+  };
+}
+
+test('investigation delivery keeps coverage and withholds unmatched evidence', async () => {
+  const root = repo();
+  try {
+    const evidence = Array.from({ length: 20 }, (_, index) => ({
+      id: `a.ts#fn${index}`, path: 'a.ts', span: 'L1-L2', kind: 'function', name: `fn${index}`,
+      role: 'dependent' as const, depth: 1, excerpt: `excerpt ${index} ${'pad '.repeat(40)}`, excerptComplete: true,
+    }));
+    evidence.push({ id: 'b.ts#target', path: 'b.ts', span: 'L3-L4', kind: 'function', name: 'target', role: 'match', depth: 0, excerpt: 'BENCH_MARKER_078: retry_limit=7', excerptComplete: true });
+    const full = report(2, evidence);
+    const selected = JSON.parse(await deliverInvestigation(root, full, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['BENCH_MARKER_078'] }));
+    assert.equal(selected.coverage.unindexedFiles, 2);
+    assert.deepEqual(selected.unknowns, ['kept unknown']);
+    assert.ok(selected.evidence.every((item: { excerpt: string }) => item.excerpt.includes('BENCH_MARKER_078')));
+    assert.equal(selected.evidence.some((item: { path: string }) => item.path === 'vendor/readme.txt'), false);
+    const missed = JSON.parse(await deliverInvestigation(root, full, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['BENCH_MARKER_MISSING'] }));
+    assert.equal(missed.match, false);
+    assert.deepEqual(missed.evidence, []);
+    assert.equal(missed.omittedEvidence, evidence.length);
+    assert.equal(missed.coverage.unindexedFiles, 2);
+    const huge = report(2, [{ id: 'b.ts#target', path: 'b.ts', span: 'L3-L4', kind: 'function', name: 'target', role: 'match', depth: 0, excerpt: `${'pad '.repeat(2000)} BENCH_MARKER_078: retry_limit=7`, excerptComplete: false }]);
+    const narrowed = await deliverInvestigation(root, huge, { algorithm: 'targeted', label: 'targeted', budget: 400, literals: ['retry_limit=7'] });
+    assert.match(narrowed, /retry_limit=7/);
+    assert.ok(economyTokens(narrowed) <= 400);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
