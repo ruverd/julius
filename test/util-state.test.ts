@@ -7,7 +7,9 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { ensureRepoJulius, ignoreInJuliusDir } from "../src/notes/repo-julius.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -38,7 +40,7 @@ test("writeBuildConfig + readBuildConfig round-trip includeDirs", () => {
   assert.deepEqual(readBuildConfig(d), { includeDirs: ["build", "vendor"] });
   assert.equal(buildConfigPath(d), join(d, ".julius", "config.json"));
   assert.equal(existsSync(join(d, ".julius", "cache", ".cache", "config.json")), false);
-  assert.match(readFileSync(join(d, ".gitignore"), "utf8"), /^\/\.julius\/$/m);
+  assert.match(readFileSync(join(d, ".julius", ".gitignore"), "utf8"), /^config\.json$/m);
 });
 
 test("readIncludeDirs turns a persisted list into a Set; an empty persisted list reads as undefined (default behavior)", () => {
@@ -119,4 +121,38 @@ test("resolveContextDir takes an absolute JULIUS_DIR verbatim", () => {
     assert.equal(resolveContextDir(d), abs);
     assert.equal(cacheDir(d), join(abs, ".cache"));
   });
+});
+
+
+test("persisting build settings ignores local state without hiding shared Julius files", () => {
+  const repo = fresh();
+  const git = (...args: string[]) => spawnSync("git", args, { cwd: repo, encoding: "utf8" });
+  try {
+    assert.equal(git("init", "-q").status, 0);
+    writeFileSync(join(repo, ".gitignore"), "vendor/\n");
+    ensureRepoJulius(repo);
+    writeFileSync(join(repo, ".julius", "learnings", "shared.md"), "Keep shared learnings in Git.\n");
+    writeFileSync(join(repo, ".julius", "hook.cjs"), "// shared session bootstrap\n");
+    mkdirSync(join(repo, ".julius", "cache"));
+    writeFileSync(join(repo, ".julius", "cache", "graph.json"), "{}");
+    writeFileSync(join(repo, ".julius", "statusline.cjs"), "// personal statusline\n");
+    ignoreInJuliusDir(repo, "cache/");
+    ignoreInJuliusDir(repo, "statusline.cjs");
+
+    writeBuildConfig(repo, { includeDirs: ["vendor"] });
+    patchBuildConfig(repo, { followSubmodules: true, followNestedRepos: false });
+
+    const shared = [".julius/learnings/shared.md", ".julius/README.md", ".julius/hook.cjs"];
+    for (const path of shared) assert.equal(git("check-ignore", "--", path).status, 1, `${path} must remain Git-visible`);
+    for (const path of [".julius/config.json", ".julius/cache/graph.json", ".julius/statusline.cjs"]) {
+      assert.equal(git("check-ignore", "--", path).status, 0, `${path} must remain local`);
+    }
+    assert.equal(readFileSync(join(repo, ".gitignore"), "utf8"), "vendor/\n", "root rules are untouched");
+    const ignored = readFileSync(join(repo, ".julius", ".gitignore"), "utf8");
+    assert.equal(ignored.split("\n").filter((line) => line === "config.json").length, 1, "repeated configuration writes are idempotent");
+    const added = git("add", "--", ...shared);
+    assert.equal(added.status, 0, added.stderr);
+    assert.deepEqual(git("ls-files").stdout.trim().split("\n").sort(), shared.sort());
+    assert.deepEqual(readBuildConfig(repo), { includeDirs: ["vendor"], followSubmodules: true, followNestedRepos: false });
+  } finally { rmSync(repo, { recursive: true, force: true }); }
 });

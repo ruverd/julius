@@ -3,11 +3,11 @@
  * Selection = explicit ids > all > detected. Claude Code is handled
  * separately by src/claude/init.ts (hooks + statusline + skill).
  */
-import { statSync, writeFileSync, readFileSync, mkdirSync, existsSync, rmSync, rmdirSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { statSync, writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { HOSTS, detectHosts, hostRelPath, hostWiringName, type DetectProbe, type HostTarget } from './registry.js';
-import { JULIUS_MARKERS, markersFor, upsertSection } from './sections.js';
+import { markersFor, upsertSection } from './sections.js';
 import type { Brand } from '../brand.js';
 import { registerMcpConfigs, type McpWrite } from './mcp-config.js';
 import { installCodexHooks } from './codex-hooks.js';
@@ -39,17 +39,6 @@ function writeOwned(path: string, content: string): string {
   return existed ? 'replaced' : 'created';
 }
 
-/**
- * A julius-named file a host owned, gone now that the repo uses julius's names,
- * with its `julius/` folder when that was all the folder held.
- */
-function removeJuliusCopy(path: string): void {
-  rmSync(path, { force: true });
-  if (basename(dirname(path)) === 'julius') {
-    try { rmdirSync(dirname(path)); } catch { /* not empty, or not there */ }
-  }
-}
-
 export function runHostsInit(
   repo: string,
   opts: {
@@ -60,7 +49,7 @@ export function runHostsInit(
     hooks?: boolean;
     /** false → skip every write outside the repo (the ~/.codex/ targets). */
     global?: boolean;
-    /** The name `init` runs under; julius's moves the repo to julius's names (see `hostWiringName`). */
+    /** The product identity used for host wiring. */
     brand?: Brand;
   } = {},
 ): HostsInitResult {
@@ -83,8 +72,6 @@ export function runHostsInit(
   const written: HostsInitResult['written'] = [];
   for (const host of selected) {
     const path = join(repo, hostRelPath(host, name));
-    // Under julius, julius's copy of an owned file goes and julius's fenced
-    // block becomes julius's, so the agent reads the instructions once.
     const action =
       host.kind === 'owned'
         ? writeOwned(path, host.content(name))

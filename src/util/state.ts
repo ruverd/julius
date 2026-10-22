@@ -12,6 +12,7 @@
 import { readFileSync, writeFileSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { mapDirFor } from '../context/map-dir.js';
+import { ignoreInJuliusDir } from '../notes/repo-julius.js';
 
 export interface Stats {
   nodeCount: number; edgeCount: number; languages: string[];
@@ -117,17 +118,7 @@ export function buildConfigPath(d: string): string { return join(d, BUILD_CONFIG
 /** Keep local build configuration out of Git without coupling it to the
  * generated graph directory. Best-effort, matching graph-cache ignore setup. */
 function ensureBuildConfigIgnored(d: string): void {
-  const path = join(d, '.gitignore');
-  let current = '';
-  try { current = readFileSync(path, 'utf8'); } catch { /* no .gitignore yet */ }
-  const present = current.split('\n').some((line) => {
-    const value = line.trim();
-    return value === BUILD_CONFIG_DIR || value === `${BUILD_CONFIG_DIR}/` || value === `/${BUILD_CONFIG_DIR}/`;
-  });
-  if (present) return;
-  const gap = current === '' ? '' : current.endsWith('\n') ? '\n' : '\n\n';
-  const block = `${gap}# julius's local repository settings — not committed.\n/${BUILD_CONFIG_DIR}/\n`;
-  try { writeFileSync(path, current + block); } catch { /* best-effort */ }
+  try { ignoreInJuliusDir(d, 'config.json'); } catch { /* best-effort */ }
 }
 
 export function readBuildConfig(d: string): BuildConfig | null { return readJson<BuildConfig>(buildConfigPath(d)); }

@@ -31,12 +31,7 @@ export function claudeTargets(dir: string, initBrand?: Brand, home?: string): Pl
   return claudeTargetsFor(dir, wiringName(dir, initBrand), home);
 }
 
-/**
- * The name the Claude Code wiring goes by in `dir`: julius's where `julius init`
- * is wiring it now (`initBrand`) or already did, julius's everywhere else.
- * Otherwise decided by the repo, not the machine, so a teammate on julius
- * refreshing the wiring writes the same files and never flips them back.
- */
+/** The single identity used for Claude Code wiring. */
 export function wiringName(dir: string, initBrand?: Brand): Brand {
   return 'julius';
 }
@@ -53,7 +48,6 @@ export function wiringName(dir: string, initBrand?: Brand): Brand {
  * No MCP server: the hooks and the `julius` command do what it did.
  */
 export function claudeTargetsFor(dir: string, name: Brand, home: string = homedir()): PlannedWrite[] {
-  if (name !== 'julius') return legacyClaudeTargets(dir, name);
   const t = (path: string, what: string): PlannedWrite => ({ hostId: 'claude', id: 'claude', path, scope: 'repo', kind: 'claude', what });
   return [
     t(join(dir, '.claude', 'settings.json'), 'julius SessionStart hook, shared'),
@@ -64,12 +58,7 @@ export function claudeTargetsFor(dir: string, name: Brand, home: string = homedi
   ];
 }
 
-/**
- * The layout every julius repo has, and julius repos had before 0.23: shims in
- * `.claude/helpers/`, the skill in `.claude/skills/`, the server in `.mcp.json`,
- * in that order. `runInit` writes it for julius; for julius it's what a refresh
- * clears away, and what uninstall removes under both names.
- */
+/** Previous repo-local layout, retained for cleanup during refresh and uninstall. */
 export function legacyClaudeTargets(dir: string, name: Brand): PlannedWrite[] {
   const t = (path: string, what: string, kind: PlannedWrite['kind'] = 'claude'): PlannedWrite =>
     ({ hostId: 'claude', id: 'claude', path, scope: 'repo', kind, what });
@@ -109,7 +98,7 @@ export interface InitResult {
   shims: string[];
   /** Where the skill went; '' when nothing was written (julius under `--no-global`). */
   skill: string;
-  /** the `.mcp.json` write registering the julius MCP server for Claude Code; julius writes none. */
+  /** Reserved MCP write result; current Claude Code wiring uses hooks and returns null. */
   mcp: McpWrite | null;
   /** the user-level writes under `~/.claude`, empty when `global: false`. */
   global: GlobalWrite[];
@@ -177,7 +166,7 @@ function runJuliusInit(
 }
 
 /**
- * What julius wrote before 0.23 and doesn't any more: both names' shims in
+ * What julius wrote before 0.23 and doesn't any more: the shims in
  * `.claude/helpers/`, the skill in `.claude/skills/`, and julius's server in
  * `.mcp.json`. Settings entries are already gone: the merges replace them.
  */
@@ -195,7 +184,7 @@ function clearOldLayout(dir: string): void {
   dropServer(join(dir, '.mcp.json'), ['julius']);
 }
 
-/** Take julius's (or julius's) server out of an `.mcp.json`; the file goes if nothing else was in it. */
+/** Take julius's server out of an `.mcp.json`; the file goes if nothing else was in it. */
 function dropServer(path: string, names: string[]): void {
   try {
     const loaded = readJsonObject(path);

@@ -194,7 +194,7 @@ export function mergeJuliusHooks(existing: Json, helpers: string): { merged: Jso
   return { merged };
 }
 
-/** Drop every fragment julius or julius wrote from a settings object, keeping the user's. */
+/** Drop every fragment julius wrote from a settings object, keeping the user's. */
 function withoutOurs(existing: Json): Json {
   const merged: Json = { ...(existing ?? {}) };
   for (const key of ['statusLine', 'subagentStatusLine'] as const) if (isJuliusStatusline(merged[key])) delete merged[key];

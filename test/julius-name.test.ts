@@ -1,26 +1,18 @@
-/**
- * `julius` and `julius`: one program under two names.
- *
- * Under julius every command keeps its old name, meaning and output, because
- * agents, hooks and CI already parse it. Under julius the layout changes: the
- * `julius julius …` group moves to the top level, `check` hands its name to the
- * team check, and the freshness check becomes `build --check`.
- */
+/** Julius CLI identity, command layout, output and MCP contract. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { brand, cmd, tag } from "../src/brand.js";
-import { track } from "../src/telemetry/track.js";
+import { brand, tag } from "../src/brand.js";
 import { commandInvokesJulius } from "../src/claude/session-metrics.js";
 import { savingsLine, sumSavingsFooters } from "../src/context/savings.js";
 import { homeEnv, tmpRepo } from "./helpers.js";
 
 // --- the name itself ---
 
-test("unset means julius: anything that loads cli.js directly was wired by an older julius", () => {
+test("Julius identity is stable regardless of invocation environment", () => {
   assert.equal(brand({}), "julius");
   assert.equal(brand({ JULIUS_INVOKED_AS: "julius" }), "julius");
   assert.equal(brand({ JULIUS_INVOKED_AS: "something-else" }), "julius");
@@ -28,34 +20,19 @@ test("unset means julius: anything that loads cli.js directly was wired by an ol
   assert.equal(tag({}), "[julius]");
 });
 
-// --- the once-a-day line for people still typing julius ---
+// --- isolated CLI fixtures ---
 
 function scratchHome(): string {
   return mkdtempSync(join(tmpdir(), "julius-notice-"));
 }
 
-// --- a repo whose julius-era hooks can't reach julius ---
-
-/** A repo wired by julius 0.21: a hook shim that looks for @ruverd/julius alone. */
-function juliusEraRepo(shim = "require.resolve('@ruverd/julius/package.json')"): string {
-  const repo = mkdtempSync(join(tmpdir(), "julius-era-"));
-  mkdirSync(join(repo, ".git"));
-  mkdirSync(join(repo, ".claude", "helpers"), { recursive: true });
-  writeFileSync(join(repo, ".claude", "helpers", "julius-hooks.cjs"), shim);
-  return repo;
-}
-
-const JULIUS = { JULIUS_INVOKED_AS: "julius", PATH: "" };
-const STRANDED =
-  "· this repo's agent hooks were set up by an older julius and can't find julius. run julius init here once to move the repo over";
-
 // --- what parses the output ---
 
-test("the savings footer is read under either name", () => {
+test("multiple Julius savings footers are summed", () => {
   assert.equal(sumSavingsFooters("[julius] tokens saved ≈ 1,200 (80%)\n[julius] tokens saved ≈ 300 (50%)"), 1500);
 });
 
-test("a shell command running julius counts as a retrieval, like julius", () => {
+test("supported Julius shell invocations count as retrievals", () => {
   assert.equal(commandInvokesJulius('julius ask "auth" --source'), true);
   assert.equal(commandInvokesJulius("npx -y @ruverd/julius grep foo"), true);
   assert.equal(commandInvokesJulius("cd x && julius callers run"), true);
@@ -65,9 +42,9 @@ test("a shell command running julius counts as a retrieval, like julius", () => 
   assert.equal(commandInvokesJulius("echo julius"), false);
 });
 
-// --- the two command layouts, end to end ---
+// --- command layout, end to end ---
 
-function run(name: "julius" | "julius", args: string[], home: string, cwd = process.cwd(), extra: NodeJS.ProcessEnv = {}) {
+function run(name: "julius", args: string[], home: string, cwd = process.cwd(), extra: NodeJS.ProcessEnv = {}) {
   const r = spawnSync(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", `${name}.ts`), ...args], {
     cwd,
     encoding: "utf8",
@@ -77,7 +54,7 @@ function run(name: "julius" | "julius", args: string[], home: string, cwd = proc
 }
 
 function builtRepo(): string {
-  const d = tmpRepo("trailname");
+  const d = tmpRepo("julius-name");
   mkdirSync(join(d, "src"), { recursive: true });
   writeFileSync(join(d, "src", "a.ts"), "export function alpha(): number {\n  return beta();\n}\n");
   writeFileSync(join(d, "src", "b.ts"), "export function beta(): number {\n  return 1;\n}\n");
@@ -120,7 +97,7 @@ test("julius status puts the code map on one screen, and the workspace only once
   assert.equal(json.workspace, null);
 });
 
-test("the savings footer says [julius] under julius and [julius] under julius", () => {
+test("the savings footer uses Julius with explicit or default invocation identity", () => {
   const saved = { baselineChars: 40_000, files: 3 } as Parameters<typeof savingsLine>[1];
   const before = process.env.JULIUS_INVOKED_AS;
   try {
@@ -134,9 +111,9 @@ test("the savings footer says [julius] under julius and [julius] under julius", 
   }
 });
 
-// --- MCP: julius's tool names, julius's still answered ---
+// --- MCP canonical tool names and aliases ---
 
-async function mcpRpc(name: "julius" | "julius", dir: string, messages: object[], expected: number): Promise<any[]> {
+async function mcpRpc(name: "julius", dir: string, messages: object[], expected: number): Promise<any[]> {
   const { spawn } = await import("node:child_process");
   const child = spawn(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", `${name}.ts`), "mcp", dir], {
     stdio: ["pipe", "pipe", "pipe"],
@@ -160,26 +137,24 @@ async function mcpRpc(name: "julius" | "julius", dir: string, messages: object[]
   return out;
 }
 
-test("julius mcp advertises julius_* tools and answers julius_* calls too; julius mcp is unchanged", async () => {
+test("Julius MCP advertises canonical tools and accepts its retrieval alias", async () => {
   const d = builtRepo();
   run("julius", ["build", d], scratchHome());
   const init = { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } } };
   const list = { jsonrpc: "2.0", id: 2, method: "tools/list" };
   const call = (id: number, tool: string) => ({ jsonrpc: "2.0", id, method: "tools/call", params: { name: tool, arguments: { query: "beta" } } });
 
-  const t = await mcpRpc("julius", d, [init, list, call(3, "julius_find_code"), call(4, "julius_find_code")], 4);
+  const t = await mcpRpc("julius", d, [init, list, call(3, "julius_find_code"), call(4, "julius_ask")], 4);
   assert.equal(t.find((r) => r.id === 1)?.result.serverInfo.name, "julius");
   assert.match(t.find((r) => r.id === 1)?.result.instructions, /select:mcp__julius__julius_find_code,/);
   const names = t.find((r) => r.id === 2)?.result.tools.map((x: { name: string }) => x.name);
   assert.ok(names.includes("julius_find_code") && names.every((n: string) => n.startsWith("julius_")), String(names));
   for (const id of [3, 4]) assert.equal(t.find((r) => r.id === id)?.result.isError, false, `call ${id}`);
 
-  const g = await mcpRpc("julius", d, [init, list], 2);
-  assert.equal(g.find((r) => r.id === 1)?.result.serverInfo.name, "julius");
-  assert.ok(g.find((r) => r.id === 2)?.result.tools.some((x: { name: string }) => x.name === "julius_find_code"));
+
 });
 
-test("both tool vocabularies count as retrievals", async () => {
+test("canonical tool names and aliases count as retrievals", async () => {
   const { canonicalToolName } = await import("../src/mcp/tool-names.js");
   const { isJuliusMcpTool } = await import("../src/claude/session-metrics.js");
   assert.equal(canonicalToolName("julius_find_code"), "julius_find_code");

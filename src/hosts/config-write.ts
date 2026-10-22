@@ -41,7 +41,7 @@ export function writeOwned(id: string, path: string, content: string, mode?: num
  *  `undefined`, whose `.includes` would throw. */
 export function isJuliusEntry(entry: unknown): boolean {
   const s = JSON.stringify(entry ?? '');
-  return s.includes('julius-hooks.cjs') || s.includes('julius-hooks.cjs') || s.includes('/.julius/hook.cjs');
+  return s.includes('julius-hooks.cjs') || s.includes('/.julius/hook.cjs');
 }
 
 /**

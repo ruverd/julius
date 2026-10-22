@@ -5,9 +5,7 @@ import { cmd, type Brand } from "../brand.js";
 // repo copy is regenerated from here when `init` runs in this repo. Mirrors the `.cjs`
 // shim pattern in shim-template.ts.
 //
-// `brand` is the repo's name for the tool, not the machine's: a repo wired by
-// `julius init` gets the julius text, whoever refreshes it, so teammates on julius
-// and julius never flip the committed file back and forth.
+// Every teammate receives the same Julius instructions when refreshing the repo.
 export function skillTemplate(brand: Brand = "julius"): string {
   return juliusSkill(baseSkill());
 }
@@ -79,9 +77,7 @@ export function juliusSpelling(text: string): string {
     .replace(/(?<![\w./-])julius\/INDEX\.md/g, ".julius/cache/INDEX.md")
     .replace(/(?<![\w./-])julius\/(?=[\s.,)])/g, ".julius/cache/")
     .replace(/\bjulius check\b(?![\w-])/g, "julius build --check")
-    .replace(/\bjulius stats\b(?![\w-])/g, "julius status")
-    .replace(/\bJulius\b(?![/\w-])/g, "Julius")
-    .replace(/\bjulius\b(?![/\w-])/g, "julius");
+    .replace(/\bjulius stats\b(?![\w-])/g, "julius status");
 }
 
 /**

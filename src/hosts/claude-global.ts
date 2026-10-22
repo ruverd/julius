@@ -31,7 +31,6 @@ import { hooksShim } from '../claude/shim-template.js';
 import { mergeJuliusHooks } from '../claude/settings-merge.js';
 import { toPosixPath } from '../util/paths.js';
 import { readJsonObject, writeOwned, type ConfigWrite } from './config-write.js';
-import { mergeJsonKey, serverEntry } from './mcp-config.js';
 import type { PlannedWrite } from './plan.js';
 import type { Brand } from '../brand.js';
 
@@ -45,25 +44,16 @@ export function globalHelpersDir(home: string): string {
 
 /**
  * The files a user-level install would touch — pure, no writes, so `--dry-run` and
- * the picker can report them up front. All three are scoped 'global': they apply to
+ * the picker can report them up front. Both are scoped 'global': they apply to
  * every project opened with Claude Code, not just this one.
- *
- * `~/.claude.json` holds the *user* MCP scope — the top-level `mcpServers` map, the
- * one `claude mcp add --scope user` writes. Not to be confused with the same file's
- * `projects["<abs path>"].mcpServers`, which is `--scope local` and per-directory:
- * a worktree is its own project entry there, so a local registration would miss it
- * for precisely the same reason the repo file does.
  */
 export function claudeGlobalTargets(home: string, brand: Brand = 'julius'): PlannedWrite[] {
   const g = (id: string, path: string, kind: PlannedWrite['kind'], what: string): PlannedWrite =>
     ({ hostId: 'claude', id, path, scope: 'global', kind, what });
-  const writes = [
+  return [
     g('claude-global-shim', join(globalHelpersDir(home), 'julius-hooks.cjs'), 'hook', 'hooks shim (user level)'),
     g('claude-global-hooks', join(home, '.claude', 'settings.json'), 'hook', 'SessionStart / UserPromptSubmit / PostToolUse / Stop / SessionEnd'),
-    g('claude-global-mcp', join(home, '.claude.json'), 'mcp', `mcpServers.${brand}`),
   ];
-  // julius registers no server for Claude Code: the hooks and the `julius` command do its work.
-  return brand === 'julius' ? writes.slice(0, 2) : writes;
 }
 
 /** Merge julius's hook blocks into a settings file, preserving everything else. */
@@ -80,8 +70,7 @@ function upsertGlobalHooks(id: string, path: string, helpers: string): GlobalWri
 }
 
 /**
- * Install the user-level copy: the shim, the hook entries that call it, and the
- * user-scope MCP registration.
+ * Install the user-level shim and hook entries, removing stale Julius MCP wiring.
  *
  * The shim is written to `home` and the hook commands name it by absolute path, for
  * the reason the repo form can't be reused: `${CLAUDE_PROJECT_DIR}/.claude/helpers/`
@@ -118,18 +107,8 @@ export function installClaudeGlobal(home: string, brand: Brand = 'julius'): Glob
     }
   }
 
-  // julius: no server, and the `julius` one an older julius registered here goes.
-  // julius's keeps serving every repo still wired as julius; a julius repo turns
-  // it off for its own folder (see disableJuliusServerIn).
-  if (brand === 'julius') {
-    out.push(dropUserServer(mcp.id, mcp.path, 'julius'));
-    return out;
-  }
-  try {
-    out.push(mergeJsonKey(mcp.id, mcp.path, 'mcpServers', serverEntry({ brand }), brand));
-  } catch {
-    out.push({ id: mcp.id, path: mcp.path, action: 'skipped-unparseable' });
-  }
+  // Remove a stale Julius server; current Claude Code wiring uses hooks.
+  out.push(dropUserServer(mcp.id, mcp.path, 'julius'));
 
   return out;
 }
@@ -176,13 +155,3 @@ export function disableJuliusServerIn(home: string, folder: string): GlobalWrite
     return { id, path, action: 'skipped-unparseable' };
   }
 }
-
-/**
- * A repo wired for julius commits `.mcp.json` with a `julius mcp` server. On a
- * teammate's machine that has julius but not the julius command, that server
- * can't start. So this folder gets a server of the same name, in Claude Code's
- * per-folder scope (which wins over the project's), that runs `julius mcp`: the
- * same program. julius's own user-level server goes off here, so the tools
- * aren't listed twice. Once `julius` is installed, the per-folder one goes and
- * the committed one runs. Takes effect from the next session in the folder.
- */

@@ -173,13 +173,7 @@ export function hostsWiredForJulius(repo: string): boolean {
   return false;
 }
 
-/**
- * The name the other agents' wiring goes by in `repo`, decided the way Claude
- * Code's is (`wiringName` in claude/init.ts): julius's where `julius init` is
- * wiring it now (`initBrand`) or the repo is already on julius, julius's
- * everywhere else. Read from the repo, not the machine, so a teammate on
- * julius refreshing the files writes the same ones and never flips them back.
- */
+/** The single identity used for host wiring. */
 export function hostWiringName(repo: string, initBrand?: Brand): Brand {
   return 'julius';
 }

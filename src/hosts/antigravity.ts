@@ -10,7 +10,7 @@
  * `antigravitySkillTargets()` is the pure "which files would this touch" half (for
  * `julius init --dry-run` / the picker); `installAntigravitySkill()` does the write.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, rmdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { skillTemplate } from '../claude/skill-template.js';
 import type { PlannedWrite } from './plan.js';
@@ -33,13 +33,7 @@ export function antigravitySkillTargets(home: string, name: Brand = 'julius'): P
   ];
 }
 
-/**
- * Write the skill into `~/.gemini/skills/julius/SKILL.md`, idempotently; under
- * julius into `skills/julius/`, in julius's text, and julius's copy goes so the
- * agent doesn't load two. Every workspace reads this one, so once julius's is
- * there a repo still on julius leaves it, rather than add julius's back beside
- * it; julius's text says what to run when only julius is installed.
- */
+/** Write the shared Julius skill idempotently. */
 export function installAntigravitySkill(home: string, name: Brand = 'julius'): ConfigWrite[] {
   const path = skillPath(home, name);
   const content = skillTemplate(name);

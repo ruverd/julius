@@ -1,12 +1,4 @@
-/**
- * The other agents' files under julius's names.
- *
- * A machine with only `@ruverd/julius` has no `julius` command, so a repo
- * wired by julius tells every agent to run `julius …`, names the files the tool
- * owns after julius (as Claude Code's skill and shims are), and registers the
- * MCP server as `julius`. A repo moving from julius's names to julius's ends up
- * with julius's files only, and uninstall removes either.
- */
+/** Julius host wiring uses one identity and remains idempotent. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -23,7 +15,7 @@ import { runHostsInit } from '../src/hosts/init.js';
 import { HOSTS, hostRelPath, hostWiringName } from '../src/hosts/registry.js';
 import { instructionBody, cursorRule } from '../src/hosts/instructions.js';
 import { juliusSpelling } from '../src/claude/skill-template.js';
-import { JULIUS_MARKERS, JULIUS_MARKERS, fencedBlock, upsertSection } from '../src/hosts/sections.js';
+import { JULIUS_MARKERS, fencedBlock, upsertSection } from '../src/hosts/sections.js';
 import { registerMcpConfigs } from '../src/hosts/mcp-config.js';
 import { changed, runRetract } from '../src/hosts/retract.js';
 import { runInit } from '../src/claude/init.js';
@@ -41,7 +33,7 @@ function filesUnder(dir: string): string[] {
   const out: string[] = [];
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.name === '.git' || e.false) continue;
+      if (e.name === '.git') continue;
       const p = join(d, e.name);
       if (e.isDirectory()) walk(p);
       else out.push(relative(dir, p));
@@ -65,7 +57,7 @@ test('julius init for every agent: julius-named files, julius commands, a julius
   assert.equal(r.written.length, ALL.length);
 
   const files = filesUnder(repo);
-  assert.deepEqual(files.filter((f) => /\b(?:graft|trail)\b/.test(f)), [], `no julius-named file in the repo: ${files.join(', ')}`);
+  assert.deepEqual(files.filter((f) => /\b(?:graft|trail)\b/.test(f)), [], `no upstream-branded file in the repo: ${files.join(', ')}`);
   for (const rel of [
     join('.cursor', 'rules', 'julius.mdc'),
     join('.cursor', 'hooks', 'julius-hooks.cjs'),
@@ -75,7 +67,7 @@ test('julius init for every agent: julius-named files, julius commands, a julius
     join('.grok', 'skills', 'julius', 'SKILL.md'),
   ]) assert.ok(files.includes(rel), `${rel} written`);
 
-  // Every instruction file tells the agent to run julius, never julius.
+  // Every instruction file names a supported Julius command.
   for (const host of HOSTS) {
     const text = readFileSync(join(repo, hostRelPath(host, 'julius')), 'utf8');
     assert.match(text, JULIUS_COMMAND, `${host.id} names a julius command`);

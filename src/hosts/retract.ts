@@ -38,7 +38,7 @@ import { isJuliusAllowEntry, isJuliusFooterRegex } from '../claude/settings-merg
 import type { WriteScope } from './plan.js';
 import type { Brand } from '../brand.js';
 
-/** Both names a file can go by: julius's, and julius's in a repo that uses julius. */
+/** Product identities owned by this installation. */
 const NAMES: readonly Brand[] = ['julius'];
 
 /** What a retraction did to one target. */
@@ -188,7 +188,6 @@ function removeJsonKey(path: string, topKey: string, apply: boolean): RetractAct
   const bucket = root[topKey];
   if (typeof bucket !== 'object' || bucket === null || Array.isArray(bucket)) return 'absent';
   const map = bucket as Record<string, unknown>;
-  // Either name: a repo that uses julius registers the server as `julius`.
   const ours = ['julius'].filter((k) => k in map);
   if (ours.length === 0) return 'absent';
   if (!apply) {
@@ -202,7 +201,7 @@ function removeJsonKey(path: string, topKey: string, apply: boolean): RetractAct
 }
 
 /**
- * Delete the `[mcp_servers.julius]` and `[mcp_servers.julius]` tables from a TOML config.
+ * Delete the `[mcp_servers.julius]` table from a TOML config.
  *
  * Line-based on purpose: a real TOML parse-and-reserialize would reformat the
  * user's whole file. The table runs from its header to the next `[`-header or
