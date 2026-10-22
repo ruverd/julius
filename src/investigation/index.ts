@@ -11,7 +11,7 @@ import type { EdgeV1, GraphV1, NodeV1 } from '../graph/types.js';
 import { readWorkspace } from '../graph/workspace.js';
 import { contentHash } from '../util/id.js';
 import { walkDir } from '../ingest/fs.js';
-import { readBuildConfig } from '../util/state.js';
+import { readBuildConfig, readFollowNestedRepos, readFollowSubmodules, readIncludeDirs } from '../util/state.js';
 import { Economy, economyTokens } from '../economy/index.js';
 import type { DeliveryChoice } from '../economy/delivery.js';
 
@@ -62,7 +62,9 @@ function decode(bytes: Buffer): string | null {
 }
 function snapshot(root: string, out: string): Snapshot {
   const onlyDirs = readFingerprint(out)?.onlyDirs;
-  const files = listSourceFiles(root, out, undefined, onlyDirs ? new Set(onlyDirs) : undefined).sort();
+  const repoFiles = walkDir(root);
+  const sharedWalk = !readIncludeDirs(root)?.size && !readFollowSubmodules(root) && !readFollowNestedRepos(root);
+  const files = listSourceFiles(root, out, sharedWalk ? repoFiles : undefined, onlyDirs ? new Set(onlyDirs) : undefined).sort();
   if (files.length > MAX_SOURCES) throw new Error('Investigation source limit exceeded; use ordinary graph tools with a narrower scope');
   const sources = new Map<string, string>(); const hashes: Record<string, string> = Object.create(null);
   let bytes = 0;
@@ -75,7 +77,7 @@ function snapshot(root: string, out: string): Snapshot {
   }
   // Configuration can affect resolution without changing a matched source file.
   const config: Array<[string, string]> = [];
-  for (const file of walkDir(root).filter(p => /(?:^|[/\\])(?:package(?:-lock)?\.json|tsconfig[^/\\]*\.json|jsconfig\.json|go\.(?:mod|sum)|Cargo\.(?:toml|lock)|\.gitignore)$/.test(p)).sort()) {
+  for (const file of repoFiles.filter(p => /(?:^|[/\\])(?:package(?:-lock)?\.json|tsconfig[^/\\]*\.json|jsconfig\.json|go\.(?:mod|sum)|Cargo\.(?:toml|lock)|\.gitignore)$/.test(p)).sort()) {
     const raw = safeRead(root, file); bytes += raw.length;
     if (bytes > MAX_SOURCE_BYTES) throw new Error('Investigation snapshot exceeds byte limit');
     config.push([relative(root, file), sha(raw.toString('base64'))]);
@@ -250,6 +252,6 @@ export async function deliverInvestigation(root: string, report: InvestigationRe
     if (count === 0) break;
     count = Math.floor(count / 2);
   }
-  if (choice.literals.length > 0) return (await economy.present(full, { ...choice, algorithm: 'targeted' }, 'mcp')).text;
+  if (choice.literals.length > 0) return (await economy.present(full, { ...choice, algorithm: 'targeted', literals: choice.literals.map(literal => JSON.stringify(literal).slice(1, -1)) }, 'mcp')).text;
   return (await economy.capture(full, { budget, transport: 'mcp' })).text;
 }

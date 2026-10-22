@@ -1,0 +1,1119 @@
+{
+  "version": 1,
+  "upstream": {
+    "commit": "b1211efd3eef0efa121b93800e5dd8e547aead77",
+    "verifiedSourceFiles": 380,
+    "lockSha256": "e5bf0da09d6d14d84cdf0725a3fd19564afc6b6631ef4e74d9d8d119776d8568"
+  },
+  "selectedTaskIds": [
+    "investigation-impact"
+  ],
+  "inputs": {
+    "trail": {
+      "sourceSha256": "2209f1124e50a0a9907904a3cf3168faf0db916919afef48b2fb2ea58b44b8a5",
+      "distSha256": "9a763dcc26eb0b12aeadce7297daa8c4056283bced0a8803528b4f378b2550b1"
+    },
+    "before": {
+      "sourceSha256": "9c2e6465aeebab30022d7340036b1ebb64a9b20338eb0b3e4124eda77d1c55a8",
+      "distSha256": "ea9cb39d14284a9c345683fa0933f0312b8abdfa58cea91e7ca30277325e9f86"
+    },
+    "candidate": {
+      "sourceSha256": "c567cb7532fcea3d37d138e31c4d98f8663b664a2ea129fdece0e4130d6f01c6",
+      "distSha256": "fc3aeedc66f029607a894b4294b998c5d892802259980679c9c67479159f8aba"
+    }
+  },
+  "before": {
+    "revision": "0376b7ec1f687f0a17a2b1c953af9e5f9991ecbb",
+    "sourceSha256": "9c2e6465aeebab30022d7340036b1ebb64a9b20338eb0b3e4124eda77d1c55a8"
+  },
+  "candidate": {
+    "revision": "908b653ed4b4114355ad1092a26176dbe6bd49ed",
+    "sourceSha256": "c567cb7532fcea3d37d138e31c4d98f8663b664a2ea129fdece0e4130d6f01c6",
+    "lockSha256": "5c8a0e0cb4eb0f885b3bb82780c98a1ca326b918090f953f2f9bad6f63118bf0"
+  },
+  "manifestSha256": "16b8862538f79a60134ba122bc5f16bdca7b64e7fc97f259255048b2281ac918",
+  "harnessSha256": "28bdb06b664a7b619c6a0221e6a054bab19c9ccca0e006c0ebc4270618a07310",
+  "contractSha256": "3b6351411fac333f4e52ec9a959aa6c5bf441eab7826e328cda6f93a59a2dc45",
+  "fixtureManifestSha256": "e337c3738b6234d253835e198bbb5c82b2c8ea8a448fd49858faaa399015c2a5",
+  "sharedHarnessSha256": "7a47919e52bf4ad720fcc01987e6dd0b65bb6608805ab2c38bb4ed8524126a27",
+  "node": "v22.23.2",
+  "encoding": "cl100k_base",
+  "providerUsage": null,
+  "providerCost": null,
+  "codingAccuracy": null,
+  "scope": "Actual CLI/MCP processes; scripted synthetic evidence tasks, three repetitions, rotated arm order. All NDJSON requests/responses counted once, including discovery/errors/recovery. Known-schema arm removes discovery only in the harness; not a new advertised tool or measured host adoption. Retrieval timing sums tool request-to-response latency, excluding harness tokenization; build and startup reported separately. No model, reasoning, provider prompt replay or paid calls. Operating-system cache not controlled.",
+  "summary": [
+    {
+      "task": "investigation-impact",
+      "arm": "trail",
+      "runs": 9,
+      "passed": 9,
+      "totalTokens": 15186,
+      "recoveryCalls": 0,
+      "medianBuildMs": 389.42383299999983,
+      "medianRetrievalMs": 41.296000999998796,
+      "medianStartupMs": 144.37349900000117
+    },
+    {
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "runs": 9,
+      "passed": 9,
+      "totalTokens": 62679,
+      "recoveryCalls": 27,
+      "medianBuildMs": 381.56487500000003,
+      "medianRetrievalMs": 171.68266499999845,
+      "medianStartupMs": 160.97425099999964
+    },
+    {
+      "task": "investigation-impact",
+      "arm": "policy",
+      "runs": 9,
+      "passed": 9,
+      "totalTokens": 63048,
+      "recoveryCalls": 27,
+      "medianBuildMs": 366.698207999998,
+      "medianRetrievalMs": 143.3033749999977,
+      "medianStartupMs": 162.63674999999967
+    },
+    {
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "runs": 9,
+      "passed": 9,
+      "totalTokens": 59556,
+      "recoveryCalls": 27,
+      "medianBuildMs": 372.8456249999999,
+      "medianRetrievalMs": 145.94333299999926,
+      "medianStartupMs": 162.22508300000027
+    }
+  ],
+  "results": [
+    {
+      "repetition": 0,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 620.510708,
+      "stageLatencyMs": {
+        "interface": 159.38499899999988,
+        "operation": 43.64141600000016
+      },
+      "retrievalMs": 43.64141600000016,
+      "startupMs": 159.38499899999988,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 602
+      },
+      "totalTokens": 1715,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 509.7853329999998,
+      "stageLatencyMs": {
+        "interface": 193.4676669999999,
+        "discovery": 0.4713329999999587,
+        "operation": 172.75862499999994,
+        "recovery": 13.603541999999834
+      },
+      "retrievalMs": 186.83349999999973,
+      "startupMs": 193.4676669999999,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 1050,
+        "recovery": 5369
+      },
+      "totalTokens": 7227,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 407.4569999999999,
+      "stageLatencyMs": {
+        "interface": 188.61129200000005,
+        "discovery": 0.3860009999993963,
+        "operation": 138.60112500000014,
+        "recovery": 13.855207000000064
+      },
+      "retrievalMs": 152.8423329999996,
+      "startupMs": 188.61129200000005,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 7268,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 350.7932499999997,
+      "stageLatencyMs": {
+        "interface": 162.22508300000027,
+        "operation": 128.14633400000002,
+        "recovery": 13.522332000000006
+      },
+      "retrievalMs": 141.66866600000003,
+      "startupMs": 162.22508300000027,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 6880,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 373.1441249999998,
+      "stageLatencyMs": {
+        "interface": 158.554083,
+        "discovery": 0.30183299999862356,
+        "operation": 148.81162500000028,
+        "recovery": 17.689041999999972
+      },
+      "retrievalMs": 166.80249999999887,
+      "startupMs": 158.554083,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 929,
+        "recovery": 5095
+      },
+      "totalTokens": 6832,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 363.1839999999993,
+      "stageLatencyMs": {
+        "interface": 159.9365829999997,
+        "discovery": 0.31825000000117143,
+        "operation": 129.46141700000044,
+        "recovery": 18.16175099999964
+      },
+      "retrievalMs": 147.94141800000125,
+      "startupMs": 159.9365829999997,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6873,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 372.8456249999999,
+      "stageLatencyMs": {
+        "interface": 160.09658299999955,
+        "operation": 126.29275000000052,
+        "recovery": 20.36449900000025
+      },
+      "retrievalMs": 146.65724900000077,
+      "startupMs": 160.09658299999955,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6485,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 364.3772079999999,
+      "stageLatencyMs": {
+        "interface": 137.53674900000078,
+        "operation": 33.283416000000216
+      },
+      "retrievalMs": 33.283416000000216,
+      "startupMs": 137.53674900000078,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 518
+      },
+      "totalTokens": 1631,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 347.7221669999999,
+      "stageLatencyMs": {
+        "interface": 160.95558299999993,
+        "discovery": 0.32879200000024866,
+        "operation": 122.37883299999976,
+        "recovery": 11.419333000000734
+      },
+      "retrievalMs": 134.12695800000074,
+      "startupMs": 160.95558299999993,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6875,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 362.2440829999996,
+      "stageLatencyMs": {
+        "interface": 159.0435839999991,
+        "operation": 127.57295900000008,
+        "recovery": 17.48304199999984
+      },
+      "retrievalMs": 145.05600099999992,
+      "startupMs": 159.0435839999991,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6487,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 389.42383299999983,
+      "stageLatencyMs": {
+        "interface": 151.88341700000092,
+        "operation": 45.00075000000106
+      },
+      "retrievalMs": 45.00075000000106,
+      "startupMs": 151.88341700000092,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 603
+      },
+      "totalTokens": 1716,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 0,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 386.6662500000002,
+      "stageLatencyMs": {
+        "interface": 166.24208299999736,
+        "discovery": 0.30879099999947357,
+        "operation": 153.03100000000086,
+        "recovery": 18.34287399999812
+      },
+      "retrievalMs": 171.68266499999845,
+      "startupMs": 166.24208299999736,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 922,
+        "recovery": 5104
+      },
+      "totalTokens": 6834,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 380.7435409999998,
+      "stageLatencyMs": {
+        "interface": 143.54025000000001,
+        "operation": 41.296000999998796
+      },
+      "retrievalMs": 41.296000999998796,
+      "startupMs": 143.54025000000001,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 602
+      },
+      "totalTokens": 1715,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 360.5019590000011,
+      "stageLatencyMs": {
+        "interface": 160.39145900000221,
+        "discovery": 0.3664580000004207,
+        "operation": 153.64899999999943,
+        "recovery": 13.560041000000638
+      },
+      "retrievalMs": 167.5754990000005,
+      "startupMs": 160.39145900000221,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 1050,
+        "recovery": 5369
+      },
+      "totalTokens": 7227,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 386.9118749999998,
+      "stageLatencyMs": {
+        "interface": 161.707042,
+        "discovery": 0.3334159999994881,
+        "operation": 126.49912500000028,
+        "recovery": 14.947790999998688
+      },
+      "retrievalMs": 141.78033199999845,
+      "startupMs": 161.707042,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 7268,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 492.481541000001,
+      "stageLatencyMs": {
+        "interface": 188.76983299999847,
+        "operation": 150.70550000000003,
+        "recovery": 28.318292999998448
+      },
+      "retrievalMs": 179.02379299999848,
+      "startupMs": 188.76983299999847,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 6880,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 393.2907919999998,
+      "stageLatencyMs": {
+        "interface": 161.49174999999923,
+        "discovery": 0.31016600000111794,
+        "operation": 167.62329099999988,
+        "recovery": 22.529124999999112
+      },
+      "retrievalMs": 190.4625820000001,
+      "startupMs": 161.49174999999923,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 929,
+        "recovery": 5095
+      },
+      "totalTokens": 6832,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 390.94254199999887,
+      "stageLatencyMs": {
+        "interface": 163.221375000001,
+        "discovery": 0.34112499999901047,
+        "operation": 126.738374999999,
+        "recovery": 16.22387499999968
+      },
+      "retrievalMs": 143.3033749999977,
+      "startupMs": 163.221375000001,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6873,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 366.60412499999984,
+      "stageLatencyMs": {
+        "interface": 159.43545799999993,
+        "operation": 126.62487499999952,
+        "recovery": 17.328958000000057
+      },
+      "retrievalMs": 143.95383299999958,
+      "startupMs": 159.43545799999993,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6485,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 412.6474160000016,
+      "stageLatencyMs": {
+        "interface": 141.61508299999878,
+        "operation": 32.4981659999994
+      },
+      "retrievalMs": 32.4981659999994,
+      "startupMs": 141.61508299999878,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 518
+      },
+      "totalTokens": 1631,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 363.15433400000074,
+      "stageLatencyMs": {
+        "interface": 162.63674999999967,
+        "discovery": 0.3287079999990965,
+        "operation": 123.86591599999883,
+        "recovery": 13.8125
+      },
+      "retrievalMs": 138.00712399999793,
+      "startupMs": 162.63674999999967,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6875,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 360.460959,
+      "stageLatencyMs": {
+        "interface": 158.3538750000007,
+        "operation": 127.09883300000001,
+        "recovery": 19.643959000002724
+      },
+      "retrievalMs": 146.74279200000274,
+      "startupMs": 158.3538750000007,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6487,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 422.73320799999965,
+      "stageLatencyMs": {
+        "interface": 140.08287500000006,
+        "operation": 41.4854579999992
+      },
+      "retrievalMs": 41.4854579999992,
+      "startupMs": 140.08287500000006,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 603
+      },
+      "totalTokens": 1716,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 1,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 357.70208300000013,
+      "stageLatencyMs": {
+        "interface": 159.19395799999984,
+        "discovery": 0.33429099999921164,
+        "operation": 151.560083999997,
+        "recovery": 14.585458000001381
+      },
+      "retrievalMs": 166.4798329999976,
+      "startupMs": 159.19395799999984,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 922,
+        "recovery": 5104
+      },
+      "totalTokens": 6834,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 446.45808300000135,
+      "stageLatencyMs": {
+        "interface": 169.25004099999933,
+        "operation": 62.314040999997815
+      },
+      "retrievalMs": 62.314040999997815,
+      "startupMs": 169.25004099999933,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 602
+      },
+      "totalTokens": 1715,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 395.1347500000011,
+      "stageLatencyMs": {
+        "interface": 160.44399999999587,
+        "discovery": 0.32729299999482464,
+        "operation": 156.93929099999878,
+        "recovery": 22.719748999999865
+      },
+      "retrievalMs": 179.98633299999346,
+      "startupMs": 160.44399999999587,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 1050,
+        "recovery": 5369
+      },
+      "totalTokens": 7227,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 382.29575000000114,
+      "stageLatencyMs": {
+        "interface": 163.70766599999843,
+        "discovery": 0.33537399999841,
+        "operation": 128.73783299999923,
+        "recovery": 13.628249999997934
+      },
+      "retrievalMs": 142.70145699999557,
+      "startupMs": 163.70766599999843,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 7268,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "typescript",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 382.63316699999996,
+      "stageLatencyMs": {
+        "interface": 164.3287919999966,
+        "operation": 131.91833300000144,
+        "recovery": 14.024999999997817
+      },
+      "retrievalMs": 145.94333299999926,
+      "startupMs": 164.3287919999966,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 1049,
+        "recovery": 5395
+      },
+      "totalTokens": 6880,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 381.56487500000003,
+      "stageLatencyMs": {
+        "interface": 161.7022500000021,
+        "discovery": 0.34445899999991525,
+        "operation": 163.12108399999852,
+        "recovery": 21.611708000000363
+      },
+      "retrievalMs": 185.0772509999988,
+      "startupMs": 161.7022500000021,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 929,
+        "recovery": 5095
+      },
+      "totalTokens": 6832,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 366.698207999998,
+      "stageLatencyMs": {
+        "interface": 160.81704099999843,
+        "discovery": 0.33725000000049477,
+        "operation": 127.2067500000012,
+        "recovery": 20.127165999998397
+      },
+      "retrievalMs": 147.67116600000008,
+      "startupMs": 160.81704099999843,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6873,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 376.90345799999704,
+      "stageLatencyMs": {
+        "interface": 163.42137500000172,
+        "operation": 126.71779199999946,
+        "recovery": 17.190417000001617
+      },
+      "retrievalMs": 143.90820900000108,
+      "startupMs": 163.42137500000172,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 928,
+        "recovery": 5121
+      },
+      "totalTokens": 6485,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "python",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 360.5216670000009,
+      "stageLatencyMs": {
+        "interface": 144.37349900000117,
+        "operation": 36.6160830000008
+      },
+      "retrievalMs": 36.6160830000008,
+      "startupMs": 144.37349900000117,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 518
+      },
+      "totalTokens": 1631,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy",
+      "buildMs": 363.5971669999999,
+      "stageLatencyMs": {
+        "interface": 182.01991799999814,
+        "discovery": 0.5287080000016431,
+        "operation": 139.19374999999854,
+        "recovery": 11.442291999999725
+      },
+      "retrievalMs": 151.1647499999999,
+      "startupMs": 182.01991799999814,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "discovery": 388,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6875,
+      "calls": 6,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "policy-known-schema",
+      "buildMs": 506.4131249999991,
+      "stageLatencyMs": {
+        "interface": 184.40020699999877,
+        "operation": 139.41754199999923,
+        "recovery": 13.198832999998558
+      },
+      "retrievalMs": 152.6163749999978,
+      "startupMs": 184.40020699999877,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 436,
+        "operation": 921,
+        "recovery": 5130
+      },
+      "totalTokens": 6487,
+      "calls": 4,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "trail",
+      "buildMs": 345.7771249999969,
+      "stageLatencyMs": {
+        "interface": 149.46904200000063,
+        "operation": 39.51341700000194
+      },
+      "retrievalMs": 39.51341700000194,
+      "startupMs": 149.46904200000063,
+      "quality": true,
+      "initialQuality": true,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": null,
+      "recoveryCalls": 0,
+      "stageTokens": {
+        "interface": 1113,
+        "operation": 603
+      },
+      "totalTokens": 1716,
+      "calls": 2,
+      "blockedOperations": []
+    },
+    {
+      "repetition": 2,
+      "language": "go",
+      "task": "investigation-impact",
+      "arm": "compact-1200",
+      "buildMs": 332.9879170000022,
+      "stageLatencyMs": {
+        "interface": 160.97425099999964,
+        "discovery": 0.3311250000006112,
+        "operation": 145.62925000000178,
+        "recovery": 10.871832999997423
+      },
+      "retrievalMs": 156.8322079999998,
+      "startupMs": 160.97425099999964,
+      "quality": true,
+      "initialQuality": false,
+      "missingFacts": [],
+      "error": null,
+      "byteIntegrity": true,
+      "recoveryCalls": 3,
+      "stageTokens": {
+        "interface": 420,
+        "discovery": 388,
+        "operation": 922,
+        "recovery": 5104
+      },
+      "totalTokens": 6834,
+      "calls": 6,
+      "blockedOperations": []
+    }
+  ]
+}

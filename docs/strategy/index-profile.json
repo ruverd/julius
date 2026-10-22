@@ -1,0 +1,318 @@
+{
+  "version": 1,
+  "harnessSha256": "6648be6f8c2b0263384036da6c939e266369c11c616b3fa37344f33d37053bf5",
+  "engineSha256": {
+    "before": "f7830591ded45c8781325983cd60e4a500fd86c176e65d44cdc4383080364f6c",
+    "candidate": "098d967aa96923e982a8276511f0fe8915b42e39fab8f250152d5c93b197760b"
+  },
+  "fixtureSha256": "906684979932a5240fb9b22be396001d07fbf8435d40c797b756bd8ec200cd06",
+  "files": 101,
+  "functions": 1001,
+  "node": "v22.23.2",
+  "providerUsage": null,
+  "scope": "Single-process investigation profile, synthetic TypeScript sources. One first request, ten identical warm requests, one source addition. V8 sampling profile; native frames can include blocking waits, not CPU-cycle measurements or exact phase attribution. Not a statistically controlled speed comparison. Both arms retain the inherited index engine. No model calls.",
+  "results": [
+    {
+      "arm": "before",
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 336.686458,
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 48.815083000000016,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 48.666000000000054,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 47.67816600000003,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 46.46337499999993,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 46.87495799999999,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 46.559875000000034,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 45.41895899999997,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 46.49933299999998,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 45.89300000000003,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 46.08812499999999,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 137.835375,
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 628.874
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 52.208
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 31.375
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 25.125
+        },
+        {
+          "frame": "node_modules/tree-sitter/index.js:170 get namedChildren",
+          "ms": 18.791
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 11.083
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 10.166
+        },
+        {
+          "frame": "node:path:93 normalizeString",
+          "ms": 7.625
+        },
+        {
+          "frame": "dist/investigation/index.js:194 execute",
+          "ms": 7.542
+        },
+        {
+          "frame": "<external>/experiments/index-profile.mjs:21 measured",
+          "ms": 7.542
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 7.5
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 7.417
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 7.291
+        },
+        {
+          "frame": "<native>:0 stat",
+          "ms": 6.25
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 5.166
+        }
+      ]
+    },
+    {
+      "arm": "candidate",
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 292.79004199999997,
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 31.31412499999999,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.650750000000016,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.841416000000038,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.867208000000005,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.847833999999978,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 37.286374999999964,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 36.40545799999995,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 31.958833000000027,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.91199999999992,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.682667000000038,
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 87.56616699999995,
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 418.918
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 38.041
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 29.793
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 22.584
+        },
+        {
+          "frame": "node_modules/tree-sitter/index.js:170 get namedChildren",
+          "ms": 15.001
+        },
+        {
+          "frame": "dist/investigation/index.js:196 execute",
+          "ms": 13.29
+        },
+        {
+          "frame": "node_modules/tree-sitter/index.js:824 unmarshalNodes",
+          "ms": 12.416
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 11.209
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 11.167
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 10.749
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 9.958
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 7.457
+        },
+        {
+          "frame": "<native>:0 stat",
+          "ms": 6.25
+        },
+        {
+          "frame": "dist/investigation/index.js:26 safeRead",
+          "ms": 6.25
+        },
+        {
+          "frame": "node:fs:433 readFileSync",
+          "ms": 5
+        }
+      ]
+    }
+  ]
+}

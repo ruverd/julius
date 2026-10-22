@@ -1,3 +1,4 @@
+import { completeBody, deliveryArguments, structuredRecovery } from './performance-contract.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawn } from 'node:child_process';
@@ -40,16 +41,16 @@ export function expectedFacts(task, spec = manifest) {
   return task.expected;
 }
 
-function sources(language) {
+export function sources(language, spec = manifest) {
   const extension = { typescript: 'ts', python: 'py', go: 'go' }[language];
   const core = { typescript: 'export function hello() { return 1; }\n', python: 'def hello():\n    return 1\n', go: 'package demo\nfunc hello() int { return 1 }\n' }[language];
   let catalog = language === 'go' ? 'package demo\n' : '';
   let calls = { typescript: 'import { hello } from "./core";\n', python: 'from core import hello\n', go: 'package demo\n' }[language];
-  for (let i = 0; i < manifest.functions; i++) {
-    const fact = `BENCH_MARKER_${pad(i)}: retry_limit=${i === manifest.target ? 7 : 3}`;
+  for (let i = 0; i < spec.functions; i++) {
+    const fact = `BENCH_MARKER_${pad(i)}: retry_limit=${i === spec.target ? 7 : 3}`;
     catalog += { typescript: `export function entry${pad(i)}() { return "${fact}"; }\n`, python: `def entry${pad(i)}():\n    return "${fact}"\n`, go: `func entry${pad(i)}() string { return "${fact}" }\n` }[language];
   }
-  for (let i = 0; i < manifest.callers; i++) calls += { typescript: `export function caller${pad(i)}() { return hello(); }\n`, python: `def caller${pad(i)}():\n    return hello()\n`, go: `func caller${pad(i)}() int { return hello() }\n` }[language];
+  for (let i = 0; i < spec.callers; i++) calls += { typescript: `export function caller${pad(i)}() { return hello(); }\n`, python: `def caller${pad(i)}():\n    return hello()\n`, go: `func caller${pad(i)}() int { return hello() }\n` }[language];
   return { extension, files: { [`core.${extension}`]: core, [`catalog.${extension}`]: catalog, [`callers.${extension}`]: calls } };
 }
 
@@ -63,7 +64,8 @@ class Client {
       try { message = JSON.parse(line); } catch { this.fail(new Error(`Non-JSON stdout: ${line}`)); return; }
       const pending = this.pending.get(message.id);
       if (!pending) { this.fail(new Error('Unexpected response')); return; }
-      this.events.push({ direction: 'response', stage: pending.stage, wire: `${line}\n`, tokens: tokens(`${line}\n`) });
+      const elapsedMs = performance.now() - pending.started;
+      this.events.push({ direction: 'response', elapsedMs, stage: pending.stage, wire: `${line}\n`, tokens: tokens(`${line}\n`) });
       this.pending.delete(message.id); clearTimeout(pending.timer);
       if (message.error) pending.reject(new Error(JSON.stringify(message.error))); else pending.resolve(message.result);
     });
@@ -76,7 +78,7 @@ class Client {
     this.events.push({ direction: 'request', stage, wire, tokens: tokens(wire) });
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`Timeout: ${method}`)); }, 30000);
-      this.pending.set(id, { resolve, reject, timer, stage }); this.child.stdin.write(wire);
+      this.pending.set(id, { resolve, reject, timer, stage, started: performance.now() }); this.child.stdin.write(wire);
     });
   }
   async start() {
@@ -113,17 +115,25 @@ function isolatedEnv(home, guardLog) {
     NODE_OPTIONS: `--require=${join(here, 'offline-guard.cjs')}`, JULIUS_PROBE_GUARD_LOG: guardLog };
 }
 
-async function runArm(trailRoot, workspace, language, task, arm) {
-  const folder = join(workspace, `${language}-${task.kind}-${arm}`); mkdirSync(folder);
+export async function runArm(trailRoot, workspace, language, task, arm, options = {}) {
+  const folder = join(workspace, `${language}-${task.id ?? task.kind}-${arm}-${options.repetition ?? 0}`); mkdirSync(folder);
   const root = join(folder, 'repo'); mkdirSync(root);
-  const fixture = sources(language);
+  const fixture = sources(language, options.manifest ?? manifest);
   for (const [name, text] of Object.entries(fixture.files)) writeFileSync(join(root, name), text);
   const guardLog = join(folder, 'blocked.log'); const env = isolatedEnv(join(folder, 'home'), guardLog);
-  const binary = join(arm === 'trail' ? trailRoot : repo, 'dist/bin', arm === 'trail' ? 'trail.js' : 'julius.js');
+  const binary = join(arm === 'trail' ? trailRoot : options.productRoot ?? repo, 'dist/bin', arm === 'trail' ? 'trail.js' : 'julius.js');
   let client; let error = null; let evidence = ''; let recoveryCalls = 0; let byteIntegrity = null;
-  let initialQuality = false; const facts = expectedFacts(task);
+  let buildMs = null;
+  let initialQuality = false; const facts = expectedFacts(task, options.manifest ?? manifest);
   try {
+    const buildStart = performance.now();
     execFileSync(process.execPath, [binary, 'build', root], { cwd: root, env, timeout: 60000, stdio: 'pipe' });
+    buildMs = performance.now() - buildStart;
+    if (task.mutation) {
+      const path = join(root, `callers.${fixture.extension}`);
+      const added = { typescript: 'export function caller024() { return hello(); }\n', python: 'def caller024():\n    return hello()\n', go: 'func caller024() int { return hello() }\n' }[language];
+      writeFileSync(path, readFileSync(path, 'utf8') + added);
+    }
     client = new Client(binary, root, env, arm === 'julius-full'); await client.start();
     const compact = !['trail', 'julius-full'].includes(arm);
     const budget = arm === 'compact-400' ? 400 : arm === 'composition' ? 16000 : 1200;
@@ -134,20 +144,30 @@ async function runArm(trailRoot, workspace, language, task, arm) {
         assert.ok(tool, `Missing operation ${operation}`); return client.call(tool.name, args, stage);
       }
       const name = operation.includes('.') ? operation : `julius_${operation}`;
-      if (!discovered.has(name)) { await client.call('julius_discover', { operation: name }, 'discovery'); discovered.add(name); }
-      return client.call('julius_call', { operation: name, args, budget }, stage);
+      if (!options.knownSchemas && !discovered.has(name)) { await client.call('julius_discover', { operation: name }, 'discovery'); discovered.add(name); }
+      return client.call('julius_call', { operation: name, args, ...(options.policy && stage !== 'recovery' ? deliveryArguments(task, arm) : { budget }) }, stage);
     }
     let results;
-    if (arm === 'composition') results = [await call('investigation.execute', { recipe: 'change-impact', paths: [`core.${fixture.extension}`], depth: 1 })];
+    if (arm === 'composition' || task.investigation && arm !== 'trail') results = [await call('investigation.execute', { recipe: 'change-impact', paths: [`core.${fixture.extension}`], depth: 1 })];
     else if (task.kind === 'tiny') results = [await call('file_api', { file: `core.${fixture.extension}` })];
     else if (task.kind === 'impact') results = [await call('file_api', { file: `core.${fixture.extension}` }), await call('trace_calls', { symbol: 'hello', depth: 1 })];
     else results = [await call('find_all', { pattern: task.query, fixed: true })];
+    for (let warmup = 0; warmup < (task.warmups ?? 0); warmup++) results.push(await call('file_api', { file: `core.${fixture.extension}` }, 'warm'));
     initialQuality = facts.every(fact => results.join('\n').includes(fact));
     for (const text of results) {
-      const first = envelope(text);
+      const whole = completeBody(text);
+      if (whole) { evidence += whole.toString('utf8') + '\n'; byteIntegrity = true; continue; }
+      let first = envelope(text);
+      if (!first && task.investigation) {
+        const handle = structuredRecovery(text);
+        if (handle) {
+          first = envelope(await call('context.read', { handle, start: 0 }, 'recovery')); recoveryCalls++;
+          assert.ok(first, 'Investigation recovery must expose byte ranges');
+        }
+      }
       if (!first) { evidence += text + '\n'; continue; }
       if (task.kind === 'selective' && initialQuality) { evidence += decoded(first).toString('utf8') + '\n'; continue; }
-      if (task.kind === 'selective' && !initialQuality) {
+      if (task.kind === 'selective' && !initialQuality && task.recoveryHint) {
         const recovered = await call('context.read', { handle: first.handle, search: task.recoveryHint }, 'recovery'); recoveryCalls++;
         evidence += recovered + '\n';
       } else {
@@ -170,12 +190,12 @@ async function runArm(trailRoot, workspace, language, task, arm) {
   const events = client?.events ?? []; const stageTokens = {};
   for (const event of events) stageTokens[event.stage] = (stageTokens[event.stage] ?? 0) + event.tokens;
   const missingFacts = facts.filter(fact => !evidence.includes(fact));
-  return { language, task: task.kind, arm, quality: error === null && missingFacts.length === 0, initialQuality, missingFacts, error,
+  return { language, task: task.id ?? task.kind, arm, buildMs, stageLatencyMs: Object.fromEntries([...new Set(events.filter(e => e.direction === 'response').map(e => e.stage))].map(stage => [stage, events.filter(e => e.direction === 'response' && e.stage === stage).reduce((sum, e) => sum + (e.elapsedMs ?? 0), 0)])), retrievalMs: events.filter(e => e.direction === 'response' && e.stage !== 'interface').reduce((sum, e) => sum + (e.elapsedMs ?? 0), 0), startupMs: events.filter(e => e.direction === 'response' && e.stage === 'interface').reduce((sum, e) => sum + (e.elapsedMs ?? 0), 0), quality: error === null && missingFacts.length === 0, initialQuality, missingFacts, error,
     byteIntegrity, recoveryCalls, stageTokens, totalTokens: events.length ? events.reduce((sum, e) => sum + e.tokens, 0) : null,
     calls: events.filter(e => e.direction === 'request' && e.stage !== 'interface').length, blockedOperations: blocked, events };
 }
 
-function verifyUpstream(trailRoot) {
+export function verifyUpstream(trailRoot) {
   const entries = execFileSync('git', ['ls-tree', '-r', '--format=%(objectname) %(path)', upstream], { cwd: repo, encoding: 'utf8' }).trim().split('\n');
   for (const entry of entries) {
     const [expected, ...parts] = entry.split(' '); const path = parts.join(' '); const bytes = readFileSync(join(trailRoot, path));

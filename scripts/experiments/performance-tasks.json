@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "purpose": "Frozen delivery comparison: synthetic scripted evidence tasks, not a coding benchmark.",
+  "languages": [
+    "typescript",
+    "python",
+    "go"
+  ],
+  "functions": 180,
+  "callers": 24,
+  "target": 78,
+  "tasks": [
+    {
+      "kind": "tiny",
+      "question": "Find the public hello function in core.",
+      "expected": [
+        "hello"
+      ]
+    },
+    {
+      "kind": "selective",
+      "question": "Find the retry_limit assigned in BENCH_MARKER_078.",
+      "query": "BENCH_MARKER",
+      "recoveryHint": "BENCH_MARKER_078",
+      "expected": [
+        "BENCH_MARKER_078: retry_limit=7"
+      ]
+    },
+    {
+      "kind": "complete",
+      "question": "Return every BENCH_MARKER entry, with no omitted bytes from the graph search result.",
+      "query": "BENCH_MARKER"
+    },
+    {
+      "kind": "impact",
+      "question": "List the core API and all direct caller functions affected by changing hello.",
+      "expectedCallers": 24
+    },
+    {
+      "kind": "selective",
+      "question": "Find the retry_limit assigned in BENCH_MARKER_078.",
+      "query": "BENCH_MARKER",
+      "recoveryHint": "BENCH_MARKER_078",
+      "expected": [
+        "BENCH_MARKER_078: retry_limit=7"
+      ],
+      "id": "absent-focus",
+      "initialFocus": "BENCH_MARKER_MISSING"
+    },
+    {
+      "kind": "selective",
+      "question": "Find the retry_limit assigned in BENCH_MARKER_078.",
+      "query": "BENCH_MARKER",
+      "recoveryHint": "BENCH_MARKER_078",
+      "expected": [
+        "BENCH_MARKER_078: retry_limit=7"
+      ],
+      "id": "ambiguous-focus",
+      "initialFocus": "BENCH_MARKER_07"
+    },
+    {
+      "kind": "selective",
+      "question": "Find the retry_limit assigned in BENCH_MARKER_078.",
+      "query": "BENCH_MARKER",
+      "recoveryHint": null,
+      "expected": [
+        "BENCH_MARKER_078: retry_limit=7"
+      ],
+      "id": "without-hint"
+    },
+    {
+      "kind": "impact",
+      "question": "List the core API and all direct caller functions affected by changing hello.",
+      "expectedCallers": 25,
+      "id": "after-edit",
+      "mutation": true
+    },
+    {
+      "kind": "impact",
+      "question": "List the core API and all direct caller functions affected by changing hello.",
+      "expectedCallers": 24,
+      "id": "investigation-impact",
+      "investigation": true
+    },
+    {
+      "kind": "tiny",
+      "question": "Find the public hello function in core.",
+      "expected": [
+        "hello"
+      ],
+      "id": "warm-session",
+      "warmups": 2
+    }
+  ],
+  "repetitions": 3
+}
