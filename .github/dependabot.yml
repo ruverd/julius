@@ -10,6 +10,11 @@ updates:
       # Continue receiving 12.x fixes. Revisit when the minimum Node version changes.
       - dependency-name: node-gyp
         versions: [">=13.0.0"]
+      # These major versions also dropped Node 20 support.
+      - dependency-name: commander
+        versions: [">=15.0.0"]
+      - dependency-name: openai
+        versions: [">=7.0.0"]
 
   - package-ecosystem: github-actions
     directory: /
