@@ -14,7 +14,7 @@ import {
   StreamMessageReader,
   StreamMessageWriter,
   type MessageConnection,
-} from "vscode-jsonrpc/node.js";
+} from "vscode-jsonrpc/node";
 
 export interface LspPosition { line: number; character: number } // 0-indexed
 export interface LspRange { start: LspPosition; end: LspPosition }
