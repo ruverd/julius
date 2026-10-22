@@ -104,39 +104,43 @@ breakage. See [investigations and limitations](docs/investigations.md).
 
 ## Benchmarks
 
-**25.3% fewer protocol tokens** in the recorded offline comparison with the
-[pinned upstream executable](PROVENANCE.md). This is a result for a specific
+**49.3% fewer protocol tokens** in the recorded offline comparison with the
+[pinned upstream executable](PROVENANCE.md). This result describes a specific
 synthetic task mix, not a prediction of your bill.
 
-The measured Julius revision is `69945baf69a9f49ff68469283cb50d9c529ccf78`.
-It predates the current `main`; these figures describe that historical revision,
-not the current release.
+The measured source commit is `625693a046ebc011d2c29ec09e0a03385a1b2a46`, prepared for
+`0.24.1`. The [report](docs/strategy/recovery-impact-comparison.json) records
+source, compiled-output and lockfile hashes; subsequent documentation updates
+preserve the measured source tree.
 
-![Offline MCP comparison: pinned upstream uses 463,332 tokens; Julius uses 346,263, a 25.3% reduction. Local cl100k_base protocol counts, not provider usage.](docs/assets/context-benchmark.svg)
+![Offline MCP comparison: pinned upstream uses 463,332 tokens; Julius uses 235,134, a 49.3% reduction. Local cl100k_base protocol counts, not provider usage.](docs/assets/context-benchmark.svg)
 
 The experiment runs ten synthetic evidence tasks in TypeScript, Python, and Go,
 with three repetitions per task and language. Each compared arm has 90 executions.
 Counts include MCP initialization, discovery, invocation, and every recovery call.
-The Julius arm uses the recorded selective/complete delivery policy.
+The Julius arm follows the recorded selective/complete policy, including complete
+range recovery after a preview.
 
-The task determines the result. Smaller deliveries help selective reads, while
-repeated recovery and extra investigation evidence can cost more:
+Complete recovery avoids repeated pages. Composed impact reports group every
+identity while retaining detailed evidence locally:
 
 | Task, summed across nine executions | Pinned upstream | Julius |
 | --- | ---: | ---: |
-| Retrieve one required fact | 78,903 | 18,129 |
-| Request complete output explicitly | 78,903 | 75,495 |
-| Recover all output without a hint | 78,903 | 113,472 |
-| Investigate impact with a composed report | 15,186 | 63,048 |
-| **All ten task types** | **463,332** | **346,263** |
+| Retrieve one required fact | 78,903 | 8,274 |
+| Request complete output explicitly | 78,903 | 63,789 |
+| Recover all output without a hint | 78,903 | 78,291 |
+| Investigate impact with a composed report | 15,186 | 13,062 |
+| **All ten task types** | **463,332** | **235,134** |
 
 These are offline `cl100k_base` counts over JSON-RPC NDJSON traffic. No model runs,
-provider billing, or coding-task accuracy were measured. Local retrieval remained
-slower than the pinned upstream in this experiment. The checks verify synthetic
-evidence recovery, not the correctness of a code change.
+provider billing, or coding-task accuracy were measured. Aggregate savings do not
+hold for every language: Python's no-hint recovery still costs more than upstream.
+Local timing is uncontrolled; the checks verify synthetic evidence recovery,
+not the correctness or speed of a code change.
 
-Read the [method, all task results, limitations, and reproduction steps](docs/strategy/performance-comparison.md)
-or inspect the [recorded JSON](docs/strategy/performance-comparison.json).
+Read the [method, all task results, limitations, and reproduction steps](docs/strategy/recovery-impact-comparison.md)
+or inspect the [recorded JSON](docs/strategy/recovery-impact-comparison.json).
+The [earlier comparison](docs/strategy/performance-comparison.md) remains available.
 Regenerate this chart with `node scripts/render-readme-benchmark.mjs`.
 
 ## Local navigation

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const reportUrl = new URL('../docs/strategy/performance-comparison.json', import.meta.url);
+const reportUrl = new URL('../docs/strategy/recovery-impact-comparison.json', import.meta.url);
 const outputUrl = new URL('../docs/assets/context-benchmark.svg', import.meta.url);
 const report = JSON.parse(readFileSync(reportUrl, 'utf8'));
 const arms = ['trail', 'policy'].map(arm => {

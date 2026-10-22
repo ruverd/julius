@@ -15,7 +15,8 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ### Changed
 
-- Refresh README benchmark evidence against the release candidate, including discovery, invocation and exact-byte recovery traffic.
+- Refresh README benchmark evidence against the release candidate: 235,134 versus 463,332 protocol tokens across ten synthetic task types, including discovery, invocation and exact-byte recovery traffic.
+- Record 78,291 tokens for no-hint recovery and 13,062 for composed impact, below the corresponding upstream aggregates; retain the per-language Python recovery regression.
 - Retain source coverage, uncertainty and detailed investigation reports for follow-up retrieval.
 
 Benchmark results are offline protocol counts, not provider token usage, billing or coding accuracy.
