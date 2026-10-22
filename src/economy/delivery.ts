@@ -45,17 +45,31 @@ export function utf8SafeEnd(bytes: Buffer, end: number): number {
   return n;
 }
 
-function prevBoundary(bytes: Buffer, index: number): number {
-  let i = index - 1;
-  while (i > 0 && (bytes[i]! & 0xc0) === 0x80) i--;
-  return Math.max(0, i);
+function snapDown(bytes: Buffer, index: number): number {
+  let i = Math.max(0, Math.min(bytes.length, index));
+  while (i > 0 && i < bytes.length && (bytes[i]! & 0xc0) === 0x80) i--;
+  return i;
 }
 
-function nextBoundary(bytes: Buffer, index: number): number {
-  if (index >= bytes.length) return bytes.length;
-  const lead = bytes[index]!;
-  const width = lead < 0x80 ? 1 : (lead & 0xe0) === 0xc0 ? 2 : (lead & 0xf0) === 0xe0 ? 3 : (lead & 0xf8) === 0xf0 ? 4 : 1;
-  return Math.min(bytes.length, index + width);
+function snapUp(bytes: Buffer, index: number): number {
+  let i = Math.max(0, Math.min(bytes.length, index));
+  while (i < bytes.length && (bytes[i]! & 0xc0) === 0x80) i++;
+  return i;
+}
+
+function largestFit(limit: number, ok: (value: number) => boolean): number {
+  let good = 0;
+  let bad = limit + 1;
+  let step = 64;
+  while (good < limit) {
+    const probe = Math.min(limit, good + step);
+    if (ok(probe)) { good = probe; step *= 2; } else { bad = probe; break; }
+  }
+  while (bad - good > 1) {
+    const mid = good + Math.floor((bad - good) / 2);
+    if (ok(mid)) good = mid; else bad = mid;
+  }
+  return good;
 }
 
 export function findLiterals(bytes: Buffer, literals: string[]): Array<{ start: number; end: number }> {
@@ -87,7 +101,7 @@ export function growSlice(bytes: Buffer, anchorStart: number, anchorEnd: number,
   if (!fits(anchorStart, anchorEnd)) return null;
   let start = anchorStart;
   let end = anchorEnd;
-  const lineAt = bytes.lastIndexOf(0x0a, Math.max(0, start - 1));
+  const lineAt = start === 0 ? -1 : bytes.lastIndexOf(0x0a, start - 1);
   const lineStart = lineAt < 0 ? 0 : lineAt + 1;
   const breakAt = bytes.indexOf(0x0a, end);
   const lineEnd = breakAt < 0 ? bytes.length : breakAt + 1;
@@ -95,19 +109,15 @@ export function growSlice(bytes: Buffer, anchorStart: number, anchorEnd: number,
     start = lineStart;
     end = lineEnd;
   }
-  let grew = true;
-  while (grew) {
-    grew = false;
-    if (start > 0) {
-      const next = prevBoundary(bytes, start);
-      if (next < start && fits(next, end)) { start = next; grew = true; }
-    }
-    if (end < bytes.length) {
-      const next = nextBoundary(bytes, end);
-      if (next > end && fits(start, next)) { end = next; grew = true; }
-    }
-  }
-  return { start, end };
+  const baseStart = start;
+  const baseEnd = end;
+  const radius = largestFit(Math.max(baseStart, bytes.length - baseEnd), value => fits(snapDown(bytes, baseStart - value), snapUp(bytes, baseEnd + value)));
+  const radiusStart = snapDown(bytes, baseStart - radius);
+  const radiusEnd = snapUp(bytes, baseEnd + radius);
+  const back = largestFit(radiusStart, value => fits(snapDown(bytes, radiusStart - value), radiusEnd));
+  const finalStart = snapDown(bytes, radiusStart - back);
+  const forward = largestFit(bytes.length - radiusEnd, value => fits(finalStart, snapUp(bytes, radiusEnd + value)));
+  return { start: finalStart, end: snapUp(bytes, radiusEnd + forward) };
 }
 
 export function completeHeader(fields: { handle: string; totalBytes: number; omittedBytes: number; incomplete: boolean; next: { start: number; end: number } | null; format: 'utf8' | 'base64' }): string {

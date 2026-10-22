@@ -208,7 +208,7 @@ result around one literal. `delivery: "complete"` with `budget` omitted returns
 a one-line JSON header, a newline, and the original body; an explicit `budget`
 still caps that body and returns `next`. Other omitted results retain an exact
 local handle. Use `context.read` with `handle`, byte `start`/`end`, `search`,
-or `next.start`. `match: false` means the literal was absent. Graph errors
+or `next.start`. `match: false` with `matchCount` 0 means the literal was absent; with `matchCount` above 0 it was found but did not fit, so read `next`. Graph errors
 remain `isError: true`, including when bounded. Each session receives usable
 content; no cross-session suppression is assumed. Stats describe the payload
 ledger and do not include discovery/schema or protocol costs. Discovery and

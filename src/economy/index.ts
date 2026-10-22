@@ -285,7 +285,7 @@ export class Economy {
       case 'targeted': {
         const budget = choice.budget ?? 1200;
         if (choice.literals.length === 0) return bounded(choice.label);
-        if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= budget && choice.literals.some(literal => raw.content.includes(literal))) {
+        if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= budget) {
           this.record(rawTokens, rawTokens);
           return { text: raw.content, handle: null, bytes, omittedBytes: 0 };
         }

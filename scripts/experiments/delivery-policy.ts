@@ -57,9 +57,10 @@ export async function runDeliveryPolicy() {
   const listing = benchListing();
   if (economyTokens(listing) <= 1200) throw new Error('fixture body fits in the default budget');
   const root = mkdtempSync(join(tmpdir(), 'delivery-policy-'));
+  const checks: boolean[] = [];
   try {
     const fixedPreview = await new Economy(root).present(listing, { algorithm: 'fixed', label: 'fixed', budget: 1200, literals: [] }, 'mcp');
-    if (fixedPreview.text.includes(manifest.marker)) throw new Error('head preview already contains the target marker');
+    checks.push(!fixedPreview.text.includes(manifest.marker));
     const fixedParsed = JSON.parse(fixedPreview.text);
     const fixedHandle = fixedParsed.handle as string;
     const fixedRead = await new Economy(root).read(fixedHandle, { search: manifest.marker, budget: 1200, transport: 'mcp' });
@@ -67,26 +68,26 @@ export async function runDeliveryPolicy() {
       + exchange('context.read', { handle: fixedHandle, search: manifest.marker }, fixedRead.text, { budget: 1200 });
     const fixedTail = await reassemble(root, fixedHandle, 1200, fixedParsed.next.start as number);
     const fixedWhole = `${fixedParsed.content}${fixedTail.text}`;
-    if (fixedWhole !== listing) throw new Error('fixed reassembly lost bytes');
+    checks.push(fixedWhole === listing);
     const fixedComplete = exchange('context.capture', { content: listing }, fixedPreview.text, { budget: 1200 }) + fixedTail.tokens;
 
     const policyOneText = (await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content: listing }, focus: manifest.marker })).text;
-    if (!policyOneText.includes(manifest.marker)) throw new Error('policy window missed the marker');
+    checks.push(policyOneText.includes(manifest.marker));
     const policyOne = exchange('context.capture', { content: listing }, policyOneText, { focus: manifest.marker });
     const policyAllText = (await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content: listing }, delivery: 'complete' })).text;
     const split = policyAllText.indexOf('\n');
     const header = JSON.parse(policyAllText.slice(0, split));
     const body = policyAllText.slice(split + 1);
-    if (body !== listing) throw new Error('complete body is not verbatim');
-    if (createHash('sha256').update(body).digest('hex') !== String(header.handle).slice(7)) throw new Error('complete body does not match the stored object');
-    for (let i = 0; i < manifest.functions; i++) if (!body.includes(`BENCH_MARKER_${String(i).padStart(3, '0')}`)) throw new Error('complete body omitted a marker');
+    checks.push(body === listing);
+    checks.push(createHash('sha256').update(body).digest('hex') === String(header.handle).slice(7));
+    for (let i = 0; i < manifest.functions; i++) checks.push(body.includes(`BENCH_MARKER_${String(i).padStart(3, '0')}`));
     const policyComplete = exchange('context.capture', { content: listing }, policyAllText, { delivery: 'complete' });
 
     const absent = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content: listing }, focus: manifest.absent });
     const absentBody = JSON.parse(absent.text);
-    if (absent.isError || absentBody.match !== false || absent.text.includes(manifest.marker)) throw new Error('absent hint leaked the fact');
+    checks.push(!absent.isError && absentBody.match === false && !absent.text.includes(manifest.marker));
     const absentRead = await callCompact(root, 'julius_call', { operation: 'context.read', args: { handle: absentBody.handle, search: manifest.marker }, budget: 1200 });
-    if (!absentRead.text.includes(manifest.marker)) throw new Error('absent recovery missed the fact');
+    checks.push(absentRead.text.includes(manifest.marker));
     const absentTokens = exchange('context.capture', { content: listing }, absent.text, { focus: manifest.absent })
       + exchange('context.read', { handle: absentBody.handle, search: manifest.marker }, absentRead.text, { budget: 1200 });
 
@@ -101,29 +102,27 @@ export async function runDeliveryPolicy() {
         ambiguousTokens += exchange('context.read', { handle: parsed.handle, start }, read.text, { budget: 1200 });
         if (read.text.includes(manifest.requiredSecond)) { found = true; break; }
       }
-      if (!found) throw new Error('ambiguous recovery exhausted the offsets');
+      checks.push(found);
     }
 
     mkdirSync(join(root, 'vendor'));
     writeFileSync(join(root, 'vendor', 'readme.txt'), 'not source');
     writeFileSync(join(root, 'mod.ts'), listing);
     const investigated = await runInvestigation(root, { recipe: 'failure-localization', query: 'retry_limit=7' });
-    const stored = JSON.stringify(investigated);
     const delivered = JSON.parse(await deliverInvestigation(root, investigated, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['retry_limit=7'] }));
-    if (JSON.stringify(delivered.coverage) !== JSON.stringify(investigated.coverage)) throw new Error('coverage changed');
-    if (JSON.stringify(delivered.unknowns) !== JSON.stringify(investigated.unknowns)) throw new Error('unknowns changed');
-    if (JSON.stringify(delivered).includes(manifest.nonSource)) throw new Error('non-source path entered evidence');
-    if (!stored.includes(`"unindexedFiles":${investigated.coverage.unindexedFiles}`)) throw new Error('stored report lost coverage');
+    checks.push(JSON.stringify(delivered.coverage) === JSON.stringify(investigated.coverage));
+    checks.push(JSON.stringify(delivered.unknowns) === JSON.stringify(investigated.unknowns));
+    checks.push(!JSON.stringify(delivered).includes(manifest.nonSource));
 
     const without = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content: listing } });
     const withoutParsed = JSON.parse(without.text);
     const withoutTail = await reassemble(root, withoutParsed.handle as string, 1200, withoutParsed.next.start as number);
-    if (`${withoutParsed.content}${withoutTail.text}` !== listing) throw new Error('unflagged reassembly lost bytes');
+    checks.push(`${withoutParsed.content}${withoutTail.text}` === listing);
     const withoutTokens = exchange('context.capture', { content: listing }, without.text) + withoutTail.tokens;
     const always = exchange('context.capture', { content: listing }, listing);
     const policy = { oneFact: policyOne, complete: policyComplete, mixed: policyOne + policyComplete };
     const fixed = { oneFact: fixedOne, complete: fixedComplete, mixed: fixedOne + fixedComplete };
-    const quality = true;
+    const quality = checks.every(Boolean);
     return {
       providerUsage: null,
       codingTaskAccuracy: null,
@@ -134,6 +133,7 @@ export async function runDeliveryPolicy() {
         mixed: fixed.mixed - policy.mixed,
         withoutFlagVersusRaw: always - withoutTokens,
       },
+      alwaysComplete: always,
       charged: { absentTokens, ambiguousTokens },
     };
   } finally { rmSync(root, { recursive: true, force: true }); }

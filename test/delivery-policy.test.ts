@@ -16,6 +16,8 @@ test('offline probe preserves the adverse full-content case and beats fixed prev
   assert.equal(report.codingTaskAccuracy, null);
   assert.equal(report.decision, 'advance-offline-only');
   assert.ok(report.savings.withoutFlagVersusRaw < 0);
+  assert.equal(typeof report.alwaysComplete, 'number');
+  assert.ok(report.alwaysComplete > 0);
   assert.ok(report.savings.oneFact > 0);
   assert.ok(report.savings.complete > 0);
   assert.ok(report.savings.mixed > 0);

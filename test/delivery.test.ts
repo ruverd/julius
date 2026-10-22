@@ -237,3 +237,48 @@ test('agent instructions name delivery, focus, next, and commandless use', () =>
     assert.match(text, /never ask the user to run Julius commands/);
   }
 });
+
+test('window growth over a large body is bounded and stays within budget', async () => {
+  const root = repo();
+  try {
+    const lines = Array.from({ length: 20000 }, (_, index) => `line ${index} ok`);
+    lines[10000] = 'MIDDLE_LITERAL_QX retry_limit=7';
+    const body = lines.join('\n');
+    const started = Date.now();
+    const result = await new Economy(root).present(body, { algorithm: 'targeted', label: 'targeted', budget: 16000, literals: ['MIDDLE_LITERAL_QX'] }, 'mcp');
+    assert.ok(Date.now() - started < 10000);
+    assert.ok(economyTokens(result.text) <= 16000);
+    const parsed = JSON.parse(result.text);
+    assert.equal(parsed.match, true);
+    assert.ok(parsed.content.includes('MIDDLE_LITERAL_QX'));
+    assert.ok(parsed.content.length > 1000);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a body that fits the budget is returned whole even when the literal is absent', async () => {
+  const root = repo();
+  try {
+    const economy = new Economy(root);
+    const short = 'a short body without the focus';
+    const kept = await economy.present(short, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['MISSING_FOCUS'] }, 'mcp');
+    assert.equal(kept.text, short);
+    assert.equal(kept.handle, null);
+    const large = `${'word '.repeat(4000)}end`;
+    const missed = JSON.parse((await economy.present(large, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['MISSING_FOCUS'] }, 'mcp')).text);
+    assert.equal(missed.match, false);
+    assert.equal(missed.matchCount, 0);
+    assert.equal(missed.content, '');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a complete-fit investigation report keeps evidence without the literal', async () => {
+  const root = repo();
+  try {
+    const small = report(0, [{ id: 'a.ts#only', path: 'a.ts', span: 'L1-L2', kind: 'function', name: 'only', role: 'dependent', depth: 1, excerpt: 'unrelated excerpt', excerptComplete: true }]);
+    const delivered = JSON.parse(await deliverInvestigation(root, small, { algorithm: 'targeted', label: 'targeted', budget: 1200, literals: ['BENCH_MARKER_MISSING'] }));
+    assert.equal(delivered.evidence.length, 1);
+    assert.equal(delivered.evidence[0].excerpt, 'unrelated excerpt');
+    assert.equal(delivered.omittedEvidence, 0);
+    assert.equal(delivered.match, undefined);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
