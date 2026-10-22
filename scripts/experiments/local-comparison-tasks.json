@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "purpose": "New synthetic falsification set, frozen before first comparison; not a held-out coding benchmark.",
+  "languages": ["typescript", "python", "go"],
+  "functions": 180,
+  "callers": 24,
+  "target": 78,
+  "budgets": [1200, 400],
+  "tasks": [
+    {"kind": "tiny", "question": "Find the public hello function in core.", "expected": ["hello"]},
+    {"kind": "selective", "question": "Find the retry_limit assigned in BENCH_MARKER_078.", "query": "BENCH_MARKER", "recoveryHint": "BENCH_MARKER_078", "expected": ["BENCH_MARKER_078: retry_limit=7"]},
+    {"kind": "complete", "question": "Return every BENCH_MARKER entry, with no omitted bytes from the graph search result.", "query": "BENCH_MARKER"},
+    {"kind": "impact", "question": "List the core API and all direct caller functions affected by changing hello.", "expectedCallers": 24}
+  ]
+}

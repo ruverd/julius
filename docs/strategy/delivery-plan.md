@@ -3,7 +3,8 @@
 Status: staged implementation. The first delivery adds two fixed investigation
 recipes, process-local snapshot-validated reuse, structured budget selection and
 paired usage-import contracts. See [implemented behavior](../investigations.md).
-M0's actual upstream/model runners, generic M1 plans, persistent/fine-grained M2,
+M0 now has an [actual upstream CLI/MCP runner and local comparison](local-comparison.md)
+for synthetic evidence tasks. Its model/host runners, generic M1 plans, persistent/fine-grained M2,
 learned or cost-adaptive M3, M4 handoffs and M5 live trials remain open. No paid
 experiment has been run.
 Date: 2026-10-21. Context: [research study](research-study.md).
@@ -90,4 +91,10 @@ Proceed only if the experiment adds a capability unavailable in the portable pro
 
 ## Immediate next deliverable
 
-Implement M0 task/usage contracts and the M1 change-impact recipe behind an experimental flag. Produce one paired trace showing every model-visible message and independent task outcome. That trace decides whether to expand the runtime, improve integration, or abandon the mechanism before building the memory system.
+The first paired executable traces are now available in the local comparison.
+Selective recovery advances; aggressive fixed truncation and composition do not
+earn broader implementation from these fixtures. Next freeze an independent
+offline task set with ambiguous/absent hints, edits, unindexed code and complete
+output requirements. Evaluate a test-only selection policy before changing the
+product. Actual model/host runs still require an explicit spending budget and
+independent coding outcome checks; the local trace is not that evidence.
