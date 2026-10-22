@@ -38,8 +38,9 @@ test('selectDelivery distinguishes omitted budget from an explicit cap', () => {
 test('utf-8 truncation lands on code point boundaries', () => {
   const bytes = Buffer.from('ação🙂');
   assert.equal(utf8SafeEnd(bytes, 0), 0);
-  assert.equal(utf8SafeEnd(bytes, 1), 0);
-  assert.equal(utf8SafeEnd(bytes, 2), 2);
+  assert.equal(utf8SafeEnd(bytes, 1), 1);
+  assert.equal(utf8SafeEnd(bytes, 2), 1);
+  assert.equal(utf8SafeEnd(bytes, 3), 3);
   assert.equal(utf8SafeEnd(bytes, bytes.length), bytes.length);
 });
 

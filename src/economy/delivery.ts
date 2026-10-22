@@ -41,10 +41,7 @@ export function selectDelivery(input: { delivery?: string; focus?: string; budge
 
 export function utf8SafeEnd(bytes: Buffer, end: number): number {
   let n = Math.min(bytes.length, Math.max(0, end));
-  while (n > 0 && n < bytes.length && (bytes[n]! & 0x80) !== 0) {
-    if ((bytes[n]! & 0xc0) === 0x80) break;
-    n--;
-  }
+  while (n > 0 && n < bytes.length && (bytes[n]! & 0xc0) === 0x80) n--;
   return n;
 }
 
