@@ -43,7 +43,7 @@ function load(home: string, bytes: string | null): Manifest {
   const allowed = new Set(Object.values(targets(home)));
   if (manifest.migrationRepos !== undefined && (!Array.isArray(manifest.migrationRepos) || manifest.migrationRepos.some(repo => typeof repo !== 'string' || resolve(repo) !== repo))) throw new Error('Invalid migration manifest');
   for (const repo of manifest.migrationRepos ?? []) for (const path of repoMcpPaths(repo)) allowed.add(path);
-  if (manifest.version !== 1 || !Array.isArray(manifest.configs) || manifest.configs.some(c => !allowed.has(c.path) || typeof c.after !== 'string' || !(c.before === null || typeof c.before === 'string') || !Array.isArray(c.keys) || c.keys.some(k => !['julius', 'trail', 'graft'].includes(k)))) throw new Error('Invalid install manifest');
+  if (manifest.version !== 1 || !Array.isArray(manifest.configs) || manifest.configs.some(c => !allowed.has(c.path) || typeof c.after !== 'string' || !(c.before === null || typeof c.before === 'string') || !Array.isArray(c.keys) || c.keys.some(k => !['julius', 'trail'].includes(k)))) throw new Error('Invalid install manifest');
   return manifest;
 }
 /** Narrow table editor: preserve foreign TOML verbatim, reject ambiguous owned
@@ -54,7 +54,7 @@ function tomlSection(text: string, name = 'julius'): { start: number; end: numbe
   const header = new RegExp(`^\\[mcp_servers\\.${name}\\][ \\t]*(?:#[^\\n]*)?\\r?$`, 'gm');
   const matches = [...text.matchAll(header)];
   const suspicious = text.split('\n').some(line => line.includes(name) &&
-    /^(?:\s*\[|\s*(?:mcp_servers|["']?(?:julius|trail|graft)["']?)\s*[.=])/.test(line) &&
+    /^(?:\s*\[|\s*(?:mcp_servers|["']?(?:julius|trail)["']?)\s*[.=])/.test(line) &&
     !new RegExp(`^\\[mcp_servers\\.${name}\\][ \\t]*(?:#.*)?\\r?$`).test(line));
   if (matches.length > 1 || suspicious) throw new Error(`Unsupported or duplicate ${name} TOML section; resolve it manually before setup`);
   if (!matches.length) return null;
@@ -119,10 +119,10 @@ function transact(changes: Change[], opts: InstallOptions): string[] {
     rmSync(journal); return report;
   } finally { rmSync(lock, { recursive: true, force: true }); }
 }
-function legacy(entry: unknown, key: string): boolean {
+function legacyTrail(entry: unknown): boolean {
   // Only exact upstream launch forms, with no unknown settings or extra args.
-  return isDeepStrictEqual(entry, { command: key, args: ['mcp'] }) ||
-    isDeepStrictEqual(entry, { command: 'npx', args: ['-y', key === 'trail' ? '@trailhq/trail-code' : '@nanonets/graft', 'mcp'] });
+  return isDeepStrictEqual(entry, { command: 'trail', args: ['mcp'] }) ||
+    isDeepStrictEqual(entry, { command: 'npx', args: ['-y', '@trailhq/trail-code', 'mcp'] });
 }
 const repoMcpPaths = (repo: string) => [join(repo, '.mcp.json'), join(repo, '.cursor', 'mcp.json')];
 function migration(repo: string): Change[] {
@@ -165,7 +165,7 @@ export function installGlobal(opts: InstallOptions): string[] {
       const root = json(before); const servers = root.mcpServers ?? {};
       const old = manifest.configs.find(c => c.path === path); if (old) assertOwned(before, old);
       const keys = new Set(old?.keys ?? []);
-      for (const key of ['trail', 'graft']) if (legacy(servers[key], key)) { delete servers[key]; keys.add(key); }
+      if (legacyTrail(servers.trail)) { delete servers.trail; keys.add('trail'); }
       if (!keys.size) continue;
       const after = isDeepStrictEqual(root, json(before)) ? before : encode(JSON.stringify(root, null, 2) + '\n');
       const owned = { path, before: old ? restoreOwned(before, old) : before, after, keys: [...keys] };
@@ -181,7 +181,7 @@ export function installGlobal(opts: InstallOptions): string[] {
       let text = decode(before); const keys = new Set(old?.keys ?? ['julius']);
       if (opts.migrateTrail) {
         const parsed = parseToml(text); const servers = parsed.mcp_servers as Record<string, unknown> | undefined;
-        for (const key of ['trail', 'graft']) if (legacy(servers?.[key] === undefined ? undefined : JSON.parse(JSON.stringify(servers[key])), key)) { text = replaceToml(text, '', key); keys.add(key); }
+        if (legacyTrail(servers?.trail === undefined ? undefined : JSON.parse(JSON.stringify(servers.trail)))) { text = replaceToml(text, '', 'trail'); keys.add('trail'); }
       }
       const after = encode(replaceToml(text, section));
       const owned = { path, before: old ? restoreOwned(before, old) : before, after, keys: [...keys] };
@@ -190,7 +190,7 @@ export function installGlobal(opts: InstallOptions): string[] {
     }
     const root = json(before);
     const servers = root.mcpServers ??= {}; const keys = new Set(old?.keys ?? ['julius']);
-    if (opts.migrateTrail) for (const key of ['trail', 'graft']) if (legacy(servers[key], key)) { delete servers[key]; keys.add(key); }
+    if (opts.migrateTrail && legacyTrail(servers.trail)) { delete servers.trail; keys.add('trail'); }
     servers.julius = entry;
     const after = isDeepStrictEqual(root, json(before)) ? before! : encode(JSON.stringify(root, null, 2) + '\n');
     const owned = { path, before: old ? restoreOwned(before, old) : before, after, keys: [...keys] };

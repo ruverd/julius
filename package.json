@@ -56,11 +56,11 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.122.0",
+    "@anthropic-ai/sdk": "^0.135.0",
     "commander": "^15.0.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.8",
     "gray-matter": "^4.0.3",
-    "openai": "^7.8.0",
+    "openai": "^7.39.0",
     "smol-toml": "^1.9.1",
     "tiktoken": "^1.0.22",
     "tree-sitter": "^0.21.1",
@@ -75,15 +75,15 @@
     "tree-sitter-wasm": "^1.1.6",
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.18.4",
-    "web-tree-sitter": "^0.26.13"
+    "web-tree-sitter": "^0.27.1"
   },
   "devDependencies": {
     "@types/d3-force": "^3.0.10",
-    "@types/node": "^26.1.0",
+    "@types/node": "^26.6.5",
     "d3-force": "^3.0.0",
     "esbuild": "^0.28.1",
     "node-gyp": "^12.4.0",
-    "tsx": "^4.22.4",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   },
   "allowScripts": {

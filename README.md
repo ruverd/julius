@@ -4,12 +4,11 @@ Julius builds a local graph of a repository and gives coding agents code search,
 
 ## Install from source
 
-The package is **not published to npm**. This reboot is on the development
-branch `feature/julius-reboot` until its pull request is merged. Build and install
-the local tarball:
+The package is **not published to npm**. Clone the default `main` branch, then
+build and install the local tarball:
 
 ```sh
-git clone --branch feature/julius-reboot https://github.com/ruverd/julius.git
+git clone https://github.com/ruverd/julius.git
 cd julius
 npm ci
 npm run build
@@ -62,6 +61,11 @@ node dist/bin/julius.js build --check /path/to/repo
 The basic build and these navigation commands run locally without a model key. `--deep` opts into the inherited model-assisted analysis. Graph data lives in `.julius/cache/`; shared learnings live in `.julius/learnings/`; machine state lives in `~/.julius`.
 
 `julius init` configures the selected coding-agent integrations. Review `julius init --dry-run` first; `--no-global` limits setup to the repository. `julius mcp` serves compact discovery and invocation over stdio; `--full-tools` explicitly exposes the six inherited graph tools.
+
+`julius grep` accepts JavaScript regular expressions, including lookbehind and
+backreferences; `--fixed` treats the pattern literally. Compilation and matching
+each file have a 1,000 ms execution limit. Exceeding it aborts the search with an
+error; simplify the pattern or use `--fixed`.
 
 ## Public API
 

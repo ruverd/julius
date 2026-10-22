@@ -1,7 +1,7 @@
 # Installation and migration
 
-Use the source/tarball flow in [README](../README.md), which explicitly clones
-the development branch `feature/julius-reboot` while the reboot PR awaits merge. The package name is
+Use the source/tarball flow in [README](../README.md), which clones the default
+`main` branch. The package name is
 `@ruverd/julius`, but registry publication is not part of this release. The
 transactional installer never launches npx or asks a registry for the server.
 
@@ -62,8 +62,8 @@ original bytes. Equal copies are skipped, conflicting destinations fail before
 writes, and symlinks/special files are refused. The old directory is never
 changed. Graph caches are rebuilt locally instead of copied.
 
-Only exact known upstream MCP launch entries (`trail mcp`, `graft mcp`, or
-`npx -y @trailhq/trail-code mcp` / `npx -y @nanonets/graft mcp`) qualify for removal.
+Only exact known Trail MCP launch entries (`trail mcp` or
+`npx -y @trailhq/trail-code mcp`) qualify for removal.
 Additional arguments/settings or merely similar names do not qualify. Setup
 removes verified entries in selected global host configs and the explicitly
 named repository's `.mcp.json` and `.cursor/mcp.json`. Those removals participate
