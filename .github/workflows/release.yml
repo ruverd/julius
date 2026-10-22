@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish or finish releasing
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.repository == 'ruverd/julius'
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require a release commit on main
+        run: |
+          git show-ref --verify "refs/tags/$RELEASE_TAG"
+          git merge-base --is-ancestor HEAD origin/main
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Verify version, tag, lockfile and changelog
+        id: metadata
+        run: node scripts/check-release.mjs --tag "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Install and build
+        run: npm ci --engine-strict
+
+      - name: Verify native parsers
+        run: node scripts/verify-native-parsers.mjs
+
+      - name: Test and retain the exact npm archive
+        env:
+          JULIUS_PACK_DESTINATION: .release
+        run: |
+          mkdir .release
+          npm run release:smoke
+
+      - name: Publish the verified archive using npm OIDC
+        run: npm run release:publish -- ".release/ruverd-julius-${{ steps.metadata.outputs.version }}.tgz"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          DIST_TAG: ${{ steps.metadata.outputs.dist_tag }}
+        run: |
+          args=("$RELEASE_TAG" ".release/ruverd-julius-$VERSION.tgz" --verify-tag --title "Julius $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md")
+          if [ "$DIST_TAG" = next ]; then args+=(--prerelease --latest=false); fi
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "${args[@]}"
+          fi

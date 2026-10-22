@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="#install-from-source">Install</a> ·
+  <a href="#install">Install</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#benchmarks">Benchmarks</a> ·
   <a href="#documentation">Documentation</a>
@@ -25,9 +25,28 @@ Structural indexing and context recovery run locally, without a model key.
 After MCP setup, keep asking normal coding questions. The agent discovers and
 calls Julius through two tools.
 
-## Install from source
+## Install
 
-Requires **Node.js 20+** and npm. The package is **not published to npm**.
+Requires **Node.js 20+** and npm.
+
+```sh
+npm install -g @ruverd/julius
+julius install --dry-run
+julius install
+```
+
+To update an existing installation:
+
+```sh
+npm install -g @ruverd/julius@latest
+julius --version
+```
+
+Restart or reconnect the client's MCP session after updating. Run `julius install`
+again if the Node executable or installed package path changes. To select an
+exact version, use `npm install -g @ruverd/julius@0.24.0`.
+
+### Install from source
 
 ```sh
 git clone https://github.com/ruverd/julius.git
@@ -35,7 +54,7 @@ cd julius
 npm ci
 npm run build
 npm pack --pack-destination .
-npm install -g ./ruverd-julius-0.23.1.tgz
+npm install -g ./ruverd-julius-0.24.0.tgz
 julius install --dry-run
 julius install
 ```
@@ -195,7 +214,9 @@ node dist/bin/julius.js --help
 ```
 
 Run `npm run benchmark:economy` after building for the separate offline fixture
-experiment. Registry publication is a separate operation.
+experiment. See [releasing](docs/releasing.md) for versioning, release checks,
+npm trusted publishing and recovery. Julius release notes live in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## License and provenance
 

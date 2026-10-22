@@ -2,7 +2,7 @@
 
 Julius (`@ruverd/julius`) is an independent fork of [Trail-Code](https://github.com/trailhq/Trail-Code), previously also distributed as Graft.
 
-The exact upstream source imported on October 21, 2026 is commit `b1211efd3eef0efa121b93800e5dd8e547aead77`. Import commit `6ecba95` records the exact upstream tree with both the previous Julius history and the upstream commit as parents. The MIT LICENSE and upstream CREDITS.md are preserved unchanged. CHANGELOG.md is the historical upstream changelog and retains its original names.
+The exact upstream source imported on October 21, 2026 is commit `b1211efd3eef0efa121b93800e5dd8e547aead77`. Import commit `6ecba95` records the exact upstream tree with both the previous Julius history and the upstream commit as parents. The MIT LICENSE and upstream CREDITS.md are preserved unchanged. [docs/upstream-changelog.md](docs/upstream-changelog.md) is the unchanged historical upstream changelog and retains its original names. [CHANGELOG.md](CHANGELOG.md) records Julius releases, starting at 0.24.0.
 
 The previous Python/Rust Julius product was replaced with the user's approval. It remains available in the remote branch `archive/pre-trail-20261021`.
 
