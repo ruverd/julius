@@ -1,3 +1,4 @@
+import { callCompact } from '../src/mcp/compact.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -166,5 +167,27 @@ test('an uncountable full body stores bytes and records null tokens', async () =
     assert.equal(stats.rawTokens, null);
     assert.equal(stats.deliveredTokens, null);
     assert.equal((await economy.read(header.handle, { budget: 16000, raw: true })).bytes.toString('utf8'), body);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('compact calls window a focus and return a complete body verbatim', async () => {
+  const root = repo();
+  try {
+    const content = `${'word '.repeat(2000)}\nBENCH_MARKER_078: retry_limit=7`;
+    const fixed = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content } });
+    assert.equal(fixed.isError, false, fixed.text);
+    assert.equal(fixed.text.includes('BENCH_MARKER_078'), false);
+    const focused = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, focus: 'BENCH_MARKER_078: retry_limit=7' });
+    assert.equal(focused.isError, false, focused.text);
+    assert.match(focused.text, /retry_limit=7/);
+    assert.ok(economyTokens(focused.text) <= 1200);
+    const complete = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, delivery: 'complete' });
+    assert.equal(complete.text.slice(complete.text.indexOf('\n') + 1), content);
+    const capped = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, delivery: 'complete', budget: 256 });
+    const header = JSON.parse(capped.text.slice(0, capped.text.indexOf('\n')));
+    assert.equal(header.incomplete, true);
+    assert.ok(header.next);
+    const bad = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, delivery: 'fixed' });
+    assert.equal(bad.isError, true);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
