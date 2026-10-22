@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "purpose": "Frozen selective-delivery falsification set. Not a coding benchmark.",
+  "language": "typescript",
+  "functions": 180,
+  "target": 78,
+  "marker": "BENCH_MARKER_078: retry_limit=7",
+  "absent": "BENCH_MARKER_MISSING",
+  "ambiguous": "Retry",
+  "requiredSecond": "AMBIGUOUS_RETRY beta",
+  "nonSource": "vendor/readme.txt"
+}
