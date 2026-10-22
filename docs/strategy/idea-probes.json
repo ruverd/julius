@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "encoding": "cl100k_base",
+  "providerUsage": null,
+  "providerCost": null,
+  "codingTaskAccuracy": null,
+  "scope": "Offline falsification probes. Passing means worth a held-out experiment, never production approval or provider savings.",
+  "composition": {
+    "fixture": "tiny-impact",
+    "baselineTokens": 632,
+    "candidateTokens": 770,
+    "factsPreserved": true,
+    "decision": "reject-no-saving",
+    "limitation": "Common compact interface initialization cancels. Schemas and request/result envelopes counted. Hand-authored calls; model planning and repeated prompt processing are unknown. Not upstream Trail."
+  },
+  "reuse": {
+    "evidenceUnchanged": true,
+    "newCallerInvalidates": true,
+    "coldDeliveryTokens": 457,
+    "warmDeliveryTokens": 457,
+    "decision": "computation-reuse-only",
+    "limitation": "A cache hit still delivers all evidence. Do not claim avoided prompt tokens or speedup from this probe."
+  },
+  "retrieval": [
+    {
+      "fixture": "middle-failure",
+      "baselineTokens": 2482,
+      "candidateTokens": 1052,
+      "initialHasFact": false,
+      "recoveryCalls": 1,
+      "factsPreserved": true,
+      "decision": "advance-to-held-out-trial",
+      "limitation": "Frozen output replay, no model. Includes result/recovery envelopes; excludes common interface and discovery. The budget cap itself is not a relevance guarantee."
+    },
+    {
+      "fixture": "every-byte-required",
+      "baselineTokens": 2482,
+      "candidateTokens": 5720,
+      "initialHasFact": false,
+      "recoveryCalls": 10,
+      "factsPreserved": true,
+      "decision": "reject-no-saving",
+      "limitation": "Frozen output replay, no model. Includes result/recovery envelopes; excludes common interface and discovery. The budget cap itself is not a relevance guarantee."
+    }
+  ],
+  "handoff": [
+    {
+      "scenario": "same-context",
+      "mode": "append",
+      "factsPreserved": true,
+      "decision": "requires-host-context-contract"
+    },
+    {
+      "scenario": "new-agent",
+      "mode": "full",
+      "factsPreserved": true,
+      "decision": "must-send-self-contained-evidence"
+    },
+    {
+      "scenario": "compacted",
+      "mode": "full",
+      "factsPreserved": true,
+      "decision": "must-send-self-contained-evidence"
+    },
+    {
+      "scenario": "wrong-base",
+      "mode": "full",
+      "factsPreserved": true,
+      "decision": "must-send-self-contained-evidence"
+    }
+  ],
+  "nextGate": "Expand only a promising mechanism to unseen tasks; require independent correctness and complete provider usage before enabling or claiming savings."
+}
