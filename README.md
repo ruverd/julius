@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/julius-hero.png" alt="ASCII portrait of Julius holding a floating cube, surrounded by code and connected cubes." width="960">
+  <img src="docs/assets/julius-hero.png" alt="Black-and-white ASCII portrait of Julius holding a floating data cube, with connected cubes, a thick white outline, and a transparent background." width="960">
 </p>
 
 <h1 align="center">Julius</h1>
