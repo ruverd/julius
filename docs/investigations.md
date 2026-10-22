@@ -51,13 +51,16 @@ execution deadline after indexing. Filesystem enumeration, hashing and graph
 indexing do not have a hard wall-time deadline. These limits are not claims of
 constant memory or latency for indexing.
 
-Small reports are returned complete. Larger reports select whole evidence records,
-prioritizing dependents over seed definitions, within the requested token budget.
-A retained full report can be searched or read in byte ranges through
-`context.read`. Very small budgets fall back to the ordinary bounded envelope.
-Execution-limit omissions cannot be recovered from that report: the agent must
-narrow or repeat the investigation with different inputs. Source excerpts are
-capped at 12 lines/2,000 characters and carry their original span and completeness.
+Small reports are returned complete. Larger reports select whole evidence
+records. A call with a literal, or with `focus`, keeps evidence whose path,
+name, id, or excerpt contains that literal. `delivery: "complete"` with no
+`budget` returns the stored report in one framed body. A retained full report
+can be searched or read in byte ranges through `context.read`, continuing at
+`next.start` when a cursor is present. Very small budgets fall back to the
+ordinary bounded envelope. Execution-limit omissions cannot be recovered from
+that report: the agent must narrow or repeat the investigation with different
+inputs. Source excerpts are capped at 12 lines/2,000 characters and carry
+their original span and completeness.
 
 The Economy ledger counts rendered delivery and retrieval. Reuse of computation
 is not itself recorded as token savings. No provider billing or coding-success

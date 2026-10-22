@@ -1,5 +1,6 @@
 import { deliverInvestigation, type InvestigationReport } from '../src/investigation/index.js';
-import { callCompact } from '../src/mcp/compact.js';
+import { callCompact, COMPACT_INSTRUCTIONS } from '../src/mcp/compact.js';
+import { INVESTIGATION_WORKFLOW } from '../src/hosts/investigation-instructions.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -225,4 +226,14 @@ test('investigation delivery keeps coverage and withholds unmatched evidence', a
     assert.match(narrowed, /retry_limit=7/);
     assert.ok(economyTokens(narrowed) <= 400);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('agent instructions name delivery, focus, next, and commandless use', () => {
+  for (const text of [COMPACT_INSTRUCTIONS, INVESTIGATION_WORKFLOW]) {
+    assert.match(text, /delivery complete/);
+    assert.match(text, /focus/);
+    assert.match(text, /next\.start/);
+    assert.match(text, /match false/);
+    assert.match(text, /never ask the user to run Julius commands/);
+  }
 });
