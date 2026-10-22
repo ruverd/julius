@@ -24,9 +24,15 @@ test('CLI capture/read/stats and run preserve bytes, status and isolated local a
     assert.equal(command.status, 9, command.stderr.toString());
     assert.match(command.stdout.toString(), /"status":9/);
     assert.equal(readFileSync(join(root, 'once'), 'utf8'), '1');
-    const signal = run(['run', '--repo', root, '--budget', '300', '--', process.execPath, '-e', 'process.kill(process.pid, "SIGTERM")']);
-    assert.equal(signal.signal, 'SIGTERM');
-    assert.match(signal.stdout.toString(), /"signal":"SIGTERM"/);
+    const signalArgs = ['-e', 'process.kill(process.pid, "SIGTERM")'];
+    const directSignal = spawnSync(process.execPath, signalArgs, { env });
+    assert.ifError(directSignal.error);
+    const signal = run(['run', '--repo', root, '--budget', '300', '--', process.execPath, ...signalArgs]);
+    assert.equal(signal.signal, directSignal.signal);
+    assert.equal(signal.status, directSignal.status);
+    const signalEnvelope = JSON.parse(signal.stdout.toString());
+    assert.equal(signalEnvelope.signal, directSignal.signal);
+    assert.equal(signalEnvelope.status, directSignal.status);
     const success = run(['run', '--repo', root, '--budget', '300', '--', process.execPath, '-e', 'process.stdout.write("passing output".repeat(1000))']);
     assert.equal(success.status, 0);
     assert.match(success.stdout.toString(), /"status":0/);

@@ -4,9 +4,8 @@
  */
 import { createInterface } from 'node:readline';
 import { TOOLS, callTool } from './tools.js';
+import { COMPACT_TOOLS, COMPACT_INSTRUCTIONS, callCompact } from './compact.js';
 import { mcpInstructions } from './instructions.js';
-import { hasJuliusIndex } from '../graph/root.js';
-import { mainWorktreeRoot } from '../graph/seed.js';
 import { runUpkeep } from '../upkeep-run.js';
 import { runningVersion } from '../upkeep.js';
 import { maybeFlushInBackground, track } from '../telemetry/index.js';
@@ -41,36 +40,11 @@ function replyError(id: unknown, code: number, message: string): void {
 }
 
 /**
- * Which tools this server admits to having.
- *
- * `hosts/claude-global.ts` registers julius at the *user* MCP scope, which starts this
- * server in every project the user opens — including ones that never asked for julius.
- * Six tool schemas is real context, charged on every turn of every session, and in a
- * repo with no graph every one of them can only answer "run julius build". So a repo
- * that never invited julius is told there is nothing to call.
- *
- * The parent-checkout clause is not an optimization, it is the case the global
- * registration exists for: a fresh `git worktree add` has no `julius/` of its own
- * (it's gitignored, so git never checks it out) and gets one from its parent on the
- * first query — see graph/seed.ts. Gating on this tree alone would hide julius in
- * precisely the worktree the user is trying to work in, which is the bug, inverted.
- *
- * A `--dir` override is an explicit "the graph is over there", so it always
- * advertises without a probe.
- */
-function advertised(root: string, dirOverride?: string): typeof TOOLS {
-  if (dirOverride !== undefined) return TOOLS;
-  if (hasJuliusIndex(root)) return TOOLS;
-  const main = mainWorktreeRoot(root);
-  return main && hasJuliusIndex(main) ? TOOLS : [];
-}
-
-/**
  * `version` is threaded in from the CLI rather than read here: `readCurrentVersion`
  * resolves package.json relative to the calling module, and from `dist/mcp/` that
  * lookup misses. The caller already knows it.
  */
-export function startMcpServer(root: string, dirOverride?: string, version = '0'): void {
+export function startMcpServer(root: string, dirOverride?: string, version = '0', fullTools = false): void {
   // The self-maintenance pass, run once at boot. This is the ONLY channel that
   // reaches hosts with no hook support (Cursor, and any plain MCP client): it
   // refreshes rule files an older `julius init` wrote, and kicks off the cached
@@ -108,7 +82,7 @@ export function startMcpServer(root: string, dirOverride?: string, version = '0'
           capabilities: { tools: {} },
           serverInfo: { name: brand(), version },
           // The one channel that survives tool deferral — see ./instructions.ts.
-          instructions: upkeep.length ? `${upkeep.join('\n')}\n\n${mcpInstructions()}` : mcpInstructions(),
+          instructions: fullTools ? mcpInstructions() : COMPACT_INSTRUCTIONS,
         });
         return;
       case 'notifications/initialized':
@@ -120,18 +94,18 @@ export function startMcpServer(root: string, dirOverride?: string, version = '0'
       case 'tools/list': {
         if (isNotification) return;
         // Under julius, the same tools as `julius_*`, described in julius's words.
-        reply(id, { tools: advertised(root, dirOverride).map((t) => ({ name: inBrand(t.name), description: inBrand(t.description), inputSchema: t.inputSchema })) });
+        reply(id, { tools: (fullTools ? TOOLS : COMPACT_TOOLS).map((t) => ({ name: inBrand(t.name), description: inBrand(t.description), inputSchema: t.inputSchema })) });
         return;
       }
       case 'tools/call': {
         if (isNotification) return;
         const name = String(params?.name ?? '');
-        const args = (params?.arguments ?? {}) as Record<string, unknown>;
+        const args = (params?.arguments === undefined ? {} : params.arguments) as Record<string, unknown>;
         // Async because a tool call may rebuild the graph first (see
         // graph/refresh.ts). `callTool` absorbs its own errors, so the only thing
         // that can reject here is a bug — surface it as a JSON-RPC error rather
         // than an unhandled rejection that kills the server.
-        callTool(root, name, args, dirOverride).then(
+        (fullTools ? callTool(root, name, args, dirOverride) : callCompact(root, name, args, dirOverride)).then(
           (r) => {
             // No `hit`: `isError` means the tool failed, which is not the same
             // question as "did the graph have an answer". Absent beats wrong.

@@ -1,3 +1,4 @@
+import { savingsLine } from '../context/savings.js';
 import { basename } from 'node:path';
 import type { Stats, SessionState } from './state.js';
 import type { GraphV1, EdgeV1 } from '../graph/types.js';
@@ -214,15 +215,8 @@ export function formatRetrieval(ask: AskJson, cap = 5): string | null {
   const hits = (ask.hits ?? []).slice(0, cap);
   if (!hits.length) return null;
   const body = retrievalBody(hits);
-  const saved = retrievalTokensSaved(ask, cap);
-  if (saved <= 0) return body;
-  const base = tokensOf(ask.saved!.baselineChars);
-  const pct = Math.round((saved / base) * 100);
-  return (
-    `${body}\n${tag()} tokens saved ≈ ${saved.toLocaleString()} (${pct}%); this pack ≈ ` +
-    `${tokensOf(body.length).toLocaleString()} tok vs reading the ${ask.saved!.files} file(s) whole ≈ ` +
-    `${base.toLocaleString()} tok (estimate).`
-  );
+  const estimate = savingsLine(body, ask.saved);
+  return estimate ? `${body}\n${estimate}` : body;
 }
 
 /**
@@ -313,7 +307,7 @@ export function formatOrientation(indexMd: string, budgetBytes = 1500, staleNote
     `  In a monorepo, add --in <path>/ to ask/grep/callers to scope to one sub-project; hits are labeled [scope/].\n` +
     `  Already know the file or symbol to change? Go straight to it: ${cmd('julius grep')} "<symbol>", read the span, edit. Save ask for when you don't yet know where the code lives.\n` +
     `  Refactor, rename, or multi-file change? Run ${cmd('julius callers')} <sym> --depth all FIRST to map every connected file; editing the primary file and stopping is the classic miss (platform siblings, a new file to extract).\n` +
-    `Each tool opens its output with a "${tag()} tokens saved ≈ N" line, sometimes with its dollar value; when you used ${b} this turn, close your reply with a one-line tally of the total saved, dollars included when given (e.g. 🌱 ${b} saved ~12k tokens (~$0.04) this turn, 3 calls). Never price tokens yourself; never pipe ${b} through head/tail — it is already capped, and clipping drops that line.\n` +
+    `Graph full-file-read differences are chars/4 counterfactual estimates, not measured provider usage or invoice savings. Do not announce them as actual savings.\n` +
     teamNotesDirective(notes, keepsNotes) +
     skills;
   const banner = staleNote ? `${staleNote}\n\n` : "";

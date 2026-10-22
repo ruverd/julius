@@ -49,7 +49,8 @@
     "cli": "tsx src/cli.ts",
     "test": "node scripts/run-tests.mjs",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "benchmark:economy": "node scripts/benchmark-economy.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -60,6 +61,7 @@
     "dotenv": "^17.4.2",
     "gray-matter": "^4.0.3",
     "openai": "^7.8.0",
+    "smol-toml": "^1.9.1",
     "tiktoken": "^1.0.22",
     "tree-sitter": "^0.21.1",
     "tree-sitter-go": "^0.23.4",

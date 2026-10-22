@@ -89,7 +89,7 @@ test('formatRetrieval appends a tokens-saved line when ask reports a baseline', 
     { kind: 'symbol', title: 'verify', pointer: 'src/pkce.ts:L1-L4', snippet: 's', score: 1, code: 'a\nb' },
   ] } as any;
   const txt = strip(formatRetrieval(ask)!);
-  assert.match(txt, /tokens saved ≈ [\d,]+ \(\d+%\)/);
+  assert.match(txt, /counterfactual full-file-read difference ≈ [\d,]+/);
 });
 
 test('formatRetrieval returns null for no hits', () => {

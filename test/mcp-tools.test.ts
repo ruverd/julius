@@ -247,7 +247,7 @@ test('julius_repo_map round-trips a repo orientation on the built fixture', asyn
   const d = builtRepo();
   const r = await callTool(d, 'julius_repo_map', {});
   assert.equal(r.isError, false);
-  assert.match(r.text, /^repo map — \d+ files · \d+ symbols · \d+ edges/);
+  assert.match(r.text, /^repo map — \d+ files · \d+ symbols · \d+ edges/m);
   assert.match(r.text, /src/);
   assert.match(r.text, /hotspots:/);
 });

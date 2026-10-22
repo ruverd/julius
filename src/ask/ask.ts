@@ -17,7 +17,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { matter } from "../util/front-matter.js";
 import { contextDirFor } from "../context/node-file.js";
-import { withSavings, savingsFor, savingsTurnNudge, type Savings } from "../context/savings.js";
+import { withSavings, savingsFor, savingsLine, type Savings } from "../context/savings.js";
 import { loadGraphCached, loadAskIndexCached } from "../graph/load.js";
 import {
   assertPrefixIndexed,
@@ -1546,18 +1546,7 @@ function escalationNudge(r: AskResult): string {
  * Header, not footer, for the reason documented on `withSavings`: a trailing
  * line dies to `head -N` and to host output truncation. */
 function askSavingsLine(r: AskResult, body: string): string {
-  if (!r.saved || r.saved.baselineChars <= 0) return "";
-  const pack = toTokens(body.length);
-  const base = toTokens(r.saved.baselineChars);
-  if (base <= pack) return ""; // no saving to claim (tiny files); stay quiet
-  const saved = base - pack;
-  const pct = Math.round((saved / base) * 100);
-  return (
-    `${tag()} tokens saved ≈ ${saved.toLocaleString()} (${pct}%) — this pack ≈ ` +
-    `${pack.toLocaleString()} tok vs reading the ${r.saved.files} source file(s) whole ≈ ` +
-    `${base.toLocaleString()} tok. Estimate (baseline = those files read in full).` +
-    savingsTurnNudge(saved)
-  );
+  return savingsLine(body, r.saved);
 }
 
 /** Multi-scope footer: answers a reviewer's two questions — "which

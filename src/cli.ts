@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Julius CLI: local graph navigation and shared repository learnings. */
+import { installGlobal, uninstallGlobal } from "./hosts/install.js";
 import { registerEconomyCommands } from "./economy/cli.js";
 import { spawnSync } from "node:child_process";
 import "dotenv/config";
@@ -896,13 +897,14 @@ program
 
 program
   .command("mcp", { hidden: true })
-  .description("Serve the graph over MCP (stdio) — exposes julius_find_code, julius_trace_calls, julius_find_all, julius_file_api, julius_repo_map and julius_check_freshness as tools")
+  .description("Serve compact local graph/context tools over MCP stdio")
+  .option("--full-tools", "expose the six inherited graph tools for compatibility")
   .argument(...DIR_ARG)
-  .action(async (dirArg: string | undefined) => {
-    const dir = noteQuery(queryRoot(dirArg));
+  .action(async (dirArg: string | undefined, opts: { fullTools?: boolean }) => {
+    const dir = queryRoot(dirArg);
     const { startMcpServer } = await import("./mcp/server.js");
     const globalOpts = program.opts<{ dir?: string }>();
-    startMcpServer(dir, globalOpts.dir, currentVersion);
+    startMcpServer(dir, globalOpts.dir, currentVersion, opts.fullTools);
   });
 
 grouped(program.command("callers"), GROUP.find)
@@ -1810,13 +1812,32 @@ function formatRetractions(rs: Retraction[], apply: boolean): string {
   return lines.join("\n").replace(/^\n/, "");
 }
 
+grouped(program.command("install"), GROUP.setup)
+  .description("Install compact global MCP for detected Claude Code/Cursor/Codex configuration files")
+  .option("--hosts <ids>", "comma-separated claude,cursor,codex (default: detected config directories)")
+  .option("--home <path>", "home directory override", homedir())
+  .option("--dry-run", "show planned writes without changing files")
+  .option("--migrate-trail <repo>", "copy .trail/learnings and replace verified legacy MCP entries")
+  .action((opts: { hosts?: string; home: string; dryRun?: boolean; migrateTrail?: string }) => {
+    try { console.log(installGlobal({ ...opts, hosts: opts.hosts?.split(",") }).join("\n")); }
+    catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }
+  });
+
 grouped(program.command("uninstall"), GROUP.setup)
   .description(`Remove every file and config entry ${"julius"} has written to this repo (the inverse of init)`)
   .argument("[dir]", "target repo directory", ".")
   .option("-y, --yes", "actually remove (without this, prints what it would remove and exits)")
+  .option("--global", "undo the transactional global MCP install; preserve unrelated configuration")
+  .option("--home <path>", "home directory override for --global", homedir())
+  .option("--dry-run", "preview --global uninstall")
   .option("--keep-cache", "keep julius/ and the .gitignore entries — wiring only")
   .option("--no-global", "leave out-of-repo files alone (~/.codex, ~/.gemini)")
-  .action((dir: string, opts: { yes?: boolean; keepCache?: boolean; global?: boolean }) => {
+  .action((dir: string, opts: { yes?: boolean; keepCache?: boolean; global?: boolean; home: string; dryRun?: boolean }) => {
+    if (opts.global === true) {
+      try { console.log(uninstallGlobal(opts).join("\n")); }
+      catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }
+      return;
+    }
     const repo = resolve(dir);
     const home = homedir();
     const common = { home, global: opts.global, cache: opts.keepCache ? false : true };

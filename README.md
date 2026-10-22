@@ -2,6 +2,39 @@
 
 Julius builds a local graph of a repository and gives coding agents code search, call tracing, file APIs, dependency maps and shared learnings. It is an independent TypeScript fork of Trail-Code; see [source provenance](PROVENANCE.md) and the preserved MIT [license](LICENSE).
 
+## Install from source
+
+The package is **not published to npm**. This reboot is on the development
+branch `feature/julius-reboot` until its pull request is merged. Build and install
+the local tarball:
+
+```sh
+git clone --branch feature/julius-reboot https://github.com/ruverd/julius.git
+cd julius
+npm ci
+npm run build
+npm pack --pack-destination .
+npm install -g ./ruverd-julius-0.23.1.tgz
+julius install --dry-run
+julius install
+```
+
+Setup detects Claude Code, Cursor and Codex configuration directories. Use
+`julius install --hosts claude,cursor,codex` to select them explicitly. Restart
+or reconnect the client's MCP session after setup. The registered command uses
+the installed Node executable and module path; it resolves the repository from
+each MCP process's working directory. Keep that installation in place. If you
+move Node or reinstall Julius at another path, run setup again.
+
+`julius uninstall --global` undoes this setup, restoring replaced entries and
+preserving unrelated edits. `--dry-run` previews both operations; `--home <path>`
+selects an explicit home directory. Configuration tests and stdio tests cover
+these formats; they do not establish live client compatibility or guarantee that
+a client chooses Julius instead of its built-in tools.
+
+See [installation and migration](docs/installation.md) for ownership conflicts,
+rollback and copying existing Trail learnings.
+
 ## Development
 
 Requires Node.js 20 or later and npm.
@@ -28,14 +61,14 @@ node dist/bin/julius.js build --check /path/to/repo
 
 The basic build and these navigation commands run locally without a model key. `--deep` opts into the inherited model-assisted analysis. Graph data lives in `.julius/cache/`; shared learnings live in `.julius/learnings/`; machine state lives in `~/.julius`.
 
-`julius init` configures the selected coding-agent integrations. Review `julius init --dry-run` first; `--no-global` limits setup to the repository. `julius mcp` serves the inherited navigation tools over stdio.
+`julius init` configures the selected coding-agent integrations. Review `julius init --dry-run` first; `--no-global` limits setup to the repository. `julius mcp` serves compact discovery and invocation over stdio; `--full-tools` explicitly exposes the six inherited graph tools.
 
 ## Public API
 
 ```ts
 import { Julius } from '@ruverd/julius';
 const engine = new Julius();
-await engine.init('/path/to/repo');
+await engine.graph('/path/to/repo'); // local structural analysis; no model calls
 const drift = engine.check('/path/to/repo');
 ```
 
@@ -137,3 +170,37 @@ other returned metadata support callers and are outside the payload ledger;
 count any additional transport wrappers separately. Budgeted `read()` returns
 exact selected bytes in `bytes`, with start/end locations and total omitted bytes
 in its rendered envelope. A budget can shorten that selected range further.
+
+## Compact MCP
+
+The default server advertises only `julius_discover` and `julius_call`, even in a
+fresh repository. Discovery lists short operation descriptions; provide
+`operation` to fetch just that operation's schema. The allowlist consists of the
+six graph operations and `context.capture`, `context.read`, `context.stats`.
+There is no shell or arbitrary code execution operation. Graph calls build the
+local structural index on first use; context calls need no graph or model key.
+
+For example, discover `julius_file_api`, then invoke:
+
+```json
+{"operation":"julius_file_api","args":{"file":"src/index.ts"},"budget":800}
+```
+
+`budget` is 256–16000 `cl100k_base` tokens (default 1200) for the result text,
+including the recovery envelope, excluding MCP framing. Omitted results retain
+an exact local handle. Use `context.read` with `handle`, byte `start`/`end`, or
+`search` to retrieve more. Graph errors remain `isError: true`, including when
+bounded. Each session receives usable content; no cross-session suppression is
+assumed. Stats describe the payload ledger and do not include discovery/schema
+or protocol costs. Discovery and stats are small metadata responses, outside
+the capture ledger and result budget.
+
+## Evidence and limitations
+
+Run `npm run build && npm run benchmark:economy` for the offline experiment.
+[Method and limitations](docs/economy-benchmark.md) explain the three separate
+baselines and [checked-in JSON](docs/economy-benchmark.json) records reproducible
+results. Follow-up retrieval and full recovery are charged; negative differences
+and unknown totals remain visible. Fixed-fixture fact recovery does not measure
+coding-task accuracy or provider billing. [Research notes](docs/research.md)
+distinguish deployable local context techniques from model/server research.

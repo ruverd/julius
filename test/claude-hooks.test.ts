@@ -452,7 +452,7 @@ test('tool-savings is a no-op (no session file) when the tool output has no juli
   }
 });
 
-test('tool-savings counts a REAL savings line (with the turn nudge) exactly once', async () => {
+test('counterfactual graph output does not enter the legacy savings accumulator', async () => {
   const d = mkdtempSync(join(tmpdir(), 'julius-savings-real-'));
   process.env.CLAUDE_PROJECT_DIR = d;
   try {
@@ -461,7 +461,7 @@ test('tool-savings counts a REAL savings line (with the turn nudge) exactly once
     const footer = savingsLine('x'.repeat(40), { files: 2, baselineChars: 8000 });
     const stdin = JSON.stringify({ session_id: 'real', tool_response: { stdout: `callers …${footer}` } });
     await runWithStdin(stdin, () => main('tool-savings'));
-    assert.equal(readSession(d, 'real').savedTokens, 1990);
+    assert.equal(readSession(d, 'real').savedTokens, 0);
   } finally {
     delete process.env.CLAUDE_PROJECT_DIR;
   }

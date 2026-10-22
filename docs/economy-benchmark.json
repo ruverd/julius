@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "command": "npm run build && npm run benchmark:economy",
+  "encoding": "cl100k_base",
+  "baseline": "Inherited-style Julius six-tool definitions and initialization instructions, derived from Trail-Code b1211efd3eef0efa121b93800e5dd8e547aead77. Not an execution of the upstream binary.",
+  "method": "Fixed tool-output fixtures at the graph-result boundary. One fresh protocol session per fixture, exact JSON-RPC NDJSON initialization, schemas, discovery requests/responses, invocation requests, result wrappers and retrieval. No structuredContent duplication. Local byte-integrity checks are not agent deliveries. Full-needed retrieval is counted. Unknown counts propagate as null.",
+  "limitations": "No model calls, API billing, coding-task accuracy or live host compatibility measured. Graph/source-like fixtures do not evaluate retrieval relevance. Transport tokens are a named-encoding proxy for visible protocol, not any provider-specific message serialization.",
+  "providerUsage": null,
+  "providerCost": null,
+  "codingTaskAccuracy": null,
+  "fixtures": [
+    {
+      "name": "passing-tests",
+      "sha256": "eae45925a4b07b9ab9e8bda7592f7d4e5bec7e394e032fd1b7bc9982f8ab84ba",
+      "bytes": 33519,
+      "requiredFacts": [
+        "RESULT: 800 passed; 0 failed"
+      ],
+      "retrievalHint": "RESULT:",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 7210,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 37,
+        "responseTokens": 7239,
+        "totalTokens": 8411
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 50,
+        "textTokens": 399,
+        "responseTokens": 458,
+        "followupTokens": 266,
+        "followupCalls": 1,
+        "totalTokens": 1716
+      },
+      "differenceVsRawOutput": 5494,
+      "differenceVsInheritedStyle": 6695
+    },
+    {
+      "name": "middle-failure",
+      "sha256": "895259b36ffc822b8a49e03a31b2ce1fef11e91df03471a9c5062a4cefbe9635",
+      "bytes": 13027,
+      "requiredFacts": [
+        "FAIL auth.test.ts:73 expected 403 received 200"
+      ],
+      "retrievalHint": "FAIL auth.test.ts",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 4013,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 37,
+        "responseTokens": 4042,
+        "totalTokens": 5214
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 50,
+        "textTokens": 354,
+        "responseTokens": 430,
+        "followupTokens": 445,
+        "followupCalls": 1,
+        "totalTokens": 1867
+      },
+      "differenceVsRawOutput": 2146,
+      "differenceVsInheritedStyle": 3347
+    },
+    {
+      "name": "long-line",
+      "sha256": "44bf23e62b2b7141464fc876e0154f98c3159618468d3be353137910bf7746fe",
+      "bytes": 12615,
+      "requiredFacts": [
+        "RETRY_LIMIT=17"
+      ],
+      "retrievalHint": "RETRY_LIMIT=",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 1806,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 36,
+        "responseTokens": 1834,
+        "totalTokens": 3005
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 49,
+        "textTokens": 287,
+        "responseTokens": 317,
+        "followupTokens": 408,
+        "followupCalls": 1,
+        "totalTokens": 1716
+      },
+      "differenceVsRawOutput": 90,
+      "differenceVsInheritedStyle": 1289
+    },
+    {
+      "name": "source-like",
+      "sha256": "d5afc523b41016d01f58ead1439d02b999c15a0ac7e2bc9a68de1d315b1b3d10",
+      "bytes": 17670,
+      "requiredFacts": [
+        "export const MAX_RETRIES = 7;"
+      ],
+      "retrievalHint": "export const MAX_RETRIES",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 3759,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 36,
+        "responseTokens": 4039,
+        "totalTokens": 5210
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 49,
+        "textTokens": 265,
+        "responseTokens": 303,
+        "followupTokens": 263,
+        "followupCalls": 1,
+        "totalTokens": 1557
+      },
+      "differenceVsRawOutput": 2202,
+      "differenceVsInheritedStyle": 3653
+    },
+    {
+      "name": "unicode",
+      "sha256": "963cfa6c6395b0f5af390abe57f057d77eb387bd2e1f233120d67d4ee914cd11",
+      "bytes": 15910,
+      "requiredFacts": [
+        "終点: 東京 ✅"
+      ],
+      "retrievalHint": "終点:",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 6010,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 35,
+        "responseTokens": 6041,
+        "totalTokens": 7211
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 48,
+        "textTokens": 358,
+        "responseTokens": 407,
+        "followupTokens": 255,
+        "followupCalls": 1,
+        "totalTokens": 1652
+      },
+      "differenceVsRawOutput": 4358,
+      "differenceVsInheritedStyle": 5559
+    },
+    {
+      "name": "small",
+      "sha256": "70419e142b05dda8e7ce3b181e085fb8d02b436f02d07ffe78354aa5beeb0ee6",
+      "bytes": 13,
+      "requiredFacts": [
+        "OK: 3 passed"
+      ],
+      "retrievalHint": null,
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 6,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 35,
+        "responseTokens": 35,
+        "totalTokens": 1205
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 396,
+        "requestTokens": 48,
+        "textTokens": 6,
+        "responseTokens": 35,
+        "followupTokens": 0,
+        "followupCalls": 0,
+        "totalTokens": 843
+      },
+      "differenceVsRawOutput": -837,
+      "differenceVsInheritedStyle": 362
+    },
+    {
+      "name": "high-entropy",
+      "sha256": "f63d1cd05ea3835145dd4bc1e47d88f9228fb3a3bb903a8c12cc4cd3ed9aa4d4",
+      "bytes": 38410,
+      "requiredFacts": [
+        "CHECKSUM_VALID=true"
+      ],
+      "retrievalHint": "CHECKSUM_VALID=",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 21099,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 37,
+        "responseTokens": 21128,
+        "totalTokens": 22300
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 50,
+        "textTokens": 292,
+        "responseTokens": 326,
+        "followupTokens": 260,
+        "followupCalls": 1,
+        "totalTokens": 1578
+      },
+      "differenceVsRawOutput": 19521,
+      "differenceVsInheritedStyle": 20722
+    },
+    {
+      "name": "all-original-needed",
+      "sha256": "bfd8c8febd8f95684c1d5cfdb9144144952c81936c66393a56db7c7f19a45a68",
+      "bytes": 12210,
+      "requiredFacts": [],
+      "retrievalHint": null,
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": 6765,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 37,
+        "responseTokens": 6794,
+        "totalTokens": 7966
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 50,
+        "textTokens": 294,
+        "responseTokens": 328,
+        "followupTokens": 16765,
+        "followupCalls": 40,
+        "totalTokens": 18085
+      },
+      "differenceVsRawOutput": -11320,
+      "differenceVsInheritedStyle": -10119
+    },
+    {
+      "name": "pathological-unknown",
+      "sha256": "973ad065d596318a2bfdb17ad984887594c916df3e4a311122691ea6113896ed",
+      "bytes": 5022,
+      "requiredFacts": [
+        "STATUS=unknown-count"
+      ],
+      "retrievalHint": "STATUS=",
+      "factsVerified": true,
+      "roundTripVerified": true,
+      "rawOutputTokens": null,
+      "inheritedStyle": {
+        "initialInterfaceTokens": 1135,
+        "requestTokens": 38,
+        "responseTokens": null,
+        "totalTokens": null
+      },
+      "julius": {
+        "initialInterfaceTokens": 364,
+        "discoveryTokens": 578,
+        "requestTokens": 51,
+        "textTokens": 259,
+        "responseTokens": 289,
+        "followupTokens": 228,
+        "followupCalls": 1,
+        "totalTokens": 1510
+      },
+      "differenceVsRawOutput": null,
+      "differenceVsInheritedStyle": null
+    }
+  ]
+}

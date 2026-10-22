@@ -66,7 +66,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'julius_file_api',
     description:
-      "Signatures-only view of one file — every definition's signature + line span, ~10× cheaper than reading the file ($0, no LLM).",
+      "Signatures and source line spans for a file; local structural analysis.",
     inputSchema: {
       type: 'object',
       properties: {

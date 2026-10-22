@@ -102,9 +102,9 @@ test("the savings footer uses Julius with explicit or default invocation identit
   const before = process.env.JULIUS_INVOKED_AS;
   try {
     delete process.env.JULIUS_INVOKED_AS;
-    assert.match(savingsLine("short pack", saved), /^\[julius\] tokens saved ≈ /);
+    assert.match(savingsLine("short pack", saved), /^\[julius\] counterfactual full-file-read difference ≈ /);
     process.env.JULIUS_INVOKED_AS = "julius";
-    assert.match(savingsLine("short pack", saved), /^\[julius\] tokens saved ≈ /);
+    assert.match(savingsLine("short pack", saved), /^\[julius\] counterfactual full-file-read difference ≈ /);
   } finally {
     if (before === undefined) delete process.env.JULIUS_INVOKED_AS;
     else process.env.JULIUS_INVOKED_AS = before;
@@ -115,7 +115,7 @@ test("the savings footer uses Julius with explicit or default invocation identit
 
 async function mcpRpc(name: "julius", dir: string, messages: object[], expected: number): Promise<any[]> {
   const { spawn } = await import("node:child_process");
-  const child = spawn(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", `${name}.ts`), "mcp", dir], {
+  const child = spawn(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", `${name}.ts`), "mcp", dir, "--full-tools"], {
     stdio: ["pipe", "pipe", "pipe"],
     env: { ...process.env, DO_NOT_TRACK: "1", JULIUS_INVOKED_AS: undefined },
   });

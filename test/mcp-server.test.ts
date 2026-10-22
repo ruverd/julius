@@ -8,7 +8,7 @@ import { once } from 'node:events';
 import { buildGraph } from '../src/graph/build.js';
 
 async function rpc(messages: object[], dir: string, expected: number): Promise<any[]> {
-  const child = spawn(process.execPath, ['--import', 'tsx', 'src/cli.ts', 'mcp', dir], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn(process.execPath, ['--import', 'tsx', 'src/cli.ts', 'mcp', dir, '--full-tools'], { stdio: ['pipe', 'pipe', 'pipe'] });
   const responses: any[] = [];
   let buf = '';
   child.stdout.on('data', (d) => {
@@ -45,15 +45,10 @@ test('initialize → tools/list → tools/call round-trip', async () => {
   assert.equal(init.result.protocolVersion, '2025-03-26');
   assert.ok(init.result.capabilities.tools);
   assert.equal(init.result.serverInfo.name, 'julius');
-  // This dir has no graph and no parent checkout, so the server advertises
-  // nothing: julius is registered at the user MCP scope now (hosts/claude-global.ts),
-  // which starts it in every project the user opens, and six tool schemas charged
-  // to a repo that never asked for julius is context spent for answers it cannot
-  // give. See `advertised` in src/mcp/server.ts.
+  // Explicit compatibility mode exposes the six original graph tools.
   const list = rs.find((r) => r.id === 2);
-  assert.deepEqual(list.result.tools, []);
-  // Not advertised is not the same as not callable — a client that calls anyway
-  // still gets the soft error that names the fix.
+  assert.equal(list.result.tools.length, 6);
+  // Full mode retains the original missing-index error.
   const call = rs.find((r) => r.id === 3);
   assert.equal(call.result.isError, true); // unbuilt repo → soft error content
   assert.match(call.result.content[0].text, /julius build/);

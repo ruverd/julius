@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync, type PathLike } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as api from '../src/index.js';
+import { spawnSync } from 'node:child_process';
 
 test('public capture and read recover exact Unicode/CRLF, budget the whole delivery, and ledger retrieval', async () => {
   assert.equal(typeof api.Economy, 'function');
@@ -51,8 +52,12 @@ test('run executes argv once, preserves failures/signals, and budgets the combin
     assert.equal(stats.deliveredTokens, api.economyTokens(result.text) + stats.rawTokens);
     const empty = await economy.run([process.execPath, '-e', 'process.exit(4)'], { budget: 300 });
     assert.equal(empty.status, 4); assert.match(empty.text, /"status":4/);
-    const signal = await economy.run([process.execPath, '-e', 'process.kill(process.pid,"SIGTERM")'], { budget: 300 });
-    assert.equal(signal.signal, 'SIGTERM'); assert.equal(signal.status, null);
+    const signalArgs = ['-e', 'process.kill(process.pid,"SIGTERM")'];
+    // A harmless reference fixture establishes the platform's actual outcome.
+    const directSignal = spawnSync(process.execPath, signalArgs);
+    assert.ifError(directSignal.error);
+    const signal = await economy.run([process.execPath, ...signalArgs], { budget: 300 });
+    assert.equal(signal.signal, directSignal.signal); assert.equal(signal.status, directSignal.status);
     const limit = await economy.run([process.execPath, '-e', 'process.stdout.write("x".repeat(10000))'], { budget: 300, maxBytes: 100 });
     assert.equal(limit.complete, false); assert.equal(limit.limit, 'bytes');
     assert.equal((await economy.read(limit.stdoutHandle, { budget: 100, raw: true })).bytes.length, 100);

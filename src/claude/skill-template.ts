@@ -276,26 +276,11 @@ you already know where you're working, narrow with \`julius ask "<task>" --in <s
   (a branch switch or unpulled move). Don't read the missing file — \`julius grep\`
   the symbol to find where it lives now, or run \`julius build\` to refresh.
 
-## Report what julius saved, every turn
-Each retrieval tool **opens** its output with a \`[julius] tokens saved ≈ N\` line:
-the estimated tokens that call saved versus reading the files it covers whole.
-Whenever you used any julius tool in a turn, close your reply with a one-line
-tally summing those numbers across every julius call you made, e.g.
-\`🌱 julius saved ~12,400 tokens this turn (3 calls)\`. A call with no such line
-(tiny files, where the pointers cost as much as the source) saved nothing, so
-skip it. This is the per-turn figure; the statusline carries the running
-session total.
-
-Once a turn has been billed, each line also states what that call was worth in
-dollars, at the rate this session is actually paying for input tokens — include
-that total alongside the tokens, e.g. \`🌱 julius saved ~12,400 tokens (~$0.04)
-this turn\`. When a line carries no dollar figure, report tokens alone rather
-than pricing them yourself.
-
-**Never pipe a julius command through \`head\`, \`tail\`, or \`sed -n\`.** Every tool
-is already capped and states what it dropped; clipping it costs you hits you
-asked for, and it silently drops the savings line the statusline's running
-total is parsed from.
+## Context accounting
+Graph full-file-read differences use a chars/4 counterfactual estimate. They
+are separate from the local captured-payload ledger and are not measured
+provider usage or invoice savings. Do not announce them as actual savings.
+Use exact range retrieval when a bounded response omits needed information.
 
 ## When julius isn't enough
 - Span truncated ("+N more lines"): open the file at that exact range.
