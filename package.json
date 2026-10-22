@@ -1,6 +1,6 @@
 {
   "name": "@ruverd/julius",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "description": "Build a repo's context graph as a folder of linked markdown files: a local, regenerable cache that every query keeps in sync with your code.",
   "keywords": [
     "ai",
@@ -21,7 +21,8 @@
     "url": "https://github.com/ruverd/julius/issues"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "type": "module",
   "main": "./dist/index.js",
@@ -38,10 +39,14 @@
   },
   "files": [
     "dist",
-    "scripts",
     "README.md",
+    "CHANGELOG.md",
+    "CREDITS.md",
     "LICENSE",
-    "PROVENANCE.md"
+    "PROVENANCE.md",
+    "docs/upstream-changelog.md",
+    "docs/assets/julius-hero.png",
+    "docs/assets/context-benchmark.svg"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p viewer/tsconfig.json && node scripts/build-viewer.mjs",
@@ -49,7 +54,10 @@
     "cli": "tsx src/cli.ts",
     "test": "node scripts/run-tests.mjs",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm run build && npm run release:check",
+    "release:check": "node scripts/check-release.mjs",
+    "release:smoke": "node scripts/smoke-package.mjs",
+    "release:publish": "node scripts/publish-release.mjs",
     "benchmark:economy": "node scripts/benchmark-economy.mjs"
   },
   "engines": {

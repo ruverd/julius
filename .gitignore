@@ -1,6 +1,8 @@
 node_modules/
 dist/
 *.log
+*.tgz
+/.release/
 
 # julius's local graph cache — regenerable, not committed. Each dev runs
 # `julius build` locally (it re-adds this line itself), so the folder is a

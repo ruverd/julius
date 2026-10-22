@@ -1,9 +1,22 @@
 # Installation and migration
 
-Use the source/tarball flow in [README](../README.md), which clones the default
-`main` branch. The package name is
-`@ruverd/julius`, but registry publication is not part of this release. The
-transactional installer never launches npx or asks a registry for the server.
+Install the public package with `npm install -g @ruverd/julius`, then run
+`julius install`. The [README](../README.md#install) also documents installation
+from the default `main` branch through a local tarball. The transactional MCP
+installer uses the installed package; it never launches npx or asks a registry
+for the server.
+
+## Updating
+
+Run `npm install -g @ruverd/julius@latest` and check `julius --version`. Restart
+or reconnect the client's MCP session so its long-running server loads the new
+code. If the Node executable or package path changes, run `julius install` again.
+Repository graphs refresh locally on demand; shared `.julius/learnings` survive
+the package update. Pin an earlier version with
+`npm install -g @ruverd/julius@<version>` when a rollback is needed.
+
+Prereleases use the `next` dist-tag: `npm install -g @ruverd/julius@next`.
+Maintainers follow [the release procedure](releasing.md).
 
 `julius install` detects configuration directories in the selected home. The
 supported global targets are:
