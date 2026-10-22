@@ -5,7 +5,7 @@
 <h1 align="center">Julius</h1>
 
 <p align="center">
-  <strong>Make every token of context count.</strong><br>
+  <strong>"That's 50,000 tokens of context. Do you think tokens grow on trees?"</strong><br>
   Local code intelligence and recoverable context for coding agents.
 </p>
 
