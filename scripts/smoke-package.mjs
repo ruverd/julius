@@ -7,10 +7,12 @@ import { pathToFileURL } from 'node:url';
 
 const root = process.cwd();
 const scratch = mkdtempSync(join(tmpdir(), 'julius-package-'));
+const smokeHome = join(scratch, 'home');
+mkdirSync(smokeHome);
 const npmCli = process.env.npm_execpath;
 assert.ok(npmCli, 'Run this check with npm run release:smoke');
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const env = { ...process.env, DO_NOT_TRACK: '1', CI: '1' };
+const env = { ...process.env, HOME: smokeHome, USERPROFILE: smokeHome, JULIUS_HOME: join(smokeHome, '.julius'), DO_NOT_TRACK: '1', CI: '1', JULIUS_NO_FETCH: '1' };
 const run = (file, args, cwd = root) => execFileSync(file, args, {
   cwd, env, encoding: 'utf8', timeout: 180_000, maxBuffer: 8 * 1024 * 1024,
 });
@@ -56,13 +58,13 @@ const checked = await engine.checkGraph(${JSON.stringify(fixture)});
 assert.equal(checked.ok, true, JSON.stringify(checked));
 `);
   run(process.execPath, ['verify.mjs'], consumer);
-  assert.match(run(process.execPath, [cli, 'ask', 'hello', '--source', fixture], consumer), /hello/);
-  assert.match(run(process.execPath, [cli, 'ask', 'wasm_hello', '--source', fixture], consumer), /wasm_hello.*function/);
+  assert.match(run(process.execPath, [cli, 'skeleton', 'hello.ts', fixture], consumer), /function hello/);
+  assert.match(run(process.execPath, [cli, 'skeleton', 'example.rs', fixture], consumer), /function wasm_hello\b/);
   console.log(`Package smoke passed: ${pkg.name}@${pkg.version}, ${paths.length} files, ${packed.size} bytes`);
   if (process.env.JULIUS_PACK_DESTINATION) {
     const { copyFileSync } = await import('node:fs');
     copyFileSync(join(scratch, packed.filename), resolve(process.env.JULIUS_PACK_DESTINATION, packed.filename));
   }
 } finally {
-  rmSync(scratch, { recursive: true, force: true });
+  rmSync(scratch, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
