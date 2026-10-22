@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    ignore:
+      # node-gyp 13 requires Node >=22.22.2; Julius still supports Node 20.
+      # Continue receiving 12.x fixes. Revisit when the minimum Node version changes.
+      - dependency-name: node-gyp
+        versions: [">=13.0.0"]
 
   - package-ecosystem: github-actions
     directory: /
