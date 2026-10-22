@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="436" viewBox="0 0 960 436" role="img" aria-labelledby="title description">
+  <title id="title">25.3% fewer protocol tokens in the recorded offline comparison</title>
+  <desc id="description">Historical Julius revision 69945baf69a9f49ff68469283cb50d9c529ccf78, not the current release. Pinned upstream: 463,332 tokens. Julius selective/complete policy: 346,263 tokens. 10 synthetic task types, 90 executions per arm. Counts include initialization, discovery, invocation, and recovery. Provider usage, cost, and coding accuracy were not measured.</desc>
+  <rect width="960" height="436" rx="12" fill="#0d0d0d"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="40" y="54" fill="#f5f5f5" font-size="29" font-weight="700">25.3% fewer protocol tokens</text>
+    <text x="40" y="87" fill="#b5b5b5" font-size="16">Historical run · 10 synthetic task types · 90 executions per arm · lower is better</text>
+    <g fill="#a0a0a0" font-size="14">
+    <line x1="235" y1="133" x2="235" y2="298" stroke="#252525"/>
+    <text x="235" y="324" text-anchor="middle">0</text>
+    <line x1="359" y1="133" x2="359" y2="298" stroke="#252525"/>
+    <text x="359" y="324" text-anchor="middle">100k</text>
+    <line x1="483" y1="133" x2="483" y2="298" stroke="#252525"/>
+    <text x="483" y="324" text-anchor="middle">200k</text>
+    <line x1="607" y1="133" x2="607" y2="298" stroke="#252525"/>
+    <text x="607" y="324" text-anchor="middle">300k</text>
+    <line x1="731" y1="133" x2="731" y2="298" stroke="#252525"/>
+    <text x="731" y="324" text-anchor="middle">400k</text>
+    <line x1="855" y1="133" x2="855" y2="298" stroke="#252525"/>
+    <text x="855" y="324" text-anchor="middle">500k</text>
+    </g>
+    <text x="40" y="180" fill="#f5f5f5" font-size="19">Pinned upstream</text>
+    <rect x="235" y="151" width="574.53" height="44" rx="3" fill="#767676"/>
+    <text x="821.53" y="179" fill="#f5f5f5" font-size="17">463,332</text>
+    <text x="40" y="270" fill="#f5f5f5" font-size="19">Julius</text>
+    <rect x="235" y="241" width="429.37" height="44" rx="3" fill="#f5f5f5"/>
+    <text x="676.37" y="269" fill="#f5f5f5" font-size="17">346,263</text>
+    <text x="40" y="378" fill="#c7c7c7" font-size="15">Julius 69945ba · offline cl100k_base counts over complete JSON-RPC NDJSON traffic.</text>
+    <text x="40" y="405" fill="#a0a0a0" font-size="14">Synthetic evidence recovery. Provider usage, cost, and coding accuracy unmeasured.</text>
+  </g>
+</svg>
