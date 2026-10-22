@@ -279,3 +279,15 @@ test('zeroHitNote (grep-cli.ts): zero hits AND unreadable indexed files mentions
   // ...but truncation is never silent: 1 unreadable file must be surfaced too.
   assert.match(note, /1 indexed file.*could not be read/);
 });
+
+test('grepGraph: bounded matching preserves lookbehind, backreferences, alternation and case flags across files', () => {
+  const root = mkdtempSync(join(tmpdir(), 'julius-grep-syntax-'));
+  for (const path of ['a.txt', 'b.txt']) writeFileSync(join(root, path), 'prefix: Foo Foo\nprefix: bar\nprefix: Foo Baz\n');
+  const graph = graphOf([fileNode('a.txt', 3), fileNode('b.txt', 3)]);
+  const result = grepGraph(graph, root, '(?<=prefix: )(foo) \\1$|^prefix: BAR$', { ignoreCase: true });
+  assert.equal(result.totalHits, 4);
+  assert.deepEqual(result.groups.map((group) => group.hits.map((hit) => hit.line)), [[1, 2], [1, 2]]);
+  assert.equal(grepGraph(graph, root, '(?<=prefix: )(foo) \\1$|^prefix: BAR$').totalHits, 0);
+  assert.throws(() => grepGraph(graph, root, '['), SyntaxError);
+  assert.throws(() => grepGraph(graphOf([]), root, '['), SyntaxError);
+});

@@ -1,7 +1,7 @@
 # Installation and migration
 
-Use the source/tarball flow in [README](../README.md), which explicitly clones
-the development branch `feature/julius-reboot` while the reboot PR awaits merge. The package name is
+Use the source/tarball flow in [README](../README.md), which clones the default
+`main` branch. The package name is
 `@ruverd/julius`, but registry publication is not part of this release. The
 transactional installer never launches npx or asks a registry for the server.
 

@@ -278,3 +278,7 @@ test("paths under the home folder read as ~/", () => {
   assert.equal(shownPath("/srv/elsewhere"), "/srv/elsewhere");
   assert.equal(shownPath("notes/a.md"), "notes/a.md");
 });
+
+test('remote key segments trim only boundary hyphens and discard dot-only segments', () => {
+  assert.equal(keyFromRemote('https://--GitHub.COM--/--Acme--/a--b/---/../__Repo__.git'), 'github.com/acme/a--b/__repo__');
+});
