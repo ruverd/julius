@@ -216,6 +216,25 @@ export async function runInvestigation(root: string, args: InvestigationArgs, di
   finally { release(); if (queues.get(key) === tail) queues.delete(key); }
 }
 
+/** Group repeated provenance; every row still identifies one exact graph node. */
+function evidenceIndex(items: Evidence[]) {
+  const groups = new Map<string, {
+    path: string; kind: string; role: Evidence['role']; depth: number;
+    via?: Omit<NonNullable<Evidence['via']>, 'source'>;
+    symbols: Array<[string, string] | [string, string, string]>;
+  }>();
+  for (const item of items) {
+    const via = item.via ? { target: item.via.target, relation: item.via.relation, confidence: item.via.confidence } : undefined;
+    const attributes = { path: item.path, kind: item.kind, role: item.role, depth: item.depth, ...(via ? { via } : {}) };
+    const key = JSON.stringify(attributes);
+    let group = groups.get(key);
+    if (!group) { group = { ...attributes, symbols: [] }; groups.set(key, group); }
+    const id = item.kind === 'file' ? item.path : `${item.path}#${item.name}`;
+    group.symbols.push(item.id === id ? [item.name, item.span] : [item.name, item.span, item.id]);
+  }
+  return [...groups.values()];
+}
+
 export async function deliverInvestigation(root: string, report: InvestigationReport, budgetOrChoice: number | DeliveryChoice): Promise<string> {
   const choice: DeliveryChoice = typeof budgetOrChoice === 'number'
     ? { algorithm: 'fixed', label: 'fixed', budget: budgetOrChoice, literals: [] }
@@ -231,6 +250,7 @@ export async function deliverInvestigation(root: string, report: InvestigationRe
   const recover = (handle: string) => ({ operation: 'context.read', args: { handle }, instruction: 'Search a path or read byte ranges through julius_call; no user command needed.' });
   const handle = economy.hold(full);
   const rawTokens = (() => { try { return economyTokens(full); } catch { return null; } })();
+  const fits = (text: string) => { try { return economyTokens(text) <= budget; } catch { return false; } };
   if (rawTokens !== null) {
     const complete = JSON.stringify({ ...report, evidence: ranked, omittedEvidence: 0, handle, delivery: choice.label, recover: recover(handle) });
     if (economyTokens(complete) <= budget) {
@@ -242,6 +262,11 @@ export async function deliverInvestigation(root: string, report: InvestigationRe
     const text = JSON.stringify({ ...report, evidence: [], omittedEvidence: ranked.length, match: false, handle, delivery: choice.label, next: { start: 0, end: Buffer.byteLength(full) }, recover: recover(handle) });
     if (economyTokens(text) <= budget) { economy.recordDelivery(rawTokens, economyTokens(text)); return text; }
     return (await economy.present(full, choice, 'mcp')).text;
+  }
+  if (report.recipe === 'change-impact' && choice.literals.length === 0) {
+    const grouped = JSON.stringify({ ...report, evidence: evidenceIndex(report.evidence), evidenceFormat: 'grouped',
+      symbolColumns: ['name', 'span', 'id?'], detailsOmitted: true, omittedEvidence: 0, handle, delivery: choice.label, recover: recover(handle) });
+    if (fits(grouped)) { economy.recordDelivery(rawTokens, economyTokens(grouped)); return grouped; }
   }
   let count = pool.length;
   while (count >= 0) {

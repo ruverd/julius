@@ -130,6 +130,36 @@ test('missing or deleted paths retain explicit uncertainty rather than a clean b
   } finally { f.close(); }
 });
 
+test('impact delivery groups every identity and edge while retaining the exact detailed report', async () => {
+  const f = fixture();
+  try {
+    writeFileSync(join(f.root, 'consumer.ts'),
+      'import { add } from "./math";\n' + Array.from({ length: 24 }, (_, n) => `export function caller${n}() { return add(${n}, 2); }`).join('\n'));
+    const report = await runInvestigation(f.root, request);
+    const duplicate = report.evidence.find(item => item.name === 'caller0')!;
+    duplicate.id += '~2';
+    if (duplicate.via) duplicate.via.source = duplicate.id;
+    const before = JSON.stringify(report);
+    const text = await deliverInvestigation(f.root, report, 1200);
+    const selected = JSON.parse(text);
+    assert.equal(selected.evidenceFormat, 'grouped', text);
+    assert.equal(selected.omittedEvidence, 0);
+    assert.equal(selected.detailsOmitted, true);
+    assert.deepEqual(selected.coverage, report.coverage);
+    assert.deepEqual(selected.unknowns, report.unknowns);
+    const expanded = selected.evidence.flatMap((group: any) => group.symbols.map(([name, span, explicitId]: string[]) => {
+      const id = explicitId ?? (group.kind === 'file' ? group.path : `${group.path}#${name}`);
+      return { id, path: group.path, kind: group.kind, role: group.role, depth: group.depth, name, span,
+        ...(group.via ? { via: { source: id, ...group.via } } : {}) };
+    }));
+    assert.deepEqual(expanded, report.evidence.map(({ excerpt, excerptComplete, ...identity }) => identity));
+    assert.equal(JSON.stringify(report), before);
+    assert.ok(economyTokens(text) <= 1200);
+    const recovered = await new Economy(f.root).read(selected.handle, { budget: null, raw: true });
+    assert.equal(recovered.text, before);
+  } finally { f.close(); }
+});
+
 
 test('automatic refresh opt-out prevents new investigation indexing', async () => {
   const f = fixture(); const previous = process.env.JULIUS_NO_REFRESH;

@@ -51,7 +51,12 @@ test('change-impact keeps dependent paths unless focus is explicitly requested',
     const result = await callCompact(root, 'julius_call', { operation: 'investigation.execute', args: { recipe: 'change-impact', paths: ['core.ts'], depth: 1 } });
     assert.equal(result.isError, false, result.text);
     const selected = JSON.parse(result.text);
-    assert.ok(selected.evidence.some((item: { name: string }) => item.name.startsWith('caller')), result.text);
+    const dependents = selected.evidence.filter((item: { path: string; role: string }) => item.path === 'caller.ts' && item.role === 'dependent');
+    const names = selected.evidenceFormat === 'grouped'
+      ? dependents.flatMap((item: { symbols: string[][] }) => item.symbols.map(([name]: string[]) => name))
+      : dependents.map((item: { name: string }) => item.name);
+    assert.ok(Array.from({ length: 24 }, (_, i) => `caller${i}`).every(name => names.includes(name)), result.text);
+    assert.equal(selected.omittedEvidence, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

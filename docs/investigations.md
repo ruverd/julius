@@ -51,12 +51,22 @@ execution deadline after indexing. Filesystem enumeration, hashing and graph
 indexing do not have a hard wall-time deadline. These limits are not claims of
 constant memory or latency for indexing.
 
-Small reports are returned complete. Larger reports select whole evidence
-records. A call with a literal, or with `focus`, keeps evidence whose path,
-name, id, or excerpt contains that literal. `delivery: "complete"` with no
+Small reports are returned complete. Larger change-impact reports first try a
+grouped identity index, sharing path, kind, role, depth and edge provenance.
+`evidenceFormat: "grouped"` identifies this presentation. Each group's `symbols`
+rows use `symbolColumns: ["name", "span", "id?"]`; omitted IDs are `path#name`
+for symbols and `path` for files. An explicit third column preserves other IDs.
+Edge sources are the row IDs. `detailsOmitted: true` means excerpts remain in
+the retained full report; `omittedEvidence: 0` means every identity is represented.
+Coverage and uncertainty remain visible. If the index cannot fit, delivery
+selects whole evidence records and reports their omitted count.
+A failure-localization literal, or explicit `focus`, keeps evidence whose path,
+name, id, or excerpt contains that literal. Impact seed paths do not filter
+dependent evidence. `delivery: "complete"` with no
 `budget` returns the stored report in one framed body. A retained full report
 can be searched or read in byte ranges through `context.read`, continuing at
-`next.start` when a cursor is present. Very small budgets fall back to the
+`next.start` when a cursor is present. Use `delivery: "complete"` without a
+budget on that read to recover the remaining bytes in one call. Very small budgets fall back to the
 ordinary bounded envelope. Execution-limit omissions cannot be recovered from
 that report: the agent must narrow or repeat the investigation with different
 inputs. Source excerpts are capped at 12 lines/2,000 characters and carry

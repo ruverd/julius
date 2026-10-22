@@ -27,7 +27,14 @@ export function decision(baseline, candidate, quality) {
 }
 export function envelope(text) {
   try {
-    const parsed = JSON.parse(text);
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch {
+      const split = text.indexOf('\n');
+      const header = JSON.parse(text.slice(0, split));
+      if (header.delivery !== 'complete') return null;
+      parsed = { ...header, content: text.slice(split + 1) };
+    }
     if (/^sha256:[a-f0-9]{64}$/.test(parsed.handle) && Number.isSafeInteger(parsed.end)) return parsed;
   } catch { /* Ordinary text and investigation JSON are not recovery envelopes. */ }
   return null;
@@ -145,7 +152,12 @@ export async function runArm(trailRoot, workspace, language, task, arm, options 
       }
       const name = operation.includes('.') ? operation : `julius_${operation}`;
       if (!options.knownSchemas && !discovered.has(name)) { await client.call('julius_discover', { operation: name }, 'discovery'); discovered.add(name); }
-      return client.call('julius_call', { operation: name, args, ...(options.policy && stage !== 'recovery' ? deliveryArguments(task, arm) : { budget }) }, stage);
+      let delivery = { budget };
+      if (options.policy) {
+        // Sequential recovery needs all remaining bytes, even without a literal hint.
+        delivery = stage === 'recovery' ? args.search ? { budget } : { delivery: 'complete' } : deliveryArguments(task, arm);
+      }
+      return client.call('julius_call', { operation: name, args, ...delivery }, stage);
     }
     let results;
     if (arm === 'composition' || task.investigation && arm !== 'trail') results = [await call('investigation.execute', { recipe: 'change-impact', paths: [`core.${fixture.extension}`], depth: 1 })];
@@ -171,6 +183,11 @@ export async function runArm(trailRoot, workspace, language, task, arm, options 
         const recovered = await call('context.read', { handle: first.handle, search: task.recoveryHint }, 'recovery'); recoveryCalls++;
         evidence += recovered + '\n';
       } else {
+        if (Array.isArray(first.hits)) {
+          // Matching-line deliveries can be trimmed or disjoint, not an exact prefix.
+          first = envelope(await call('context.read', { handle: first.handle, start: 0 }, 'recovery')); recoveryCalls++;
+          assert.ok(first && first.start === 0, 'Line-hit recovery must restart from the captured bytes');
+        }
         const parts = [decoded(first)]; let end = first.end;
         while (end < first.totalBytes) {
           assert.ok(recoveryCalls < 300, 'Recovery call limit');

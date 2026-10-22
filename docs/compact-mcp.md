@@ -34,5 +34,23 @@ content; no cross-session suppression is assumed. Stats describe the payload
 ledger and do not include discovery/schema or protocol costs. Discovery and
 stats are small metadata responses, outside the capture ledger and result budget.
 
+For sequential recovery, invoke `context.read` with the retained `handle`,
+`start: next.start`, and `delivery: "complete"` without a budget. The response
+contains a one-line JSON header and the requested bytes verbatim, avoiding
+another JSON escape layer around the body. Its `start`, `end`, and `totalBytes`
+refer to the original captured object; `handle` remains that object's digest.
+For contiguous prefix previews, concatenate preview bytes and recovered suffix
+before checking the digest. Matching-line deliveries expose `hits` and can be
+trimmed or disjoint; recover those objects from `start: 0` before checking their
+digest instead of treating the rendered lines as original prefix bytes.
+Explicit `end` and `search` still restrict the range. Binary or split UTF-8
+ranges use base64. An explicit budget still caps the complete read and supplies
+the ordinary JSON envelope with a continuation cursor.
+
+MCP exhaustive search renders single-line spans as `L12` instead of `L12-L12`.
+A column heading explains `symbol kind location incomingEdges`.
+Every symbol retains its file path, kind, span, count and matched source lines.
+Ranking and truncation notices are retained.
+
 See [investigations](investigations.md) for change-impact and failure-localization
 recipes, and [context economy](context-economy.md) for storage and accounting.

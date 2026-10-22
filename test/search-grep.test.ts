@@ -16,10 +16,30 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { grepGraph } from '../src/search/grep.js';
-import { zeroHitNote } from '../src/search/grep-cli.js';
+import { formatGrepResult, zeroHitNote } from '../src/search/grep-cli.js';
 import { WALK_RELATIONS } from '../src/graph/relations.js';
 import { readGraph, wiringPath } from '../src/graph/write.js';
 import type { GraphV1, NodeV1 } from '../src/graph/types.js';
+
+test('compact search preserves every source location, hit order, coupling and truncation', () => {
+  const groups = ['a.ts', 'a.ts', 'b.ts', 'a.ts'].map((path, n) => ({
+    path, inDegree: 4 - n,
+    symbol: n === 2 ? null : { id: `${path}#fn${n}`, name: `fn${n}`, kind: 'function', path, span: n === 0 ? 'L1-L1' : `L${n + 1}-L${n + 2}` },
+    hits: [{ line: n + 1, text: `needle ${n}` }],
+  }));
+  const result = { pattern: 'needle', filesSearched: 3, totalHits: 4, groups, truncated: { files: 1, hits: 2 } };
+  const text = formatGrepResult(result, { compact: true });
+  assert.match(text, /2 more hits beyond the cap/);
+  assert.match(text, /1 indexed file unreadable/);
+  assert.equal((text.match(/a\.ts:L/g) ?? []).length, 3);
+  assert.match(text, /b\.ts \(module level\)/);
+  for (let n = 0; n < groups.length; n++) {
+    assert.match(text, new RegExp(` ${4 - n}\\n  L${n + 1}: needle ${n}`));
+    if (n !== 2) assert.ok(text.includes(`fn${n} function a.ts:L${n + 1}${n === 0 ? '' : `-L${n + 2}`}`));
+    if (n > 0) assert.ok(text.indexOf(`needle ${n}`) > text.indexOf(`needle ${n - 1}`));
+  }
+  assert.match(formatGrepResult(result), /a\.ts:L1-L1/);
+});
 
 function fileNode(path: string, lines: number): NodeV1 {
   return {

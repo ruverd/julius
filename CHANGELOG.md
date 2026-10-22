@@ -5,6 +5,21 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+## 0.24.1
+
+### Fixed
+
+- Honor complete delivery for retained context byte ranges while preserving explicit budgets and original-object integrity.
+- Return complete impact identity indexes with shared provenance before falling back to partial detailed evidence.
+- Reduce repeated span and incoming-edge notation in MCP search while retaining every symbol's source location.
+
+### Changed
+
+- Refresh README benchmark evidence against the release candidate, including discovery, invocation and exact-byte recovery traffic.
+- Retain source coverage, uncertainty and detailed investigation reports for follow-up retrieval.
+
+Benchmark results are offline protocol counts, not provider token usage, billing or coding accuracy.
+
 ## 0.24.0
 
 ### Added

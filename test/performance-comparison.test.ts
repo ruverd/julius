@@ -1,4 +1,4 @@
-import { sources } from '../scripts/experiments/local-comparison.mjs';
+import { sources, envelope, decoded } from '../scripts/experiments/local-comparison.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { completeBody, deliveryArguments, comparisonDecision } from '../scripts/experiments/performance-comparison.mjs';
@@ -8,6 +8,7 @@ test('policy makes complete intent explicit and selects only a task-declared hin
   assert.deepEqual(deliveryArguments({ kind: 'complete' }, 'policy'), { delivery: 'complete' });
   assert.deepEqual(deliveryArguments({ kind: 'selective', recoveryHint: 'NEEDLE' }, 'policy'), { focus: 'NEEDLE' });
   assert.deepEqual(deliveryArguments({ kind: 'selective', recoveryHint: 'NEEDLE' }, 'compact-1200'), { budget: 1200 });
+  assert.deepEqual(deliveryArguments({ kind: 'selective', recoveryHint: null }, 'policy'), {});
 });
 
 test('complete framing verifies original bytes and rejects corrupt or partial evidence', () => {
@@ -17,6 +18,16 @@ test('complete framing verifies original bytes and rejects corrupt or partial ev
   assert.throws(() => completeBody(JSON.stringify(header) + '\n' + body + 'corrupt'), /integrity/);
   assert.throws(() => completeBody(JSON.stringify({ ...header, incomplete: true }) + '\n' + body), /incomplete/);
   assert.equal(completeBody('ordinary text'), null);
+});
+
+test('recovery parser preserves complete range framing and ordinary JSON envelopes', () => {
+  const handle = 'sha256:' + 'a'.repeat(64);
+  const range = { delivery: 'complete', handle, start: 5, end: 11, totalBytes: 11, format: 'utf8' };
+  const result = envelope(JSON.stringify(range) + '\n' + 'ação');
+  assert.equal(result.start, 5);
+  assert.equal(decoded(result).toString(), 'ação');
+  assert.equal(envelope(JSON.stringify({ ...range, content: 'ação' }, null, 2)).content, 'ação');
+  assert.equal(envelope('ordinary text\nwith lines'), null);
 });
 
 test('comparison keeps quality failures, unknown counts and regressions', () => {
