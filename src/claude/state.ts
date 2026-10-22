@@ -73,6 +73,7 @@ export interface SessionState {
   /** Set once the Stop hook has asked the agent to leave a note this session,
    * so it asks at most once (see `turnWantsNote`). */
   noteAsked?: boolean;
+  noteSignalKeys?: string[];
   /** Set once this session has been rolled up into a `session_summary`
    * telemetry event, so a resumed or long-lived session is counted once.
    * A flag rather than deleting the file: the file still holds `lastQuery` and

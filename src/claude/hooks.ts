@@ -5,6 +5,8 @@ import { homedir } from 'node:os';
 import { readWiring } from './stats.js';
 import { formatBlastRadius, relevantRetrieval, formatOrientation, notesForPrompt, notesOnTouch, standingDirective, type Touch } from './format.js';
 import { commitLines, listNotes, setupCommitLine, standingLearnings } from '../notes/notes.js';
+import { liveLearnings } from '../notes/learning-fields.js';
+import { noteAsk, noteSignals, NOTE_ASKS_PER_SESSION } from './note-signals.js';
 import { noteAuthor, teammatesOn } from '../notes/git-facts.js';
 import { indexFreshness, staleBanner } from '../context/check.js';
 import { patchStats, readStats, acquireLock, readSession, writeSession, resolveContextDir } from './state.js';
@@ -330,7 +332,7 @@ export function learningsOnTouch(input: any, dir: string): string | null {
     } else if (typeof ti.command === 'string' && ti.command && !commandInvokesJulius(ti.command)) {
       touch = { command: ti.command };
     } else return null;
-    const notes = listNotes(dir, { branches: false });
+    const notes = liveLearnings(listNotes(dir, { branches: false }));
     if (!notes.length) return null;
     const id = input?.session_id || 'default';
     const s = readSession(dir, id);
@@ -533,10 +535,12 @@ function askForNote(input: any, dir: string): void {
     if (input?.stop_hook_active || !input?.transcript_path || !keepsNotes(dir)) return;
     const id = input?.session_id || 'default';
     const s = readSession(dir, id);
-    if (s.noteAsked) return;
-    if (!turnWantsNote(readFileSync(input.transcript_path, 'utf8'))) return;
-    writeSession(dir, id, { ...s, noteAsked: true });
-    process.stdout.write(JSON.stringify({ decision: 'block', reason: NOTE_ASK }));
+    const asked = s.noteSignalKeys ?? [];
+    if (asked.length >= NOTE_ASKS_PER_SESSION) return;
+    const next = noteSignals(readFileSync(input.transcript_path, 'utf8'), dir).find((signal) => !asked.includes(signal.key));
+    if (!next) return;
+    writeSession(dir, id, { ...s, noteAsked: true, noteSignalKeys: [...asked, next.key] });
+    process.stdout.write(JSON.stringify({ decision: 'block', reason: noteAsk(next) }));
   } catch {
     // A missed reminder costs one note; a broken Stop hook costs the session.
   }
@@ -761,7 +765,7 @@ export async function main(event: string): Promise<void> {
 
   if (event === 'prompt') {
     const prompt = String(input?.prompt ?? '').trim();
-    if (prompt.length < MIN_PROMPT_CHARS) return;
+    if (prompt.length < MIN_PROMPT_CHARS || prompt.startsWith('<task-notification>')) return;
     // Pointers-only, small, gated. No --source: per-prompt injected tokens are
     // fresh full-price input on every turn (unlike the cached SessionStart
     // orientation), so the pack carries locators, never inlined code — the agent

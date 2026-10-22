@@ -21,6 +21,7 @@ import { homedir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { matter, type FrontMatterFile } from "../util/front-matter.js";
 import { readBranchCache } from "./branches.js";
+import { liveLearnings, newLearningId, readLearningFields, type LearningKind, type LearningStatus } from "./learning-fields.js";
 import { changedFiles, ownPath } from "./git-facts.js";
 import { checkoutRoot, childCheckouts, ensureRepoHome, notePlaces, repoPlace, shownPath } from "./home.js";
 import { ensureRepoJulius, LEARNINGS_DIR, learningsDir } from "./repo-julius.js";
@@ -50,6 +51,10 @@ export interface Note {
    * task: what the user kept having to tell Claude. The session-start hook
    * lists these up front, since no single task would bring them up. */
   standing?: boolean;
+  id: string;
+  kind?: LearningKind;
+  status?: LearningStatus;
+  replaces?: string;
   /** Found on a teammate's pushed branch (`origin/kumar/jitter`) rather than in
    * this checkout. `path` is then `<ref>:.julius/learnings/<name>`, readable
    * with `git show`, and the whole body travels with the note. */
@@ -77,6 +82,10 @@ function scalar(s: string): string {
 
 export function renderNote(n: Omit<Note, "path">): string {
   const fm = ["---", `title: ${scalar(n.title)}`, `author: ${scalar(n.author)}`, `date: ${n.date}`];
+  if (n.id) fm.push(`id: ${n.id}`);
+  if (n.kind) fm.push(`kind: ${n.kind}`);
+  if (n.status && n.status !== "active") fm.push(`status: ${n.status}`);
+  if (n.replaces) fm.push(`replaces: ${n.replaces}`);
   if (n.branch) fm.push(`branch: ${scalar(n.branch)}`);
   const cost: string[] = [];
   if (n.cost?.minutes !== undefined) cost.push(`minutes: ${n.cost.minutes}`);
@@ -106,6 +115,7 @@ export function parseNote(text: string, path: string): Note | null {
   const cost = (d.cost ?? {}) as Record<string, unknown>;
   const minutes = num(cost.minutes);
   const tokens = num(cost.tokens);
+  const fields = readLearningFields(d, path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"), path.lastIndexOf(":")) + 1));
   return {
     path,
     title: d.title.trim(),
@@ -115,6 +125,10 @@ export function parseNote(text: string, path: string): Note | null {
     cost: minutes !== undefined || tokens !== undefined ? { minutes, tokens } : undefined,
     touches: Array.isArray(d.touches) ? d.touches.map(String) : [],
     body: parsed.content.trim(),
+    id: fields.id,
+    status: fields.status,
+    ...(fields.kind ? { kind: fields.kind } : {}),
+    ...(fields.replaces ? { replaces: fields.replaces } : {}),
     ...(d.standing === true ? { standing: true } : {}),
   };
 }
@@ -231,6 +245,8 @@ export interface WriteNoteInput {
   cost?: NoteCost;
   touches?: string[];
   standing?: boolean;
+  replaces?: string;
+  kind?: LearningKind;
 }
 
 /**
@@ -261,6 +277,9 @@ export function writeNote(dir: string, input: WriteNoteInput, scope: LearningSco
     touches: input.touches ?? [],
     body: input.body,
     scope: inRepo ? "repo" : "personal",
+    id: newLearningId(name),
+    kind: input.kind,
+    replaces: input.replaces,
     ...(input.standing ? { standing: true } : {}),
   };
   writeFileSync(join(notes, name), renderNote(note));
@@ -273,7 +292,7 @@ export function writeNote(dir: string, input: WriteNoteInput, scope: LearningSco
  * reviewed yet.
  */
 export function standingLearnings(dir: string): Note[] {
-  return listNotes(dir, { branches: false }).filter((n) => n.standing && !n.ref);
+  return liveLearnings(listNotes(dir, { branches: false })).filter((n) => n.standing && !n.ref);
 }
 
 /** Where a learning is, as the agent and the person read it: `.julius/learnings/x.md`, `~/.julius/…`, or `origin/b:.julius/…`. */

@@ -22,6 +22,7 @@
  * LLM and without re-reading every node body.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { matter } from "../util/front-matter.js";
 import { contentHash, normalizeName } from "../util/id.js";
@@ -118,10 +119,12 @@ export function contextDirFor(root: string, override?: string): string {
  * Make sure the repo's root `.gitignore` ignores the julius output dir. The
  * graph is a local, regenerable cache (like `node_modules`), not a committed
  * artifact, so every `julius build` adds the entry itself the first time — the
- * user never has to think about it. No-ops when the entry is already present
- * or the dir lives outside `root` (a custom `--dir` elsewhere, which can't be
- * expressed as a repo-relative ignore). Best-effort: an unwritable `.gitignore`
- * must never abort a build, so write failures are swallowed.
+ * user never has to think about it. No-ops when the entry is already present,
+ * when git already ignores the dir by other means (`.git/info/exclude`, a parent
+ * `.gitignore`, `core.excludesFile`), or when the dir lives outside `root` (a
+ * custom `--dir` elsewhere, which can't be expressed as a repo-relative ignore).
+ * Best-effort: an unwritable `.gitignore` must never abort a build, so write
+ * failures are swallowed.
  */
 const GRAPH_CACHE_NOTE = "julius's local graph cache — regenerable, not committed (run `julius build`).";
 
@@ -154,9 +157,27 @@ export function ensureGitignored(root: string, contextDir: string, note = GRAPH_
     return t === entry || t === `${bare}/` || t === bare;
   });
   if (present) return;
+  if (gitAlreadyIgnores(root, bare)) return;
   const gap = current === "" ? "" : current.endsWith("\n") ? "\n" : "\n\n";
   const block = `${gap}# ${note}\n${entry}\n`;
   try { writeFileSync(path, current + block); } catch { /* best-effort — build already succeeded */ }
+}
+
+const GIT_REPO_ENV = [
+  "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_NAMESPACE",
+];
+
+function gitAlreadyIgnores(root: string, rel: string): boolean {
+  try {
+    const env = { ...process.env };
+    for (const key of GIT_REPO_ENV) delete env[key];
+    const result = spawnSync("git", ["-c", "core.fsmonitor=false", "check-ignore", "-q", "--", `${rel}/`], {
+      cwd: root, env, stdio: "ignore", timeout: 5000, windowsHide: true,
+    });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
 }
 
 /**

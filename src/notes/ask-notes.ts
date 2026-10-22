@@ -4,6 +4,7 @@
  */
 import type { AskResult } from "../ask/ask.js";
 import { findRepoPlace, keepsNotes } from "./home.js";
+import { liveLearnings } from "./learning-fields.js";
 import { findNotes, listNotes } from "./notes.js";
 
 /** The file part of a hit's `file:Lx-Ly` pointer. */
@@ -16,7 +17,7 @@ export function attachNotes(r: AskResult, repo: string): AskResult {
   findRepoPlace(repo); // a repo whose remote changed finds its notes again
   if (!keepsNotes(repo)) return r;
   r.notesChecked = true;
-  const hits = findNotes(listNotes(repo), r.query, r.hits.map((h) => pointerFile(h.pointer)));
+  const hits = findNotes(liveLearnings(listNotes(repo)), r.query, r.hits.map((h) => pointerFile(h.pointer)));
   if (hits.length) r.notes = hits;
   return r;
 }

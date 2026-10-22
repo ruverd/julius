@@ -43,6 +43,23 @@ test("writeBuildConfig + readBuildConfig round-trip includeDirs", () => {
   assert.match(readFileSync(join(d, ".julius", ".gitignore"), "utf8"), /^config\.json$/m);
 });
 
+test("writeBuildConfig respects JULIUS_NO_GITIGNORE while persisting build choices", () => {
+  const d = fresh();
+  const previous = process.env.JULIUS_NO_GITIGNORE;
+  try {
+    process.env.JULIUS_NO_GITIGNORE = "1";
+    writeBuildConfig(d, { followSubmodules: true });
+    assert.equal(existsSync(join(d, ".julius", ".gitignore")), false);
+    assert.deepEqual(readBuildConfig(d), { followSubmodules: true });
+    process.env.JULIUS_NO_GITIGNORE = "0";
+    writeBuildConfig(d, { followSubmodules: false });
+    assert.match(readFileSync(join(d, ".julius", ".gitignore"), "utf8"), /^config\.json$/m);
+  } finally {
+    if (previous === undefined) delete process.env.JULIUS_NO_GITIGNORE;
+    else process.env.JULIUS_NO_GITIGNORE = previous;
+  }
+});
+
 test("readIncludeDirs turns a persisted list into a Set; an empty persisted list reads as undefined (default behavior)", () => {
   const d = fresh();
   writeBuildConfig(d, { includeDirs: ["build"] });

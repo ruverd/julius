@@ -118,6 +118,8 @@ export function buildConfigPath(d: string): string { return join(d, BUILD_CONFIG
 /** Keep local build configuration out of Git without coupling it to the
  * generated graph directory. Best-effort, matching graph-cache ignore setup. */
 function ensureBuildConfigIgnored(d: string): void {
+  const noGitignore = process.env.JULIUS_NO_GITIGNORE;
+  if (noGitignore && noGitignore !== '0' && noGitignore !== 'false') return;
   try { ignoreInJuliusDir(d, 'config.json'); } catch { /* best-effort */ }
 }
 

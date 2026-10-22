@@ -515,6 +515,38 @@ test("ensureGitignored: no-op when the graph dir is outside the repo root", () =
   }
 });
 
+test("ensureGitignored: a directory git already ignores is not appended", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ctxgi-"));
+  try {
+    execFileSync("git", ["init"], { cwd: dir, stdio: "ignore" });
+    mkdirSync(join(dir, ".git", "info"), { recursive: true });
+    writeFileSync(join(dir, ".git", "info", "exclude"), "/custom-map/\n");
+    writeFileSync(join(dir, ".gitignore"), "keep\n");
+    ensureGitignored(dir, join(dir, "custom-map"));
+    assert.equal(readFileSync(join(dir, ".gitignore"), "utf8"), "keep\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("ensureGitignored: GIT_DIR from another repo does not suppress the entry", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ctxgi-"));
+  const other = mkdtempSync(join(tmpdir(), "ctxgi-other-"));
+  const previous = process.env.GIT_DIR;
+  try {
+    execFileSync("git", ["init"], { cwd: dir, stdio: "ignore" });
+    execFileSync("git", ["init"], { cwd: other, stdio: "ignore" });
+    process.env.GIT_DIR = join(other, ".git");
+    ensureGitignored(dir, join(dir, "custom-map"));
+    assert.match(readFileSync(join(dir, ".gitignore"), "utf8"), /^\/custom-map\/$/m);
+  } finally {
+    if (previous === undefined) delete process.env.GIT_DIR;
+    else process.env.GIT_DIR = previous;
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(other, { recursive: true, force: true });
+  }
+});
+
 test("ensureGitignored: JULIUS_NO_GITIGNORE=1 skips writing .gitignore", () => {
   const dir = mkdtempSync(join(tmpdir(), "ctxgi-"));
   process.env.JULIUS_NO_GITIGNORE = "1";

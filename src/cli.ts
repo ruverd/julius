@@ -51,6 +51,8 @@ import { normalizePathPrefix } from "./util/paths.js";
 import { latestSession, formatSessionStats, sessionInputRate } from "./claude/session-metrics.js";
 import { listSessionIds, readSession, sessionDir } from "./claude/state.js";
 import { costLabel, listNotes, noteName, notePlace, noteTargets, readingTokens, savedByNote, commitLines, PERSONAL_SAVED_LINE, PR_SPEEDUP, SECTIONS, tokensWorthSaying, sectionLead, shortDate, tokensLabel, writeNote, type Note, mentionedFiles } from "./notes/notes.js";
+import { asLearningId, findLearning, liveLearnings } from "./notes/learning-fields.js";
+import { gateNote, namesRepoSymbol, symbolCandidates, trackedFiles } from "./notes/note-gate.js";
 import { aboutTerms, currentSessionCost } from "./notes/session-cost.js";
 import { beginPastRead, finishPastRead, type Finding } from "./notes/cold-start.js";
 import { beginReviewRead, finishReviewRead, type ReviewFinding } from "./notes/pr-reviews.js";
@@ -1070,6 +1072,8 @@ grouped(program.command("note", { hidden: false }), GROUP.memory)
   .option("--author <name>", "who wrote it (default: the first word of git config user.name)")
   .option("--minutes <n>", "what it took to work out, when the agent's transcript can't say")
   .option("--tokens <n>", "the same, in tokens")
+  .option("--replaces <ref>", "the learning this one replaces, by id or file name")
+  .option("--anyway", "save even when the note checks fail")
   .option("--json", "print the saved learning as JSON")
   .argument("[dir]", "repository root", ".")
   .action(async (dir: string, opts: NoteOptions) => {
@@ -1257,6 +1261,8 @@ interface NoteOptions {
   tokens?: string;
   json?: boolean;
   personal?: boolean;
+  replaces?: string;
+  anyway?: boolean;
 }
 
 async function runNoteCommand(repo: string, opts: NoteOptions): Promise<void> {
@@ -1300,11 +1306,42 @@ async function runNoteCommand(repo: string, opts: NoteOptions): Promise<void> {
   const author = opts.author?.trim() || noteAuthor(repo);
   const date = new Date().toISOString().slice(0, 10);
   const scope = opts.personal ? "personal" : "repo";
+  const existing = listNotes(repo);
+  let replaces = opts.replaces?.trim();
+  if (replaces) {
+    const found = findLearning(existing, replaces);
+    if (found) replaces = found.id;
+    else if (!asLearningId(replaces)) {
+      console.error(`✗ no learning named ${opts.replaces}`);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  if (!opts.anyway) {
+    const text = `${opts.title}\n${body}`;
+    const namedFiles = mentionedFiles(repo, text);
+    const gate = gateNote({
+      title: opts.title,
+      body,
+      personal: scope === "personal",
+      files: [...trackedFiles(repo, namedFiles)],
+      namesSymbol: namesRepoSymbol(repo, symbolCandidates(text)),
+      touches: named,
+      replaces,
+    }, existing);
+    for (const warning of gate.warnings) console.error(`! ${warning}`);
+    if (gate.problems.length) {
+      for (const problem of gate.problems) console.error(`✗ ${problem}`);
+      console.error("  save anyway with --anyway");
+      process.exitCode = 1;
+      return;
+    }
+  }
   const earlier: Note[] = [];
   const saved: Note[] = [];
   for (const t of targets) {
     earlier.push(...listNotes(t.dir));
-    saved.push(writeNote(t.dir, { title: opts.title, body, author, date, branch: currentBranch(t.dir), cost, touches: t.touches }, scope));
+    saved.push(writeNote(t.dir, { title: opts.title, body, author, date, branch: currentBranch(t.dir), cost, touches: t.touches, replaces }, scope));
   }
   const touches = targets.flatMap((t) => t.touches);
   track(
@@ -2168,7 +2205,7 @@ async function runTeamCheck(repo: string, opts: { base?: string; json?: boolean 
   }
   maybeRefreshBranches(repo);
   if (d.truncated) console.error("⚠ the diff is over 400 KB; only the first 400 KB is checked");
-  const r = checkLocally({ diff: withoutJuliusFiles(d.diff), files, notes: withBaseLearnings(listNotes(repo), atBase), skills: listSkills(repo), asker: me });
+  const r = checkLocally({ diff: withoutJuliusFiles(d.diff), files, notes: withBaseLearnings(liveLearnings(listNotes(repo)), atBase), skills: listSkills(repo), asker: me });
   r.findings.unshift(...edits);
   const sources = r.findings.map((f) => f.source).filter((s) => s.path);
   recordActivity({

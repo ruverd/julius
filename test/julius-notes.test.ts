@@ -52,6 +52,8 @@ function note(over: Partial<Note> = {}): Note {
     cost: { minutes: 12, tokens: 9600 },
     touches: ["internal/ocr/bbox.go#NormalizeBox", "internal/ocr/client.go"],
     body: BODY,
+    id: "l-aabbccdd",
+    status: "active",
     ...over,
   };
 }
@@ -61,7 +63,7 @@ function note(over: Partial<Note> = {}): Note {
 test("a note round-trips through its file, frontmatter and all", () => {
   const n = note();
   const text = renderNote(n);
-  assert.match(text, /^---\ntitle: Bbox coordinates are off on rotated PDFs\nauthor: Priya\ndate: 2026-10-07\nbranch: fix\/bbox-rotation\ncost: \{ minutes: 12, tokens: 9600 \}\ntouches:\n  - "internal\/ocr\/bbox.go#NormalizeBox"\n  - internal\/ocr\/client.go\n---\n\n## Decided/);
+  assert.match(text, /^---\ntitle: Bbox coordinates are off on rotated PDFs\nauthor: Priya\ndate: 2026-10-07\nid: l-aabbccdd\nbranch: fix\/bbox-rotation\ncost: \{ minutes: 12, tokens: 9600 \}\ntouches:\n  - "internal\/ocr\/bbox.go#NormalizeBox"\n  - internal\/ocr\/client.go\n---\n\n## Decided/);
   assert.deepEqual(parseNote(text, n.path), n);
 });
 
