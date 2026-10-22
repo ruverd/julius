@@ -133,7 +133,12 @@ export function remoteUrl(config: string): string | null {
 
 /** One path segment of a key: lowercase, safe as a folder name, never `.` or `..`. */
 function segment(s: string): string {
-  const out = s.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  const safe = s.toLowerCase().replace(/[^a-z0-9._-]+/g, "-");
+  let start = 0;
+  let end = safe.length;
+  while (start < end && safe[start] === "-") start++;
+  while (end > start && safe[end - 1] === "-") end--;
+  const out = safe.slice(start, end);
   return /^\.+$/.test(out) ? "" : out;
 }
 

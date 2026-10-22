@@ -10,6 +10,7 @@
  * shape for the `julius_find_all` tool.
  */
 import { join } from "node:path";
+import { createContext, Script } from "node:vm";
 import type { GraphV1, NodeV1 } from "../graph/types.js";
 import { WALK_RELATIONS } from "../graph/relations.js";
 import { assertPrefixIndexed, pathUnderPrefix } from "../graph/scopes.js";
@@ -83,6 +84,42 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// Keep user patterns as data. Both compilation and matching run under the VM
+// deadline; no untrusted JavaScript is evaluated. A timeout aborts the search.
+const REGEX_TIMEOUT_MS = 1000;
+const COMPILE_PATTERN = new Script('new RegExp(source, flags)');
+const MATCH_LINES = new Script(`(() => {
+  const matches = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (regex.test(lines[i])) matches.push(i);
+  }
+  return matches;
+})()`);
+
+function boundedMatcher(source: string, ignoreCase: boolean): (lines: string[]) => number[] {
+  const context = createContext({ source, flags: ignoreCase ? "i" : "" }, {
+    codeGeneration: { strings: false, wasm: false },
+  });
+  const run = (script: Script): unknown => {
+    try {
+      return script.runInContext(context, { timeout: REGEX_TIMEOUT_MS });
+    } catch (error) {
+      // VM errors belong to another realm; restore the public error types.
+      const detail = error as { name?: string; code?: string; message?: string };
+      if (detail.code === "ERR_SCRIPT_EXECUTION_TIMEOUT") {
+        throw new Error("Search pattern exceeded the 1000 ms execution limit; simplify it or use --fixed.");
+      }
+      if (detail.name === "SyntaxError") throw new SyntaxError(detail.message);
+      throw error;
+    }
+  };
+  context.regex = run(COMPILE_PATTERN);
+  return (lines) => {
+    context.lines = lines;
+    return run(MATCH_LINES) as number[];
+  };
+}
+
 function spanBounds(span: string): { start: number; end: number } | null {
   const m = SPAN_RE.exec(span);
   if (!m) return null;
@@ -140,7 +177,7 @@ function toSymbolRef(n: NodeV1): GrepSymbolRef {
 export function grepGraph(graph: GraphV1, repoRoot: string, pattern: string, opts: GrepOptions = {}): GrepResult {
   const maxHits = opts.maxHits ?? DEFAULT_MAX_HITS;
   const source = opts.fixed ? escapeRegExp(pattern) : pattern;
-  const regex = new RegExp(source, opts.ignoreCase ? "i" : "");
+  const matchingLines = boundedMatcher(source, opts.ignoreCase ?? false);
 
   const inDegree = computeInDegree(graph);
   // Same segment-aware prefix rule as `ask --in` / `callers --in`, and the same
@@ -174,9 +211,8 @@ export function grepGraph(graph: GraphV1, repoRoot: string, pattern: string, opt
     const symbols = symbolsOf(graph, file.path);
     const lines = text.split("\n");
 
-    for (let i = 0; i < lines.length; i++) {
+    for (const i of matchingLines(lines)) {
       const raw = lines[i];
-      if (!regex.test(raw)) continue;
 
       if (collected >= maxHits) {
         truncatedHits++;
