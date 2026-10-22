@@ -1,5 +1,5 @@
 {
-  "name": "@nanonets/graft",
+  "name": "@ruverd/julius",
   "version": "0.23.1",
   "description": "Build a repo's context graph as a folder of linked markdown files: a local, regenerable cache that every query keeps in sync with your code.",
   "keywords": [
@@ -9,16 +9,16 @@
     "context",
     "codebase",
     "llm",
-    "graft"
+    "julius"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/trailhq/Trail-Code.git"
+    "url": "git+https://github.com/ruverd/julius.git"
   },
-  "homepage": "https://github.com/trailhq/Trail-Code#readme",
+  "homepage": "https://github.com/ruverd/julius#readme",
   "bugs": {
-    "url": "https://github.com/trailhq/Trail-Code/issues"
+    "url": "https://github.com/ruverd/julius/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -34,22 +34,22 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "graft": "dist/bin/graft.js"
+    "julius": "dist/bin/julius.js"
   },
   "files": [
     "dist",
     "scripts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "PROVENANCE.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p viewer/tsconfig.json && node scripts/build-viewer.mjs",
     "dev": "tsc -p tsconfig.json --watch",
     "cli": "tsx src/cli.ts",
     "test": "node scripts/run-tests.mjs",
-    "prepare": "npm run build && node scripts/stamp-telemetry-key.mjs",
-    "prepublishOnly": "npm run build",
-    "postinstall": "node scripts/postinstall.mjs"
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=20"

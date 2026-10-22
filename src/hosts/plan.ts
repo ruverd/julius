@@ -1,5 +1,5 @@
 /**
- * What `graft init` *would* write, computed before anything is written.
+ * What `julius init` *would* write, computed before anything is written.
  *
  * The picker and `--dry-run` both need the exact path list up front, so every
  * writer in the init path (instruction files, MCP configs, hooks, the Claude
@@ -15,7 +15,7 @@ import { mcpTargets } from './mcp-config.js';
 import { hookTargets } from './codex-hooks.js';
 import { cursorHookTargets } from './cursor-hooks.js';
 import { antigravitySkillTargets } from './antigravity.js';
-import { claudeTargets } from '../claude/init.js';
+import { claudeTargetsFor } from '../claude/init.js';
 import { brand, type Brand } from '../brand.js';
 import { claudeGlobalTargets } from './claude-global.js';
 
@@ -62,7 +62,7 @@ function instructionTarget(repo: string, host: HostTarget, name: Brand): Planned
 }
 
 /**
- * Every host graft can wire, each with the full set of files selecting it would
+ * Every host julius can wire, each with the full set of files selecting it would
  * touch. Claude Code comes first — it's the deep integration and the picker's
  * default. `ids`, when given, restricts the plan to those hosts.
  */
@@ -76,7 +76,7 @@ export function planInit(repo: string, opts: { home?: string; ids?: string[] } =
     // Repo writes plus the user-level copy under `~/.claude` — the picker and
     // `--dry-run` render 'global' writes in their own section, so a user sees
     // what lands outside the repo before agreeing to it.
-    { id: 'claude', name: 'Claude Code', detected: true, writes: [...claudeTargets(repo, brand()), ...claudeGlobalTargets(home, brand())] },
+    { id: 'claude', name: 'Claude Code', detected: true, writes: [...claudeTargetsFor(repo, brand(), home), ...claudeGlobalTargets(home, brand())] },
     ...HOSTS.map((host) => ({
       id: host.id,
       name: host.name,

@@ -1,6 +1,6 @@
 /**
  * Learnings a branch changed, read as they were where the branch left its
- * base. `trail check` reads those, so rewriting a teammate's learning ("reversed:
+ * base. `julius check` reads those, so rewriting a teammate's learning ("reversed:
  * now 10") can't hide the conflict it records. And an edit to someone else's
  * learning is a finding of its own: theirs stays as written, and a new learning
  * says what changed.
@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parseNote, type Note } from "../notes/notes.js";
-import { LEARNINGS_DIR } from "../notes/repo-trail.js";
+import { LEARNINGS_DIR } from "../notes/repo-julius.js";
 import type { CheckFinding } from "./types.js";
 
 function show(repo: string, ref: string, path: string): string | null {
@@ -56,7 +56,7 @@ export function teammateEdits(repo: string, atBase: Note[], me: string): CheckFi
       return {
         file,
         verdict: "conflict" as const,
-        summary: `${verb} ${n.author}'s learning · leave it as it was, and save what changed as a learning of your own with trail note`,
+        summary: `${verb} ${n.author}'s learning · leave it as it was, and save what changed as a learning of your own with julius note`,
         source: { kind: "note", title: n.title, author: n.author, date: n.date, path: n.path, quote: n.title },
       };
     });

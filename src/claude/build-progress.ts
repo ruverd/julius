@@ -1,15 +1,15 @@
 /**
- * `graft build`, run from `graft init` as one line that redraws in place.
+ * `julius build`, run from `julius init` as one line that redraws in place.
  *
  * `buildGraphIfMissing` hands the child the terminal, which prints a `parsing
  * N/M: path` line and four more after it. That is the right output for someone
- * who ran `graft build`, and five lines of someone else's output in the middle
+ * who ran `julius build`, and five lines of someone else's output in the middle
  * of init. Here the child's output is read instead: its progress becomes the
  * spinner's `1,204 of 1,942 files`, its totals become init's one summary line,
  * and any warning or error it printed is passed on whole.
  */
 import { spawn } from "node:child_process";
-import { hasGraftIndex } from "../graph/root.js";
+import { hasJuliusIndex } from "../graph/root.js";
 import { startSpinner } from "../util/spinner.js";
 
 export interface BuiltGraph {
@@ -20,7 +20,7 @@ export interface BuiltGraph {
 
 const n = (s: string | undefined) => Number((s ?? "0").replace(/,/g, "")) || 0;
 
-/** The totals out of `graft build`'s stdout, or null when it printed none. */
+/** The totals out of `julius build`'s stdout, or null when it printed none. */
 export function parseBuildSummary(stdout: string): BuiltGraph | null {
   const wiring = /✓ wiring: ([\d,]+) nodes.*?, ([\d,]+) edges/.exec(stdout);
   if (!wiring) return null;
@@ -46,7 +46,7 @@ export async function buildGraphWithProgress(
   dir: string,
   opts: { build?: boolean; cliPath?: string },
 ): Promise<{ built: boolean; graph?: BuiltGraph; failed?: boolean; messages: string[] }> {
-  if (opts.build === false || !opts.cliPath || hasGraftIndex(dir)) return { built: false, messages: [] };
+  if (opts.build === false || !opts.cliPath || hasJuliusIndex(dir)) return { built: false, messages: [] };
   const spinner = startSpinner("building the graph");
   let stdout = "";
   let stderr = "";

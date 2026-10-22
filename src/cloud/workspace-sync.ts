@@ -2,29 +2,29 @@
  * Keeps the workspace's copy of a repo's learnings, and its record of how
  * they're used, in step with this machine.
  *
- * What goes up for a repo in the workspace is every learning in its `.trail/`:
+ * What goes up for a repo in the workspace is every learning in its `.julius/`:
  * the working tree's and the ones on teammates' pushed branches, after a
  * `git fetch`. Not just this person's, so one person is enough to cover a
- * repo. Personal learnings in ~/.trail never go up.
+ * repo. Personal learnings in ~/.julius never go up.
  *
  * Uses (a search that showed learnings, a check against them) are appended to
- * `~/.trail/outbox.jsonl` as they happen, and sent with the next sync. That's
+ * `~/.julius/outbox.jsonl` as they happen, and sent with the next sync. That's
  * how a teammate's reuse of a learning shows on the team page. Only while the
  * machine is connected, and only for a repo in the workspace: a search holds
  * what someone typed and the files they're in, and nobody agreed to send that
  * for a repo they didn't pick, or from before they signed in.
  *
  * Commands never wait on any of this: when something changed, a detached
- * `_trail-sync` child does it.
+ * `_julius-sync` child does it.
  */
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { appendFileSync, existsSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { graftCliPath } from "../claude/paths.js";
+import { juliusCliPath } from "../claude/paths.js";
 import { readBranchCache, refreshBranches } from "../notes/branches.js";
-import { knownRepos, repoName, repoPlace, trailHome } from "../notes/home.js";
-import { LEARNINGS_DIR, learningFiles, readLearningFile } from "../notes/repo-trail.js";
+import { knownRepos, repoName, repoPlace, juliusHome } from "../notes/home.js";
+import { LEARNINGS_DIR, learningFiles, readLearningFile } from "../notes/repo-julius.js";
 import { parseNote } from "../notes/notes.js";
 import { cacheDir, readJson, writeJsonAtomic } from "../util/state.js";
 import { isError, postActivity, readCloud, uploadLearnings, type ActivityEvent, type ApiError, type Cloud, type UploadedLearning } from "./workspace.js";
@@ -40,7 +40,7 @@ function sha256(text: string): string {
 }
 
 /**
- * Every learning in the repo's `.trail/`, as the workspace takes them: the
+ * Every learning in the repo's `.julius/`, as the workspace takes them: the
  * working tree's, then the ones only a pushed branch has (from the branch
  * cache). Paths are repo-relative; nothing about this machine is sent.
  */
@@ -86,7 +86,7 @@ interface SyncState {
 }
 
 function statePath(repo: string): string {
-  return join(cacheDir(repo), "trail-workspace-sync.json");
+  return join(cacheDir(repo), "julius-workspace-sync.json");
 }
 
 /** Whether the repo at `checkout` is one of the workspace's. */
@@ -135,7 +135,7 @@ export async function syncWorkspaceRepos(cloud: Cloud, fetchImpl?: typeof fetch)
 /* -------------------------------------------------------------------------- */
 
 function outboxPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(trailHome(env), "outbox.jsonl");
+  return join(juliusHome(env), "outbox.jsonl");
 }
 
 /** Whether a use may go to `cloud`: the repo is the workspace's, and it happened since connecting. */
@@ -186,7 +186,7 @@ function outboxHasEvents(): boolean {
  * Send the outbox. It's moved aside first, so events recorded while the
  * request is out land in a fresh file; on failure they're put back. A use
  * from before this connection, or for a repo the workspace doesn't have
- * (left by an older trail), is dropped, never sent.
+ * (left by an older julius), is dropped, never sent.
  */
 export async function flushActivity(cloud: Cloud, fetchImpl?: typeof fetch): Promise<number> {
   const p = outboxPath();
@@ -249,7 +249,7 @@ export function maybeSyncInBackground(dir: string, now = Date.now()): boolean {
     // Marked first, so commands run while the child works don't start another.
     const prior = readJson<SyncState>(statePath(checkout));
     writeJsonAtomic(statePath(checkout), { ...(prior ?? { fingerprint: "", at: 0 }), failedAt: now }, true);
-    const child = spawn(process.execPath, [graftCliPath(), "_trail-sync", checkout], { detached: true, stdio: "ignore", windowsHide: true });
+    const child = spawn(process.execPath, [juliusCliPath(), "_julius-sync", checkout], { detached: true, stdio: "ignore", windowsHide: true });
     child.unref();
     return true;
   } catch {
@@ -257,7 +257,7 @@ export function maybeSyncInBackground(dir: string, now = Date.now()): boolean {
   }
 }
 
-/** `_trail-sync`: what the background child does. */
+/** `_julius-sync`: what the background child does. */
 export async function runSyncChild(dir: string): Promise<void> {
   const cloud = readCloud();
   if (!cloud) return;

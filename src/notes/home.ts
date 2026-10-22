@@ -1,7 +1,7 @@
 /**
  * Where a repo's personal learnings and takeaways live: on this machine, under
- * `~/.trail/repos/<key>/`. (Learnings about the code itself go in the repo's
- * committed `.trail/`, see repo-trail.ts.) Nothing here shows up in
+ * `~/.julius/repos/<key>/`. (Learnings about the code itself go in the repo's
+ * committed `.julius/`, see repo-julius.ts.) Nothing here shows up in
  * `git status` or in anyone's pull request, and nothing leaves the machine
  * unless its owner shares it.
  *
@@ -36,14 +36,14 @@ import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { readJson, writeJsonAtomic } from "../util/state.js";
 import { readBranchCache } from "./branches.js";
-import { hasRepoTrail, learningFiles } from "./repo-trail.js";
+import { hasRepoJulius, learningFiles } from "./repo-julius.js";
 
-/** `~/.trail`, or `$TRAIL_HOME`. */
-export function trailHome(env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string {
-  return env.TRAIL_HOME ? resolve(env.TRAIL_HOME) : join(home, ".trail");
+/** `~/.julius`, or `$JULIUS_HOME`. */
+export function juliusHome(env: NodeJS.ProcessEnv = process.env, home: string = homedir()): string {
+  return env.JULIUS_HOME ? resolve(env.JULIUS_HOME) : join(home, ".julius");
 }
 
-/** A path as people read it: `~/.trail/…` under the home folder, absolute otherwise. */
+/** A path as people read it: `~/.julius/…` under the home folder, absolute otherwise. */
 export function shownPath(p: string): string {
   if (!isAbsolute(p)) return p;
   const home = homedir();
@@ -138,8 +138,8 @@ function segment(s: string): string {
 }
 
 /**
- * `git@github.com:NanoNets/Graft.git`, `https://user:tok@github.com/NanoNets/Graft`
- * and `ssh://git@github.com:22/NanoNets/Graft.git` all → `github.com/nanonets/graft`.
+ * `git@github.com:NanoNets/Julius.git`, `https://user:tok@github.com/NanoNets/Julius`
+ * and `ssh://git@github.com:22/NanoNets/Julius.git` all → `github.com/nanonets/julius`.
  * Null for a remote that is a path on this machine: those are keyed by path.
  */
 export function keyFromRemote(url: string): string | null {
@@ -187,7 +187,7 @@ export interface RepoPlace {
   git: boolean;
   /** `github.com/nanonets/assign`, or `local/…`. */
   key: string;
-  /** `<trail home>/repos/<key>`: where this repo's notes and takeaways are. */
+  /** `<julius home>/repos/<key>`: where this repo's notes and takeaways are. */
   dir: string;
 }
 
@@ -213,7 +213,7 @@ function keyDir(home: string, key: string): string {
 
 /** Where the notes for the folder `start` live. Reads only; spawns nothing. */
 export function repoPlace(start: string, env: NodeJS.ProcessEnv = process.env): RepoPlace {
-  const home = trailHome(env);
+  const home = juliusHome(env);
   const top = checkoutRoot(start);
   const dirs = top ? gitDirs(top) : null;
   let url: string | null = null;
@@ -267,7 +267,7 @@ function followMovedRepo(home: string, place: RepoPlace, index: Index, roots: st
 export function findRepoPlace(start: string, env: NodeJS.ProcessEnv = process.env): RepoPlace {
   const place = repoPlace(start, env);
   if (existsSync(place.dir) || !place.git) return place;
-  const home = trailHome(env);
+  const home = juliusHome(env);
   const index = readIndex(home);
   if (Object.keys(index.roots).length === 0) return place;
   const moved = followMovedRepo(home, place, index, rootCommits(place.checkout));
@@ -275,18 +275,18 @@ export function findRepoPlace(start: string, env: NodeJS.ProcessEnv = process.en
   return moved;
 }
 
-export const HOME_README = `# ~/.trail
+export const HOME_README = `# ~/.julius
 
-What Trail keeps on this machine. Learnings about the code are in each
-repo's own .trail/learnings/, committed with the code; this folder holds
+What Julius keeps on this machine. Learnings about the code are in each
+repo's own .julius/learnings/, committed with the code; this folder holds
 the rest, and none of it leaves this machine unless you share it.
 
 - repos/<repo>/notes/    personal learnings: about your setup or habits,
                          not the code
 - repos/<repo>/skills/   corrections you taught your agent, per skill
-- repos/known.json       the repos Trail has run in, which is the list a
+- repos/known.json       the repos Julius has run in, which is the list a
                          workspace's repo picker shows
-- cloud.json             your Trail workspace, once you've connected one
+- cloud.json             your Julius workspace, once you've connected one
 
 <repo> is the repo's remote (github.com/owner/name), so every clone and
 worktree of one repo shares its notes. Repos without a remote are under
@@ -299,7 +299,7 @@ local/, by path.
  * renamed remote, a remote added later), is pointed at that folder.
  */
 export function ensureRepoHome(start: string, env: NodeJS.ProcessEnv = process.env): { place: RepoPlace; created: boolean } {
-  const home = trailHome(env);
+  const home = juliusHome(env);
   const index = readIndex(home);
   const before = JSON.stringify(index);
   const fresh = repoPlace(start, env);
@@ -316,12 +316,12 @@ export function ensureRepoHome(start: string, env: NodeJS.ProcessEnv = process.e
 }
 
 /**
- * This machine's uploader id: random, made once, kept in `~/.trail/id`. Trail
+ * This machine's uploader id: random, made once, kept in `~/.julius/id`. Julius
  * keys each person's uploaded notes by it, so one person's upload replaces
  * their own notes and never a teammate's. It names no one.
  */
 export function uploaderId(env: NodeJS.ProcessEnv = process.env): string {
-  const file = join(trailHome(env), "id");
+  const file = join(juliusHome(env), "id");
   try {
     const id = readFileSync(file, "utf8").trim();
     if (id) return id;
@@ -329,7 +329,7 @@ export function uploaderId(env: NodeJS.ProcessEnv = process.env): string {
     /* first time */
   }
   const id = randomUUID();
-  mkdirSync(trailHome(env), { recursive: true });
+  mkdirSync(juliusHome(env), { recursive: true });
   writeFileSync(file, `${id}\n`);
   return id;
 }
@@ -370,14 +370,14 @@ export function notePlaces(dir: string, env: NodeJS.ProcessEnv = process.env): R
   return places.filter((p) => !seen.has(p.key) && seen.add(p.key));
 }
 
-/** This repo keeps learnings: it has a committed `.trail/`, or `trail init` or a first learning made its folder in ~/.trail. */
+/** This repo keeps learnings: it has a committed `.julius/`, or `julius init` or a first learning made its folder in ~/.julius. */
 export function keepsNotes(dir: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  return notePlaces(dir, env).some((p) => existsSync(p.dir) || (p.git && hasRepoTrail(p.checkout)));
+  return notePlaces(dir, env).some((p) => existsSync(p.dir) || (p.git && hasRepoJulius(p.checkout)));
 }
 
 /**
  * How many learnings bear on `dir`, counted without reading them: the repo's
- * `.trail/learnings/`, this machine's own, and the ones on teammates' pushed
+ * `.julius/learnings/`, this machine's own, and the ones on teammates' pushed
  * branches, one per file name. Spawns nothing: the statusline calls it.
  */
 export function noteCount(dir: string, env: NodeJS.ProcessEnv = process.env): number {
@@ -395,7 +395,7 @@ export function noteCount(dir: string, env: NodeJS.ProcessEnv = process.env): nu
 }
 
 /* -------------------------------------------------------------------------- */
-/* the repos Trail has run in                                                 */
+/* the repos Julius has run in                                                 */
 /* -------------------------------------------------------------------------- */
 
 export interface KnownRepo {
@@ -421,11 +421,11 @@ export function repoName(key: string, checkout?: string): string {
 }
 
 /**
- * Every repo Trail has run in on this machine, most recent first. This is the
- * list a workspace's repo picker shows: Trail never searches the disk for repos.
+ * Every repo Julius has run in on this machine, most recent first. This is the
+ * list a workspace's repo picker shows: Julius never searches the disk for repos.
  */
 export function knownRepos(env: NodeJS.ProcessEnv = process.env): KnownRepo[] {
-  const raw = readJson<Record<string, Omit<KnownRepo, "key">>>(knownPath(trailHome(env))) ?? {};
+  const raw = readJson<Record<string, Omit<KnownRepo, "key">>>(knownPath(juliusHome(env))) ?? {};
   return Object.entries(raw)
     .map(([key, r]) => ({ key, name: r.name, path: r.path, seenAt: r.seenAt }))
     .sort((a, b) => b.seenAt - a.seenAt);
@@ -435,14 +435,14 @@ export function knownRepos(env: NodeJS.ProcessEnv = process.env): KnownRepo[] {
 const SEEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Note that Trail ran in the repo at `dir`. Cheap enough for every command:
+ * Note that Julius ran in the repo at `dir`. Cheap enough for every command:
  * it writes only for a repo that's new, moved, or not seen for a day.
  */
 export function rememberRepo(dir: string, env: NodeJS.ProcessEnv = process.env, now = Date.now()): void {
   try {
     const place = repoPlace(dir, env);
     if (!place.git) return;
-    const file = knownPath(trailHome(env));
+    const file = knownPath(juliusHome(env));
     const all = readJson<Record<string, Omit<KnownRepo, "key">>>(file) ?? {};
     const prior = all[place.key];
     if (prior && prior.path === place.checkout && now - prior.seenAt < SEEN_TTL_MS) return;

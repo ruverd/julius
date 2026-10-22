@@ -1,5 +1,5 @@
 /**
- * `graft init`'s closing epilogue: the ASCII wordmark + numbered next steps,
+ * `julius init`'s closing epilogue: the ASCII wordmark + numbered next steps,
  * printed to stderr after the per-file ✓/·/⚠ lines. Extracted out of cli.ts
  * so the exact text — spacing is hand-aligned, not incidental — can be
  * unit-tested without spawning the CLI.
@@ -8,17 +8,10 @@ import { brand, cmd } from "./brand.js";
 
 // The widest line (index 4, tied with index 2 at 26 chars) gets the live
 // node/edge stats appended, when a graph exists.
-const WORDMARK_LINES = [
-  "                   __ _",
-  "   __ _ _ __ __ _ / _| |_",
-  "  / _` | '__/ _` | |_| __|",
-  " | (_| | | | (_| |  _| |_",
-  "  \\__, |_|  \\__,_|_|  \\__|",
-  "  |___/",
-];
+const WORDMARK_LINES = ["JULIUS", "", "", "", "", ""];
 const STATS_LINE_INDEX = 4;
 
-// Nanonets indigo, and a muted grey for the secondary stats suffix — only
+// Julius indigo, and a muted grey for the secondary stats suffix — only
 // applied when stderr is a real TTY (tests spawn/call this without one, so
 // existing plain-text assertions keep passing).
 const indigo = (s: string) => `\x1b[38;2;84;111;255m${s}\x1b[0m`;
@@ -32,7 +25,7 @@ interface Step {
 }
 
 export interface InitEpilogueOptions {
-  /** Whether a graft graph exists on disk (built by this run, or a prior one). */
+  /** Whether a julius graph exists on disk (built by this run, or a prior one). */
   graphBuilt: boolean;
   /** Node count from the built graph — only meaningful when `graphBuilt`. */
   nodes?: number;
@@ -40,7 +33,7 @@ export interface InitEpilogueOptions {
   edges?: number;
 }
 
-/** Renders the `graft init` next-steps epilogue (no trailing newline — the
+/** Renders the `julius init` next-steps epilogue (no trailing newline — the
  * caller's `console.error` adds the one trailing newline). */
 export function formatInitEpilogue(opts: InitEpilogueOptions): string {
   const { graphBuilt, nodes, edges } = opts;
@@ -53,7 +46,7 @@ export function formatInitEpilogue(opts: InitEpilogueOptions): string {
   }
 
   const steps: Step[] = [
-    ...(graphBuilt ? [] : [{ label: "build the graph", command: cmd("graft build") }]),
+    ...(graphBuilt ? [] : [{ label: "build the graph", command: cmd("julius build") }]),
     { label: "restart your agent", command: `a new session picks up ${brand()} automatically` },
     {
       label: "code as usual",
@@ -62,7 +55,7 @@ export function formatInitEpilogue(opts: InitEpilogueOptions): string {
     },
     {
       label: "explore by hand",
-      command: `${cmd("graft ask")} "where is auth handled?" · ${cmd("graft callers")} <fn> · ${cmd("graft viz")}`,
+      command: `${cmd("julius ask")} "where is auth handled?" · ${cmd("julius callers")} <fn> · ${cmd("julius viz")}`,
     },
   ];
 
@@ -80,7 +73,7 @@ export function formatInitEpilogue(opts: InitEpilogueOptions): string {
     }
   });
 
-  const closing = `${indent}share it: git add .claude && git commit — teammates run \`${cmd("graft build")}\` for their own local graph`;
+  const closing = `${indent}share it: git add .claude && git commit — teammates run \`${cmd("julius build")}\` for their own local graph`;
 
   return [...wordmark, "", ...stepLines, "", closing].join("\n");
 }

@@ -29,7 +29,7 @@ import {
   learningsPickerState,
 } from '../src/cli-picker.js';
 
-function fresh(): string { return mkdtempSync(join(tmpdir(), 'graft-picker-')); }
+function fresh(): string { return mkdtempSync(join(tmpdir(), 'julius-picker-')); }
 
 function fullHome(): string {
   const home = fresh();
@@ -117,7 +117,7 @@ test('down then space adds the second host', () => {
   assert.deepEqual(pickedIds(state), ['claude', 'agents']);
 });
 
-/** Rows on screen before `m`: the agents graft found, and nothing else. */
+/** Rows on screen before `m`: the agents julius found, and nothing else. */
 function shownCount(repo: string, home: string): number {
   return visibleRows(initialPickerState(planInit(repo, { home }), repo, home)).length;
 }
@@ -188,16 +188,16 @@ test('describeWrites flags hosts with no MCP target', () => {
 test('describeWrites truncates long path lists', () => {
   const repo = fresh(); const home = fullHome();
   const claude = planInit(repo, { home, ids: ['claude'] })[0];
-  assert.match(describeWrites(claude.writes, repo, home), /\+2 more/);
+  assert.match(describeWrites(claude.writes, repo, home), /\+1 more/);
 });
 
 test('renderPicker marks the cursor and folds undetected hosts into one line', () => {
   const repo = fresh(); const home = fresh(); // nothing installed
   const state = initialPickerState(planInit(repo, { home }), repo, home);
   const text = renderPicker(state, false);
-  assert.match(text, /^graft init — pick the agents your team uses:/);
+  assert.match(text, /^julius init — pick the agents your team uses:/);
   assert.match(text, /› \[x\] claude/);
-  assert.doesNotMatch(text, /\[ \] cursor/, 'an agent graft cannot find is folded away');
+  assert.doesNotMatch(text, /\[ \] cursor/, 'an agent julius cannot find is folded away');
   assert.match(text, /\+ \d+ not detected \(.*cursor.*\) · m to show/);
   assert.match(text, /space toggle · a all · m more · enter confirm/);
   // Only the detected rows get a checkbox until `m`.
@@ -220,7 +220,7 @@ test('a never selects an agent that is folded away', () => {
 test('compactWrites shows a folder written into several times once, and two entries at most', () => {
   const repo = fresh(); const home = fullHome();
   const [claude] = planInit(repo, { home, ids: ['claude'] });
-  assert.equal(compactWrites(claude.writes, repo, home), `.claude${sep}, .mcp.json · + 3 in ~${sep}`);
+  assert.equal(compactWrites(claude.writes, repo, home), `.claude${sep}, .julius${sep} · + 3 in ~${sep}.claude${sep}`);
   const cursor = planInit(repo, { home, ids: ['cursor'] })[0];
   assert.match(compactWrites(cursor.writes, repo, home), /^[^,]+, [^,]+ \+\d+ more$/);
 });
@@ -253,7 +253,7 @@ test('formatPlan surfaces the claude layer\'s ~ writes as machine-wide', () => {
   const text = formatPlan(planInit(repo, { home }), ['claude'], repo, home, false);
   assert.match(text, /affects ALL repos/);
   assert.match(text, /--no-global/);
-  assert.match(text, /\.claude\.json/);
+  assert.match(text, /SKILL\.md/);
 });
 
 test('formatPlan says so when nothing is selected', () => {
@@ -265,7 +265,7 @@ test('formatNonInteractiveHelp lists detected ids and a runnable command', () =>
   const text = formatNonInteractiveHelp(['claude', 'cursor']);
   assert.match(text, /nothing written/);
   assert.match(text, /detected: claude, cursor/);
-  assert.match(text, /graft init --agents claude cursor {3}# wire these/);
+  assert.match(text, /julius init --agents claude cursor {3}# wire these/);
   assert.match(text, /--dry-run/);
 });
 
@@ -274,7 +274,7 @@ test('formatNonInteractiveHelp still helps when nothing was detected', () => {
   assert.match(text, /detected: none/);
   // No `--yes` example, since there is nothing for it to wire (the header
   // still mentions the flag by name).
-  assert.doesNotMatch(text, /^ +graft init --yes/m);
+  assert.doesNotMatch(text, /^ +julius init --yes/m);
   assert.match(text, /--agents claude/);
 });
 

@@ -1,5 +1,5 @@
 /**
- * The one-time disclosure, and the `graft telemetry` command's output.
+ * The one-time disclosure, and the `julius telemetry` command's output.
  *
  * The notice is the whole reason this design is defensible. Every telemetry
  * backlash in the tools we looked at — the GitHub CLI's silent 2.91.0 rollout,
@@ -10,7 +10,7 @@
  * breath.
  *
  * Once per MACHINE, not per repo: a dev with twelve checkouts should read this
- * one time. `graft init`'s picker is the other disclosure surface, for the users
+ * one time. `julius init`'s picker is the other disclosure surface, for the users
  * who see it — this catches everyone else.
  */
 import { patchState, readState } from './identity.js';
@@ -20,11 +20,11 @@ import { buildBatch } from './send.js';
 import { posthogHost } from './key.js';
 import { brand, cmd, inBrand } from '../brand.js';
 
-export const TELEMETRY_DOC_URL = 'https://github.com/trailhq/Trail-Code/blob/main/TELEMETRY.md';
+export const TELEMETRY_DOC_URL = 'https://github.com/ruverd/julius/blob/main/TELEMETRY.md';
 
 export const NOTICE = [
-  '· graft collects anonymous usage stats (no code, no file paths, no queries).',
-  `  What exactly: ${TELEMETRY_DOC_URL} — turn it off with \`graft telemetry disable\`.`,
+  '· julius collects anonymous usage stats (no code, no file paths, no queries).',
+  `  What exactly: ${TELEMETRY_DOC_URL} — turn it off with \`julius telemetry disable\`.`,
 ].join('\n');
 
 /**
@@ -43,7 +43,7 @@ export function firstRunNotice(home?: string, env?: NodeJS.ProcessEnv): string |
   }
 }
 
-/** `graft telemetry status`. `env` is a test seam, as elsewhere in this module —
+/** `julius telemetry status`. `env` is a test seam, as elsewhere in this module —
  *  a real run must be gated on the real `DO_NOT_TRACK` and CI variables. */
 export function formatStatus(home?: string, env?: NodeJS.ProcessEnv): string {
   const reason = offReason(home, env);
@@ -60,15 +60,15 @@ export function formatStatus(home?: string, env?: NodeJS.ProcessEnv): string {
   }
   lines.push(
     reason === 'disabled'
-      ? `  enable:    ${cmd('graft telemetry enable')}`
-      : `  disable:   ${cmd('graft telemetry disable')}  (or set DO_NOT_TRACK=1)`,
+      ? `  enable:    ${cmd('julius telemetry enable')}`
+      : `  disable:   ${cmd('julius telemetry disable')}  (or set DO_NOT_TRACK=1)`,
   );
-  lines.push(`  inspect:   ${cmd('graft telemetry debug')}   (prints the exact batch, sends nothing)`);
+  lines.push(`  inspect:   ${cmd('julius telemetry debug')}   (prints the exact batch, sends nothing)`);
   return lines.join('\n');
 }
 
 /**
- * `graft telemetry debug` — Next.js's `NEXT_TELEMETRY_DEBUG` and Astro's
+ * `julius telemetry debug` — Next.js's `NEXT_TELEMETRY_DEBUG` and Astro's
  * `DEBUG=astro:telemetry` in command form. Prints the pending queue and the
  * literal JSON body a flush would POST, and sends nothing. The point is that a
  * user never has to take our word for the contract.
@@ -78,13 +78,13 @@ export function formatDebug(home?: string): string {
   if (events.length === 0) {
     return [
       'telemetry: nothing queued.',
-      '  Run a graft command first — events are written locally and flushed once a day.',
+      '  Run a julius command first — events are written locally and flushed once a day.',
     ].join('\n');
   }
   // A literal placeholder, never the key itself. This output is written to be
   // pasted into an issue; the project key is not the user's to share and is not
-  // needed to audit what graft sends.
-  const body = { api_key: '<omitted — graft\'s own ingestion key>', ...buildBatch(events) };
+  // needed to audit what julius sends.
+  const body = { api_key: '<omitted — julius\'s own ingestion key>', ...buildBatch(events) };
   return [
     `telemetry: ${events.length} event(s) queued. This is the exact body a flush would POST`,
     `to ${posthogHost()}/batch/ — running this command sends nothing.`,

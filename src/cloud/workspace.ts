@@ -1,27 +1,27 @@
 /**
- * The Trail workspace this machine is connected to, and the calls that talk
- * to it (trail-cloud's `/api/cli/…`).
+ * The Julius workspace this machine is connected to, and the calls that talk
+ * to it (julius-cloud's `/api/cli/…`).
  *
  * One connection per machine, not per repo: a person signs in once, through
  * the link their agent offers, and picks which of their repos the workspace
- * gets. It lives in `~/.trail/cloud.json` next to their notes, never in a
- * repo. Learnings themselves travel through git (`.trail/` is committed);
+ * gets. It lives in `~/.julius/cloud.json` next to their notes, never in a
+ * repo. Learnings themselves travel through git (`.julius/` is committed);
  * the workspace adds what one clone can't see: who is learning what across
  * the team's repos, how often a learning is reused, and the team page.
  *
  * Every call is bounded and never throws: a failure comes back as
- * `{ error }`, so a command still answers when Trail is unreachable.
+ * `{ error }`, so a command still answers when Julius is unreachable.
  */
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { trailHome } from "../notes/home.js";
+import { juliusHome } from "../notes/home.js";
 import { readJson, writeJsonAtomic } from "../util/state.js";
 
-/** Trail's own front end and API. TRAIL_URL (or the older GRAFT_BRAIN_URL) moves it, for a local or self-hosted Trail. */
-const DEFAULT_TRAIL_URL = "https://app.trailhq.com";
+/** Julius's own front end and API. JULIUS_URL (or the older JULIUS_BRAIN_URL) moves it, for a local or self-hosted Julius. */
+const DEFAULT_JULIUS_URL = "";
 
-export function trailUrl(env: NodeJS.ProcessEnv = process.env): string {
-  return (env.TRAIL_URL || env.GRAFT_BRAIN_URL || DEFAULT_TRAIL_URL).replace(/\/+$/, "");
+export function juliusUrl(env: NodeJS.ProcessEnv = process.env): string {
+  return (env.JULIUS_URL || DEFAULT_JULIUS_URL).replace(/\/+$/, "");
 }
 
 export interface WorkspaceInfo {
@@ -33,7 +33,7 @@ export interface WorkspaceInfo {
 }
 
 export interface Cloud {
-  /** The Trail it's connected to. */
+  /** The Julius it's connected to. */
   url: string;
   /** `trl_…`: this machine's token for the workspace. */
   token: string;
@@ -45,7 +45,7 @@ export interface Cloud {
 }
 
 function cloudPath(env: NodeJS.ProcessEnv = process.env): string {
-  return join(trailHome(env), "cloud.json");
+  return join(juliusHome(env), "cloud.json");
 }
 
 /** The connection, or null when this machine hasn't connected a workspace. */
@@ -55,13 +55,13 @@ export function readCloud(env: NodeJS.ProcessEnv = process.env): Cloud | null {
 }
 
 /**
- * Whether the workspace side of trail is on: the sign-in link at the end of a
- * reply, and `login`, `logout` and `workspace`. Committing `.trail/` already
+ * Whether the workspace side of julius is on: the sign-in link at the end of a
+ * reply, and `login`, `logout` and `workspace`. Committing `.julius/` already
  * shares learnings with a team, so it stays off until signing in gives more
- * than that. TRAIL_CLOUD=1 turns it on; a machine already connected keeps it.
+ * than that. JULIUS_CLOUD=1 turns it on; a machine already connected keeps it.
  */
 export function cloudEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.TRAIL_CLOUD === "1" || readCloud(env) !== null;
+  return (env.JULIUS_CLOUD === "1" && Boolean(juliusUrl(env))) || readCloud(env) !== null;
 }
 
 /** Owner-only: the file holds the workspace token. */
@@ -86,7 +86,7 @@ type Fetch = typeof fetch;
 
 export interface ApiError {
   error: string;
-  /** HTTP status, when Trail answered at all. */
+  /** HTTP status, when Julius answered at all. */
   status?: number;
 }
 
@@ -120,12 +120,12 @@ async function call<T>(
     }
     if (!res.ok) {
       const msg = (json as { error?: unknown } | null)?.error;
-      return { error: typeof msg === "string" ? msg : `Trail answered ${res.status}`, status: res.status };
+      return { error: typeof msg === "string" ? msg : `Julius answered ${res.status}`, status: res.status };
     }
     return { status: res.status, body: json as T };
   } catch (err) {
     const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
-    return { error: timedOut ? "Trail didn't answer in time" : "couldn't reach Trail" };
+    return { error: timedOut ? "Julius didn't answer in time" : "couldn't reach Julius" };
   }
 }
 
@@ -143,8 +143,8 @@ export interface HandoffRepo {
 }
 
 /**
- * Tell Trail about a sign-in link before anyone opens it: which repo the
- * agent was in, and every repo Trail knows on this machine, which is what the
+ * Tell Julius about a sign-in link before anyone opens it: which repo the
+ * agent was in, and every repo Julius knows on this machine, which is what the
  * workspace's repo picker lists. Names and counts only; no learning travels.
  */
 export async function registerHandoff(
@@ -172,7 +172,7 @@ export async function claimHandoff(base: string, state: string, fetchImpl?: Fetc
   );
   if (isError(r)) {
     if (r.status === 410) return { error: "that sign-in link was already used or has expired", reason: "expired" };
-    if (r.status === 404 || r.status === 405) return { error: "this Trail doesn't take sign-ins from the CLI yet", reason: "unsupported" };
+    if (r.status === 404 || r.status === 405) return { error: "this Julius doesn't take sign-ins from the CLI yet", reason: "unsupported" };
     return { pending: true };
   }
   const b = r.body;
@@ -206,7 +206,7 @@ export function addRepo(c: Cloud, repo: { key: string; name: string }, fetchImpl
 }
 
 export interface UploadedLearning {
-  /** `.trail/learnings/<name>`. */
+  /** `.julius/learnings/<name>`. */
   path: string;
   /** "" for the working tree, or the pushed branch it was found on (`origin/kumar/x`). */
   ref: string;

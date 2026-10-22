@@ -1,5 +1,5 @@
 /**
- * CLI wiring for `graft callers` and its `--direction` / `--depth` flags.
+ * CLI wiring for `julius callers` and its `--direction` / `--depth` flags.
  *
  * One command, one implementation: resolve a symbol via `resolveSymbol`, walk
  * edges via `edgeWalk` (incoming or outgoing, depth 1 or a BFS), and share the
@@ -7,8 +7,8 @@
  * cli.ts so that file stays thin (argument wiring only) and this logic stays
  * unit-testable without shelling out to the CLI on every case.
  *
- * `--direction out` subsumes the old `graft callees`; `--depth N` subsumes the
- * old `graft impact`. Exported formatters are reused by the MCP `graft_trace_calls`
+ * `--direction out` subsumes the old `julius callees`; `--depth N` subsumes the
+ * old `julius impact`. Exported formatters are reused by the MCP `julius_trace_calls`
  * tool (`src/mcp/tools.ts`), so both surfaces render identical reports.
  */
 import { resolve } from "node:path";
@@ -34,7 +34,7 @@ export interface CallersCliOptions {
 const ARROW: Record<Direction, "←" | "→"> = { in: "←", out: "→" };
 const DEFAULT_DEPTH = 1;
 
-/** Exported so the MCP `graft_trace_calls` tool (`src/mcp/tools.ts`) can render the
+/** Exported so the MCP `julius_trace_calls` tool (`src/mcp/tools.ts`) can render the
  * same human report format as the CLI, rather than re-implementing it — both
  * surfaces walk the same edges via the same `resolveSymbol` / `edgeWalk` core. */
 export function headerOf(n: NodeV1): string {
@@ -42,7 +42,7 @@ export function headerOf(n: NodeV1): string {
 }
 
 /** `showDepth` is set for multi-hop walks (depth > 1), matching the old
- * `graft impact` output which tagged every hit with its BFS depth.
+ * `julius impact` output which tagged every hit with its BFS depth.
  *
  * `quote`, when given, is the call site itself — the line inside the hit where it
  * references the symbol. An edge that says "total calls add" is a claim; the line
@@ -108,7 +108,7 @@ export function looseNoteFor(direction: Direction, name: string, candidateCount:
     candidateCount > 1
       ? ` ${candidateCount} definitions share the name "${name}"; a cross-file caller of an ambiguous name is dropped rather than guessed, so this may undercount.`
       : "";
-  return `  no indexed ${label} — the graph has no ${dir} call/reference edges for this symbol as written.${ambiguity} Check the name (try the bare symbol, or "Type.method"), or find its uses with ${cmd("graft grep")} "${name}". Fall back to raw grep -rn only for unindexed files`;
+  return `  no indexed ${label} — the graph has no ${dir} call/reference edges for this symbol as written.${ambiguity} Check the name (try the bare symbol, or "Type.method"), or find its uses with ${cmd("julius grep")} "${name}". Fall back to raw grep -rn only for unindexed files`;
 }
 
 interface SymbolJson {
@@ -169,7 +169,7 @@ export function runCallersCommand(query: string, dir: string, opts: CallersCliOp
   const contextDir = contextDirFor(root, opts.globalDir);
   const graph = loadGraphCached(contextDir);
   if (!graph) {
-    console.error(`✗ no graph found at ${contextDir} — run \`${cmd("graft build")}\` first`);
+    console.error(`✗ no graph found at ${contextDir} — run \`${cmd("julius build")}\` first`);
     process.exit(1);
   }
 
@@ -185,7 +185,7 @@ export function runCallersCommand(query: string, dir: string, opts: CallersCliOp
     return;
   }
   if (matches.length === 0) {
-    console.error(`✗ no symbol "${query}" in the graph — check spelling or run ${cmd("graft build")}`);
+    console.error(`✗ no symbol "${query}" in the graph — check spelling or run ${cmd("julius build")}`);
     process.exit(1);
   }
 

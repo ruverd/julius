@@ -26,8 +26,9 @@ const OPEN: NodeJS.ProcessEnv = {};
 
 function sandbox(tag: string): string {
   const home = tmpRepo(tag);
-  mkdirSync(join(home, '.graft'), { recursive: true });
-  process.env.GRAFT_POSTHOG_KEY = 'phc_test_key';
+  mkdirSync(join(home, '.julius'), { recursive: true });
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_test_key';
   return home;
 }
 
@@ -186,7 +187,7 @@ test('brain signup: the outcome is a category, never the sentence the user saw',
     {
       outcome: 'timed_out',
       duration_bucket: durationBucket(5 * 60 * 1000),
-      error: 'timed out waiting for the browser — run `trail login` again',
+      error: 'timed out waiting for the browser — run `julius login` again',
     },
     { home, env: OPEN },
   );

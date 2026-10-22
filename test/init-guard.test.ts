@@ -1,5 +1,5 @@
 /**
- * `trail init` in the home folder: refused before anything is written. In any
+ * `julius init` in the home folder: refused before anything is written. In any
  * other folder outside git it still sets up, but says the learnings stay on
  * this machine instead of telling the person to commit them.
  */
@@ -13,9 +13,9 @@ import { homeFolderRefusal, isGitWorkTree, NOT_GIT_LINE } from "../src/init-guar
 import { homeEnv, tmpRepo } from "./helpers.js";
 
 function run(args: string[], home: string) {
-  const r = spawnSync(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", "trail.ts"), ...args], {
+  const r = spawnSync(process.execPath, ["--import", "tsx", join(process.cwd(), "src", "bin", "julius.ts"), ...args], {
     encoding: "utf8",
-    env: { ...process.env, ...homeEnv(home), DO_NOT_TRACK: "1", CLAUDECODE: undefined, TRAIL_INVOKED_AS: undefined, TRAIL_HOME: undefined, TRAIL_NO_FETCH: "1" },
+    env: { ...process.env, ...homeEnv(home), DO_NOT_TRACK: "1", CLAUDECODE: undefined, JULIUS_INVOKED_AS: undefined, JULIUS_HOME: undefined, JULIUS_NO_FETCH: "1" },
   });
   return { status: r.status, err: r.stderr };
 }
@@ -26,13 +26,13 @@ test("only the home folder is refused", () => {
   assert.equal(homeFolderRefusal(join(home, "code", "assign"), home), null);
 });
 
-test("trail init in the home folder writes nothing and exits 1", () => {
+test("julius init in the home folder writes nothing and exits 1", () => {
   const home = mkdtempSync(join(tmpdir(), "guard-home-"));
   writeFileSync(join(home, "notes.py"), "print('hi')\n");
   const r = run(["init", home, "--agents", "claude", "--no-global"], home);
   assert.equal(r.status, 1, r.err);
-  assert.match(r.err, /✗ ~ is your home folder, not a repo\.\n {2}cd into the repo you want to set up, then run trail init again\./);
-  assert.ok(!existsSync(join(home, ".trail")), "no .trail/");
+  assert.match(r.err, /✗ ~ is your home folder, not a repo\.\n {2}cd into the repo you want to set up, then run julius init again\./);
+  assert.ok(!existsSync(join(home, ".julius")), "no .julius/");
   assert.ok(!existsSync(join(home, ".claude", "settings.json")), "no .claude/settings.json");
 });
 

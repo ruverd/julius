@@ -8,22 +8,21 @@ import { commitLines, listNotes, setupCommitLine, standingLearnings } from '../n
 import { noteAuthor, teammatesOn } from '../notes/git-facts.js';
 import { indexFreshness, staleBanner } from '../context/check.js';
 import { patchStats, readStats, acquireLock, readSession, writeSession, resolveContextDir } from './state.js';
-import { graftCliPath, claudeScriptPath } from './paths.js';
+import { juliusCliPath, claudeScriptPath } from './paths.js';
 import { runUpkeep } from '../upkeep-run.js';
 import { runningVersion, wiredHostIds } from '../upkeep.js';
-import { hostsWiredForTrail } from '../hosts/registry.js';
+import { hostsWiredForJulius } from '../hosts/registry.js';
 import { flushClosedSessions, summarizeSession } from '../telemetry/sessions.js';
 import { maybeFlushInBackground } from '../telemetry/flush.js';
 import { hasSavingsTally, lastAssistantTurn, lastTurnBilling } from './tally.js';
 import { scopeOf, scopesOfGraph } from '../graph/scopes.js';
-import { classifyToolUse, commandInvokesGraft, isMcpToolName, isGraftMcpTool, parseSavings, recordToolUse, type ToolKind } from './session-metrics.js';
-import { adoptRepoBrand, brand, cmd, commandOnPath, repoWiredForTrail, tag, trailHandoverLine, trailOnPath } from '../brand.js';
-import { fitTrailServerToMachine } from '../hosts/claude-global.js';
+import { classifyToolUse, commandInvokesJulius, isMcpToolName, isJuliusMcpTool, parseSavings, recordToolUse, type ToolKind } from './session-metrics.js';
+import { adoptRepoBrand, brand, cmd, commandOnPath, repoWiredForJulius, tag, juliusOnPath } from '../brand.js';
 import { globalCopyCovers } from './hook-layers.js';
 import { NOTE_CALL } from '../notes/session-cost.js';
 import { keepsNotes, noteCount, repoPlace } from '../notes/home.js';
 import { branchesStale, overlapMark, readBranchCache, refreshBranches, SESSION_REFRESH_MS } from '../notes/branches.js';
-import { learningFiles } from '../notes/repo-trail.js';
+import { learningFiles } from '../notes/repo-julius.js';
 import { inWorkspace, maybeSyncInBackground } from '../cloud/workspace-sync.js';
 import { cacheDir, readJson, writeJsonAtomic } from '../util/state.js';
 import { countBucket } from '../telemetry/contract.js';
@@ -36,7 +35,7 @@ import { skillsDirective } from '../skills/skills.js';
 const MIN_PROMPT_CHARS = 12;
 
 function readStdin(): any {
-  const seam = process.env.GRAFT_TEST_STDIN;
+  const seam = process.env.JULIUS_TEST_STDIN;
   const raw = seam !== undefined ? seam : safeReadFd0();
   try { return JSON.parse(raw); } catch { return {}; }
 }
@@ -45,28 +44,28 @@ function safeReadFd0(): string { try { return readFileSync(0, 'utf8'); } catch {
 function projectDir(input: any): string {
   return process.env.CLAUDE_PROJECT_DIR || input.cwd || process.cwd();
 }
-export function underGraft(dir: string, file: string): boolean {
+export function underJulius(dir: string, file: string): boolean {
   const rel = file.startsWith(dir) ? file.slice(dir.length) : file;
   const posix = rel.replace(/^[/\\]+/, '').replace(/\\/g, '/');
-  return posix.startsWith('graft/') || posix.startsWith('.trail/cache/');
+  return posix.startsWith('julius/') || posix.startsWith('.julius/cache/');
 }
-/** Default budget for a graft child process invoked from a hook, matching the 8s
+/** Default budget for a julius child process invoked from a hook, matching the 8s
  * the installed hook entries carry. */
 const CHILD_TIMEOUT_MS = 8000;
 /** Headroom left for the hook's own work (read stdin, score, write session, emit)
- * after its `graft ask` child returns. */
+ * after its `julius ask` child returns. */
 const HOOK_OVERHEAD_MS = 2000;
 /** Floor, so a hand-edited tiny timeout can't leave the child no time at all. */
 const MIN_CHILD_TIMEOUT_MS = 4000;
 
 /**
- * How long the prompt hook may let `graft ask` run — derived from the budget that is
+ * How long the prompt hook may let `julius ask` run — derived from the budget that is
  * *actually installed* in this repo's `.claude/settings.json`, not from what the
  * current version of `settings-merge.ts` would install.
  *
- * A query now brings the graph up to date first, so `graft init` raises the
+ * A query now brings the graph up to date first, so `julius init` raises the
  * UserPromptSubmit budget to 15s to cover the one cold rebuild after an upgrade. But
- * `mergeGraftSettings` only runs during `graft init` — upgrading the npm package does
+ * `mergeJuliusSettings` only runs during `julius init` — upgrading the npm package does
  * not re-run it. So every repo wired before that change keeps `"timeout": 8000`, and
  * hard-coding a 13s child there means Claude Code kills the hook first: `emit()` and
  * `writeSession()` never run, the turn gets no retrieval pack at all, and the SIGKILLed
@@ -81,7 +80,7 @@ export function promptAskTimeout(dir: string): number {
 
 /**
  * Every settings file Claude Code merges hook definitions from, for a session
- * rooted at `dir`. The per-repo file is not the only place graft's hooks can be
+ * rooted at `dir`. The per-repo file is not the only place julius's hooks can be
  * installed: declaring them once at the user level wires every repo on the
  * machine at once, and such a repo has no `.claude/settings.json` at all.
  */
@@ -94,7 +93,7 @@ function hookSettingsFiles(dir: string): string[] {
   ];
 }
 
-/** The timeout on one settings file's graft hook entry for `event`, or null if it
+/** The timeout on one settings file's julius hook entry for `event`, or null if it
  * can't be read (no settings file, hand-edited shape, unparseable JSON). */
 function hookTimeoutIn(file: string, event: string): number | null {
   try {
@@ -103,7 +102,7 @@ function hookTimeoutIn(file: string, event: string): number | null {
     if (!Array.isArray(blocks)) return null;
     for (const block of blocks) {
       for (const h of block?.hooks ?? []) {
-        if (typeof h?.command === 'string' && /(graft|trail)-hooks\.cjs/.test(h.command) && typeof h.timeout === 'number') {
+        if (typeof h?.command === 'string' && /(julius)-hooks\.cjs/.test(h.command) && typeof h.timeout === 'number') {
           return h.timeout;
         }
       }
@@ -136,29 +135,29 @@ function installedHookTimeout(dir: string, event: string): number | null {
 }
 
 /**
- * Append `--dir <contextDir>` for the hooks' own `graft ask`/`graft check`
+ * Append `--dir <contextDir>` for the hooks' own `julius ask`/`julius check`
  * children — the one place in this file that spawns the CLI itself rather
- * than reading `graft/` off disk (which already resolves through
+ * than reading `julius/` off disk (which already resolves through
  * `resolveContextDir` inside `util/state.ts` and `claude/stats.ts`). A no-op
- * when `GRAFT_DIR` isn't set, so an unconfigured repo's spawned CLI sees
+ * when `JULIUS_DIR` isn't set, so an unconfigured repo's spawned CLI sees
  * byte-identical argv to before this existed.
  */
 function withContextDirArg(dir: string, args: string[]): string[] {
-  return process.env.GRAFT_DIR ? [...args, '--dir', resolveContextDir(dir)] : args;
+  return process.env.JULIUS_DIR ? [...args, '--dir', resolveContextDir(dir)] : args;
 }
 
-function graftJson(dir: string, args: string[], timeout: number = CHILD_TIMEOUT_MS): any | null {
+function juliusJson(dir: string, args: string[], timeout: number = CHILD_TIMEOUT_MS): any | null {
   try {
-    // GRAFT_TEST_CLI is a test seam (mirrors GRAFT_TEST_STDIN/GRAFT_TEST_SYNC_RUN) so
-    // tests can point the prompt hook's `graft ask`/`graft check` calls at a stub
+    // JULIUS_TEST_CLI is a test seam (mirrors JULIUS_TEST_STDIN/JULIUS_TEST_SYNC_RUN) so
+    // tests can point the prompt hook's `julius ask`/`julius check` calls at a stub
     // script and observe the exact args it was invoked with, instead of shelling
     // out to the real CLI (which isn't built relative to the TS source under test).
-    const cliPath = process.env.GRAFT_TEST_CLI ?? graftCliPath();
+    const cliPath = process.env.JULIUS_TEST_CLI ?? juliusCliPath();
     const out = execFileSync(process.execPath, [cliPath, ...args],
       { cwd: dir, encoding: 'utf8', timeout, stdio: ['ignore', 'pipe', 'ignore'] });
     return JSON.parse(out);
   } catch (e: any) {
-    // `graft check` exits non-zero when the graph is stale (by design) but still
+    // `julius check` exits non-zero when the graph is stale (by design) but still
     // prints valid JSON to stdout; recover it from the thrown error before giving up.
     if (e && typeof e.stdout === 'string' && e.stdout.trim()) {
       try { return JSON.parse(e.stdout); } catch { /* not JSON — fall through */ }
@@ -167,7 +166,7 @@ function graftJson(dir: string, args: string[], timeout: number = CHILD_TIMEOUT_
   }
 }
 function checkStaleCount(dir: string): number {
-  const r = graftJson(dir, withContextDirArg(dir, ['check', '.', '--json']));
+  const r = juliusJson(dir, withContextDirArg(dir, ['check', '.', '--json']));
   const g = r?.graph ?? {};
   return (g.changed?.length ?? 0) + (g.added?.length ?? 0) + (g.removed?.length ?? 0);
 }
@@ -200,7 +199,7 @@ export function editedFilePath(input: any, dir: string): string | null {
 
 async function handlePostEdit(input: any, dir: string): Promise<void> {
   const file = editedFilePath(input, dir);
-  if (!file || underGraft(dir, file)) return;
+  if (!file || underJulius(dir, file)) return;
   patchStats(dir, { dirty: true, staleCount: checkStaleCount(dir), lastFile: basename(file) });
   const out: string[] = [];
   const w = readWiring(dir);
@@ -217,13 +216,13 @@ async function handlePostEdit(input: any, dir: string): Promise<void> {
 const INJECTED_OVERLAPS_CAP = 40;
 
 /**
- * Under trail, a teammate's open branch that changes the function this edit
+ * Under julius, a teammate's open branch that changes the function this edit
  * just changed, for the agent to read and tell the person about, each branch
  * and function once a session. Parsing loads grammars, so it's imported only
  * when the edited file is one some branch changes. Never throws.
  */
 async function editOverlap(input: any, dir: string, file: string): Promise<string | null> {
-  if (brand() !== 'trail' || !keepsNotes(dir)) return null;
+  if (!keepsNotes(dir)) return null;
   try {
     const top = repoPlace(dir);
     if (!top.git) return null;
@@ -290,17 +289,17 @@ export function lastFileScopeHint(dir: string, lastFile: string | null | undefin
  * PostToolUse on a retrieval tool. Two jobs, both a pure parse of the payload the
  * hook already received (no re-run):
  *
- *   1. Score the usage mix: classify the tool as a graft retrieval or a source
- *      read (Read/Grep/Glob) and bump the session's `graftReads`/`sourceReads`.
+ *   1. Score the usage mix: classify the tool as a julius retrieval or a source
+ *      read (Read/Grep/Glob) and bump the session's `juliusReads`/`sourceReads`.
  *      Until this ran, those counters were never incremented, so
  *      `session_summary` telemetry shipped 0/0 for every session.
- *   2. Sum any `[graft] tokens saved ≈ N` footers in the output into the running
+ *   2. Sum any `[julius] tokens saved ≈ N` footers in the output into the running
  *      `savedTokens` total, so the statusline's `~N tok saved` reflects the
  *      session across CLI and MCP.
  *
- * A `[graft]` footer is itself proof graft ran, so it also counts as a graft
- * read even when the tool name alone (a bare `Bash`) couldn't say so. A graft use
- * also flags the turn (`turnUsedGraft`) so the Stop hook's tally can resolve
+ * A `[julius]` footer is itself proof julius ran, so it also counts as a julius
+ * read even when the tool name alone (a bare `Bash`) couldn't say so. A julius use
+ * also flags the turn (`turnUsedJulius`) so the Stop hook's tally can resolve
  * whether the reply told the user what it saved. Stays a no-op on the
  * Write/Edit/unrelated-Bash majority: nothing to classify and no footer means
  * nothing is written.
@@ -313,22 +312,22 @@ function handleToolUse(input: any, dir: string): void {
 }
 
 /**
- * Under trail, the learnings about the file a Read, Edit or Write just touched,
+ * Under julius, the learnings about the file a Read, Edit or Write just touched,
  * or that a shell command (`sed -n 1,40p src/a.ts`, `cat`, a test run) names,
- * each once a session. A trail command is skipped: its own output already
+ * each once a session. A julius command is skipped: its own output already
  * carries the learnings that bear on it. Never throws.
  */
 export function learningsOnTouch(input: any, dir: string): string | null {
   try {
-    if (brand() !== 'trail' || !keepsNotes(dir)) return null;
+    if (!keepsNotes(dir)) return null;
     const ti = input?.tool_input ?? {};
     const path = typeof ti.file_path === 'string' ? ti.file_path : typeof ti.notebook_path === 'string' ? ti.notebook_path : null;
     let touch: Touch;
     if (path) {
       const rel = relative(dir, isAbsolute(path) ? path : join(dir, path)).replace(/\\/g, '/');
-      if (!rel || rel.startsWith('..') || underGraft(dir, path)) return null;
+      if (!rel || rel.startsWith('..') || underJulius(dir, path)) return null;
       touch = { file: rel, verb: input?.tool_name === 'Read' ? 'opened' : 'changed' };
-    } else if (typeof ti.command === 'string' && ti.command && !commandInvokesGraft(ti.command)) {
+    } else if (typeof ti.command === 'string' && ti.command && !commandInvokesJulius(ti.command)) {
       touch = { command: ti.command };
     } else return null;
     const notes = listNotes(dir, { branches: false });
@@ -345,15 +344,15 @@ export function learningsOnTouch(input: any, dir: string): string | null {
 }
 
 /**
- * Classify a tool use and, only when it could carry a graft footer, parse the
+ * Classify a tool use and, only when it could carry a julius footer, parse the
  * savings out of its (lazily-serialised) output.
  *
- * Source reads (Read/Grep/Glob) never print a `[graft]` footer, and their output
+ * Source reads (Read/Grep/Glob) never print a `[julius]` footer, and their output
  * is a whole file or every match — serialising and regexing that on every read
  * is the expensive, pointless case the widened PostToolUse matcher would
  * otherwise hit. So skip `payload()` entirely for them. For anything else, a
- * footer is itself proof graft ran (a bare `Bash graft …` the name couldn't
- * classify), so its presence upgrades the kind to 'graft'.
+ * footer is itself proof julius ran (a bare `Bash julius …` the name couldn't
+ * classify), so its presence upgrades the kind to 'julius'.
  */
 function classifyAndScore(
   toolName: string | undefined,
@@ -363,38 +362,38 @@ function classifyAndScore(
   let kind = classifyToolUse(toolName, command);
   if (kind === 'source') return { kind, savedTokens: 0 };
   const savedTokens = parseSavings(JSON.stringify(payload() ?? ''));
-  if (savedTokens > 0) kind = 'graft';
+  if (savedTokens > 0) kind = 'julius';
   return { kind, savedTokens };
 }
 
 /**
  * Cursor `postToolUse` (https://cursor.com/docs/hooks). Same job as
  * {@link handleToolUse} but over Cursor's payload shape: `tool_output` holds the
- * JSON-stringified result (a Shell `graft …` call's footer lives in its stdout),
- * and the session key is `conversation_id`. MCP graft calls are skipped here —
- * `afterMCPExecution` owns them, and counting both would double the graft tally.
- * The skip covers both the prefixed (`MCP:graft_find_code`) and bare
- * (`graft_find_code`) tool-name shapes, so the guard — not just the installed
+ * JSON-stringified result (a Shell `julius …` call's footer lives in its stdout),
+ * and the session key is `conversation_id`. MCP julius calls are skipped here —
+ * `afterMCPExecution` owns them, and counting both would double the julius tally.
+ * The skip covers both the prefixed (`MCP:julius_find_code`) and bare
+ * (`julius_find_code`) tool-name shapes, so the guard — not just the installed
  * matcher — is what prevents the double count.
  */
 function handleCursorPostTool(input: any, dir: string): void {
   const toolName = String(input?.tool_name ?? '');
-  if (isMcpToolName(toolName) || isGraftMcpTool(toolName)) return; // handled by handleCursorMcp
+  if (isMcpToolName(toolName) || isJuliusMcpTool(toolName)) return; // handled by handleCursorMcp
   const command = input?.tool_input?.command ?? input?.tool_input?.cmd;
   recordToolUse(dir, cursorSessionId(input),
     { ...classifyAndScore(toolName, command, () => input?.tool_output ?? input?.tool_response ?? input), host: 'cursor' });
 }
 
 /**
- * Cursor `afterMCPExecution`: fires only for MCP tools, so a graft tool is
+ * Cursor `afterMCPExecution`: fires only for MCP tools, so a julius tool is
  * recognised by its name and its savings read out of `result_json`. This is the
- * one place graft MCP calls are counted for Cursor.
+ * one place julius MCP calls are counted for Cursor.
  */
 function handleCursorMcp(input: any, dir: string): void {
   const toolName = String(input?.tool_name ?? '');
-  if (!isGraftMcpTool(toolName)) return;
+  if (!isJuliusMcpTool(toolName)) return;
   const savedTokens = parseSavings(JSON.stringify(input?.result_json ?? input?.result ?? input ?? ''));
-  recordToolUse(dir, cursorSessionId(input), { kind: 'graft', savedTokens, host: 'cursor' });
+  recordToolUse(dir, cursorSessionId(input), { kind: 'julius', savedTokens, host: 'cursor' });
 }
 
 /** Cursor keys a chat by `conversation_id` (its `session_id` equivalent). */
@@ -406,7 +405,7 @@ function cursorSessionId(input: any): string {
  * At turn end: what did this turn's input tokens actually cost?
  *
  * Deliberately ungated, unlike {@link countTallyTurn}: the blended rate has to
- * describe the session, and graft turns are not a fair sample of it — they are
+ * describe the session, and julius turns are not a fair sample of it — they are
  * the long, tool-heavy, cache-warm ones. Sampling only those would report a
  * cheaper token than the session really pays.
  *
@@ -431,7 +430,7 @@ function sampleTurnCost(input: any, dir: string): void {
 }
 
 /**
- * At turn end: did the reply the user just read say what graft saved?
+ * At turn end: did the reply the user just read say what julius saved?
  *
  * Runs only on turns the tool-savings hook flagged, so a conversational turn
  * costs nothing. A turn we cannot observe — a host whose Stop hook names no
@@ -443,18 +442,18 @@ function countTallyTurn(input: any, dir: string): void {
   try {
     const id = input?.session_id || 'default';
     const s = readSession(dir, id);
-    if (!s.turnUsedGraft) return;
+    if (!s.turnUsedJulius) return;
     const turn = lastAssistantTurn(input?.transcript_path);
     // Same reply as last time we looked: no new prose has landed, so this Stop
     // is a duplicate or a race with the transcript write. Drop the turn rather
     // than judge it on a stale message.
     if (!turn || turn.uuid === s.lastTallyUuid) {
-      writeSession(dir, id, { ...s, turnUsedGraft: false });
+      writeSession(dir, id, { ...s, turnUsedJulius: false });
       return;
     }
-    s.graftTurns = (s.graftTurns ?? 0) + 1;
+    s.juliusTurns = (s.juliusTurns ?? 0) + 1;
     if (hasSavingsTally(turn.text)) s.reportedTurns = (s.reportedTurns ?? 0) + 1;
-    s.turnUsedGraft = false;
+    s.turnUsedJulius = false;
     s.lastTallyUuid = turn.uuid;
     writeSession(dir, id, s);
   } catch {
@@ -466,32 +465,32 @@ function countTallyTurn(input: any, dir: string): void {
 export const NOTE_WORTHY_CALLS = 3;
 
 /**
- * Reading that trail's answers stood in for, in one turn, before it counts as
- * digging too. trail answers most questions in one or two calls, so on calls
+ * Reading that julius's answers stood in for, in one turn, before it counts as
+ * digging too. julius answers most questions in one or two calls, so on calls
  * alone an exploratory turn never qualified and its findings were never saved.
  */
 export const NOTE_WORTHY_TOKENS = 30_000;
 
-/** The reading a query stood in for, from its `[trail] tokens saved ≈ N` line. A
+/** The reading a query stood in for, from its `[julius] tokens saved ≈ N` line. A
  * reused learning's own line doesn't count: that digging was done before. */
 function codeReadIn(content: unknown): number {
   const text = typeof content === 'string' ? content : Array.isArray(content) ? content.map((c: any) => (typeof c?.text === 'string' ? c.text : '')).join('\n') : '';
   let total = 0;
-  for (const m of text.matchAll(/\[(?:graft|trail)\] tokens saved ≈ ([\d,]+)/g)) total += Number(m[1]!.replace(/,/g, '')) || 0;
+  for (const m of text.matchAll(/\[(?:julius)\] tokens saved ≈ ([\d,]+)/g)) total += Number(m[1]!.replace(/,/g, '')) || 0;
   return total;
 }
 
 /** What the agent is told when a turn took real digging and left no note. */
 export const NOTE_ASK =
-  '[trail] This took real digging and the session has saved no learning. Before you finish, save one for the next session: ' +
-  '`trail note --title "<what it was about>"` with the text on stdin, under ## Decided, ## Tried and ruled out and ## Watch out. ' +
-  "A summary, never a transcript, and nothing secret. If you've committed this work, commit the learning too. Then finish as trail's output asks, if it asks anything.";
+  '[julius] This took real digging and the session has saved no learning. Before you finish, save one for the next session: ' +
+  '`julius note --title "<what it was about>"` with the text on stdin, under ## Decided, ## Tried and ruled out and ## Watch out. ' +
+  "A summary, never a transcript, and nothing secret. If you've committed this work, commit the learning too. Then finish as julius's output asks, if it asks anything.";
 
 /**
  * Whether the turn that just ended deserves a note: since the person's last
- * message it made at least NOTE_WORTHY_CALLS tool calls, or trail's answers in
+ * message it made at least NOTE_WORTHY_CALLS tool calls, or julius's answers in
  * it stood in for at least NOTE_WORTHY_TOKENS of reading; and nothing in the
- * session has run `trail note` yet. Pure, for tests: `text` is the
+ * session has run `julius note` yet. Pure, for tests: `text` is the
  * transcript's JSONL.
  */
 export function turnWantsNote(text: string): boolean {
@@ -523,15 +522,15 @@ export function turnWantsNote(text: string): boolean {
 }
 
 /**
- * Under trail, a turn that took real digging and left no note is asked once
+ * Under julius, a turn that took real digging and left no note is asked once
  * per session to leave one, by blocking the stop with the reason. The agent
- * then saves the note, and trail's output carries on from there (the sign-in
+ * then saves the note, and julius's output carries on from there (the sign-in
  * link, when one is due). Never blocks twice in a row: Claude Code sets
  * `stop_hook_active` on the stop that follows a block.
  */
 function askForNote(input: any, dir: string): void {
   try {
-    if (brand() !== 'trail' || input?.stop_hook_active || !input?.transcript_path || !keepsNotes(dir)) return;
+    if (input?.stop_hook_active || !input?.transcript_path || !keepsNotes(dir)) return;
     const id = input?.session_id || 'default';
     const s = readSession(dir, id);
     if (s.noteAsked) return;
@@ -547,11 +546,11 @@ function handleStop(input: any, dir: string): void {
   sampleTurnCost(input, dir);
   countTallyTurn(input, dir);
   // sync-run.js ships next to this module inside the package, so it resolves in
-  // any repo that installs graft (not just graft's own). Defensive existsSync:
+  // any repo that installs julius (not just julius's own). Defensive existsSync:
   // if the package is somehow incomplete, skip rather than wedge on syncing:true.
-  // GRAFT_TEST_SYNC_RUN is a test seam (mirrors GRAFT_TEST_STDIN) so tests can point
+  // JULIUS_TEST_SYNC_RUN is a test seam (mirrors JULIUS_TEST_STDIN) so tests can point
   // this at a stub file inside their own sandbox instead of writing into src/claude/.
-  const syncRun = process.env.GRAFT_TEST_SYNC_RUN ?? claudeScriptPath('sync-run.js');
+  const syncRun = process.env.JULIUS_TEST_SYNC_RUN ?? claudeScriptPath('sync-run.js');
   if (!existsSync(syncRun)) return;
   const stats = readStats(dir);
   if (stats?.dirty && acquireLock(dir)) {
@@ -564,7 +563,7 @@ function handleStop(input: any, dir: string): void {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Once a day per repo, the `repo_seen` event: whether `.trail/` is committed
+ * Once a day per repo, the `repo_seen` event: whether `.julius/` is committed
  * here, how many learnings it holds, and whether this machine shares the repo
  * with a workspace. Queued only, like every hook's telemetry.
  */
@@ -572,13 +571,13 @@ export function trackRepoSeen(dir: string, now = Date.now()): void {
   try {
     const place = repoPlace(dir);
     if (!place.git) return;
-    const mark = join(cacheDir(place.checkout), 'trail-repo-seen.json');
+    const mark = join(cacheDir(place.checkout), 'julius-repo-seen.json');
     if (now - (readJson<{ at?: number }>(mark)?.at ?? 0) < DAY_MS) return;
     writeJsonAtomic(mark, { at: now }, true);
-    const tracked = execFileSync('git', ['ls-files', '--', '.trail'], { cwd: place.checkout, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 });
+    const tracked = execFileSync('git', ['ls-files', '--', '.julius'], { cwd: place.checkout, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 });
     track(
       'repo_seen',
-      { trail_committed: String(tracked.trim().length > 0), learnings_bucket: countBucket(learningFiles(place.checkout).length), workspace: String(inWorkspace(place.checkout)) },
+      { julius_committed: String(tracked.trim().length > 0), learnings_bucket: countBucket(learningFiles(place.checkout).length), workspace: String(inWorkspace(place.checkout)) },
       { repo: place.checkout },
     );
   } catch {
@@ -589,7 +588,7 @@ export function trackRepoSeen(dir: string, now = Date.now()): void {
 /**
  * When the learnings committed on this checkout's HEAD went up since the last
  * session here: how many came in and how many there are, as buckets. A repo
- * with committed learnings is where trail starts paying off, so this is the
+ * with committed learnings is where julius starts paying off, so this is the
  * activation count. `first_look` marks the first time this clone is seen, so
  * a clone of a repo that already had them isn't counted as new ones.
  */
@@ -597,11 +596,11 @@ export function trackLearningsCommitted(dir: string): void {
   try {
     const place = repoPlace(dir);
     if (!place.git) return;
-    const listed = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', '.trail/learnings'], {
+    const listed = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', '.julius/learnings'], {
       cwd: place.checkout, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000,
     });
     const count = listed.split('\n').filter((f) => f.endsWith('.md')).length;
-    const mark = join(cacheDir(place.checkout), 'trail-learnings-committed.json');
+    const mark = join(cacheDir(place.checkout), 'julius-learnings-committed.json');
     const before = readJson<{ count?: number }>(mark)?.count;
     if (before === count) return;
     writeJsonAtomic(mark, { count }, true);
@@ -617,7 +616,7 @@ export function trackLearningsCommitted(dir: string): void {
 }
 
 /**
- * Team learnings sitting uncommitted in `.trail/learnings/` (from trail init's
+ * Team learnings sitting uncommitted in `.julius/learnings/` (from julius init's
  * read of past sessions, or a session that ended before committing) reach no
  * teammate. Once a day per repo, the first reply says so, with the line that
  * makes the case for committing them. Empty when everything is committed.
@@ -626,21 +625,21 @@ export function uncommittedDirective(dir: string, now = Date.now()): string {
   try {
     const place = repoPlace(dir);
     if (!place.git) return '';
-    const status = execFileSync('git', ['status', '--porcelain', '--untracked-files=all', '--', '.trail/learnings'], {
+    const status = execFileSync('git', ['status', '--porcelain', '--untracked-files=all', '--', '.julius/learnings'], {
       cwd: place.checkout, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000,
     });
     const n = status.split('\n').filter((l) => l.trimEnd().endsWith('.md')).length;
     const setup = setupUncommitted(place.checkout);
     if (!n && !setup) return '';
-    const mark = join(cacheDir(place.checkout), 'trail-uncommitted-said.json');
+    const mark = join(cacheDir(place.checkout), 'julius-uncommitted-said.json');
     if (now - (readJson<{ at?: number }>(mark)?.at ?? 0) < DAY_MS) return '';
     writeJsonAtomic(mark, { at: now }, true);
     if (setup) {
       const line = setupCommitLine(teammatesOn(place.checkout));
-      return `${tag()} trail's shared setup here (.trail/ and .claude/settings.json) isn't committed yet, so teammates' Claude can't read the learnings. Say so once, at the end of your first reply, with this line, word for word: ${line}\n`;
+      return `${tag()} julius's shared setup here (.julius/ and .claude/settings.json) isn't committed yet, so teammates' Claude can't read the learnings. Say so once, at the end of your first reply, with this line, word for word: ${line}\n`;
     }
     const line = commitLines({}, teammatesOn(place.checkout), 'repo').uncommitted;
-    const them = n === 1 ? "learning in .trail/learnings/ isn't committed yet, so no teammate's agent has it" : `learnings in .trail/learnings/ aren't committed yet, so no teammate's agent has them`;
+    const them = n === 1 ? "learning in .julius/learnings/ isn't committed yet, so no teammate's agent has it" : `learnings in .julius/learnings/ aren't committed yet, so no teammate's agent has them`;
     return `${tag()} ${n} team ${them}. Say so once, at the end of your first reply, with this line, word for word: ${line}\n`;
   } catch {
     return '';
@@ -648,20 +647,20 @@ export function uncommittedDirective(dir: string, now = Date.now()): string {
 }
 
 /**
- * trail's shared setup isn't in the last commit: `.trail/hook.cjs` isn't
+ * julius's shared setup isn't in the last commit: `.julius/hook.cjs` isn't
  * tracked, or HEAD's `.claude/settings.json` doesn't run it. Only checked
  * where the hook is on disk, so a repo still set up the old way says nothing.
  */
 export function setupUncommitted(checkout: string): boolean {
-  if (!existsSync(join(checkout, '.trail', 'hook.cjs'))) return false;
+  if (!existsSync(join(checkout, '.julius', 'hook.cjs'))) return false;
   const git = (args: string[]) => execFileSync('git', args, { cwd: checkout, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 3000 });
   try {
-    git(['ls-files', '--error-unmatch', '--', '.trail/hook.cjs']);
+    git(['ls-files', '--error-unmatch', '--', '.julius/hook.cjs']);
   } catch {
     return true;
   }
   try {
-    return !git(['show', 'HEAD:.claude/settings.json']).includes('/.trail/hook.cjs');
+    return !git(['show', 'HEAD:.claude/settings.json']).includes('/.julius/hook.cjs');
   } catch {
     return true;
   }
@@ -671,7 +670,7 @@ export function setupUncommitted(checkout: string): boolean {
 export const BRANCH_FETCH_CAP_MS = 3000;
 
 /**
- * At session start, under trail: read what teammates have pushed, so the
+ * At session start, under julius: read what teammates have pushed, so the
  * session's first prompt already knows their learnings and where their work
  * overlaps; send any learnings and uses the workspace hasn't seen; and count
  * the repo once a day. The fetch is the one wait, capped at
@@ -679,8 +678,8 @@ export const BRANCH_FETCH_CAP_MS = 3000;
  * minute; a fetch that runs out of time still reads the branches already here.
  * The sync only spawns a detached child.
  */
-function trailAtStart(dir: string): void {
-  if (brand() !== 'trail' || !keepsNotes(dir)) return;
+function juliusAtStart(dir: string): void {
+  if (!keepsNotes(dir)) return;
   try {
     const top = repoPlace(dir);
     if (top.git && branchesStale(top.checkout, Date.now(), SESSION_REFRESH_MS)) refreshBranches(top.checkout, { fetchTimeoutMs: BRANCH_FETCH_CAP_MS });
@@ -692,51 +691,44 @@ function trailAtStart(dir: string): void {
   trackLearningsCommitted(dir);
 }
 
-/** The repo's committed `.mcp.json` still registers trail's server (set up before 0.23). */
-function repoNamesTrailServer(dir: string): boolean {
+/** The repo's committed `.mcp.json` still registers julius's server (set up before 0.23). */
+function repoNamesJuliusServer(dir: string): boolean {
   try {
-    return Boolean(JSON.parse(readFileSync(join(dir, '.mcp.json'), 'utf8'))?.mcpServers?.trail);
+    return Boolean(JSON.parse(readFileSync(join(dir, '.mcp.json'), 'utf8'))?.mcpServers?.julius);
   } catch {
     return false;
   }
 }
 
 export async function main(event: string): Promise<void> {
-  // trail's own headless Claude calls (the first-run read of past sessions) run with this set.
-  if (process.env.TRAIL_NO_HOOKS === '1') return;
+  // julius's own headless Claude calls (the first-run read of past sessions) run with this set.
+  if (process.env.JULIUS_NO_HOOKS === '1') return;
   // Registered in the repo and in ~/.claude, Claude Code runs both: one answers.
   if (globalCopyCovers(event, process.argv[1])) return;
   const input = readStdin();
   const dir = projectDir(input);
-  adoptRepoBrand(dir, process.env, hostsWiredForTrail);
+  adoptRepoBrand(dir, process.env, hostsWiredForJulius);
 
   if (event === 'session-start') {
     // Before anything is emitted: refresh this repo's wiring if it was written by
-    // an older graft, and pick up any cached "newer version on npm" answer.
+    // an older julius, and pick up any cached "newer version on npm" answer.
     // background:false — the registry check stays off the network here; the CLI
     // and the MCP server fill that cache, this only reads it.
     const upkeep = runUpkeep(dir, runningVersion(), { background: false }).lines;
-    // On graft without trail, in a repo graft set up: once a week, the agent
-    // tells the person how to get it.
-    const handover = wiredHostIds(dir).includes('claude') ? trailHandoverLine() : null;
-    if (handover) upkeep.push(handover);
     // Roll up any session that ended since we were last here, then send the
     // queue from a detached child: what session end didn't get to (a killed
     // terminal never fires it) goes now. Once a day at most, never waited on.
     flushClosedSessions(dir);
     maybeFlushInBackground();
-    trailAtStart(dir);
-    // A repo on trail, opened on a machine that has graft but not the trail command.
-    // Only while its .mcp.json still names a trail server: once it doesn't, trail: true takes back the stand-in.
-    if (repoWiredForTrail(dir)) fitTrailServerToMachine(homedir(), resolve(dir), { trail: trailOnPath() || !repoNamesTrailServer(dir), graft: commandOnPath('graft') });
+    juliusAtStart(dir);
     try {
       const idx = readFileSync(join(resolveContextDir(dir), 'INDEX.md'), 'utf8');
       const banner = staleBanner(indexFreshness(dir)) ?? undefined;
       const kept = keepsNotes(dir);
-      const skills = kept ? skillsDirective(dir, cmd('graft skills show')) : '';
-      const underTrail = kept && brand() === 'trail';
-      const standing = underTrail ? standingDirective(standingLearnings(dir)) + uncommittedDirective(dir) : '';
-      const mapDir = relative(dir, resolveContextDir(dir)).split('\\').join('/') || 'graft';
+      const skills = kept ? skillsDirective(dir, cmd('julius skills show')) : '';
+      const underJulius = kept && true;
+      const standing = underJulius ? standingDirective(standingLearnings(dir)) + uncommittedDirective(dir) : '';
+      const mapDir = relative(dir, resolveContextDir(dir)).split('\\').join('/') || 'julius';
       const orientation = formatOrientation(idx, undefined, banner, noteCount(dir), kept, skills + standing, mapDir);
       emit('SessionStart', upkeep.length ? `${upkeep.join('\n')}\n\n${orientation}` : orientation);
     } catch {
@@ -773,7 +765,7 @@ export async function main(event: string): Promise<void> {
     // Pointers-only, small, gated. No --source: per-prompt injected tokens are
     // fresh full-price input on every turn (unlike the cached SessionStart
     // orientation), so the pack carries locators, never inlined code — the agent
-    // pulls spans itself via `graft ask --source` when a pointer looks right.
+    // pulls spans itself via `julius ask --source` when a pointer looks right.
     // relevantRetrieval then drops the pack entirely when the prompt barely
     // overlaps the top hit or when every hit was already injected this session.
     const askArgs = withContextDirArg(dir, ['ask', prompt, '.', '--json', '-n', '3']);
@@ -781,7 +773,7 @@ export async function main(event: string): Promise<void> {
     // repo whose lastFile resolves cleanly to one scope — see lastFileScopeHint.
     const scopeHint = lastFileScopeHint(dir, readStats(dir)?.lastFile);
     if (scopeHint) askArgs.push('--in', scopeHint);
-    const ask = graftJson(dir, askArgs, promptAskTimeout(dir));
+    const ask = juliusJson(dir, askArgs, promptAskTimeout(dir));
     if (!ask) return;
     const id = input.session_id || 'default';
     const s = readSession(dir, id);
@@ -789,7 +781,7 @@ export async function main(event: string): Promise<void> {
     const agent = input?.agent?.name;
     if (agent) s.perAgentQuery[agent] = prompt;
     // Learnings first: what an earlier session worked out matters more than where code is.
-    const notes = brand() === 'trail' ? notesForPrompt(ask, s) : null;
+    const notes = notesForPrompt(ask, s);
     const txt = [notes, relevantRetrieval(ask, s)].filter(Boolean).join('\n\n');
     if (txt) emit('UserPromptSubmit', txt);
     writeSession(dir, id, s);

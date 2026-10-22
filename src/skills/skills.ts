@@ -2,16 +2,16 @@
  * Skills: how-tos an agent follows, and the corrections that improve them.
  *
  * A correction is a takeaway, one file each, kept on this machine in
- * `~/.trail/repos/<repo>/skills/<name>/takeaways/`. It's live the moment it's
+ * `~/.julius/repos/<repo>/skills/<name>/takeaways/`. It's live the moment it's
  * saved: the agent reads a skill's waiting takeaways along with its SKILL.md.
- * `trail skills fold` writes them into SKILL.md and bumps its version, so the
+ * `julius skills fold` writes them into SKILL.md and bumps its version, so the
  * skill stays one readable page instead of a pile of corrections.
  *
  * The SKILL.md lives in one of two places. A skill the repo already has, in
  * `.claude/skills/<name>/`, is the team's: takeaways attach to it and fold
  * into it, and the diff goes through review like any change. A skill started
- * by `trail learn` lives next to its takeaways in `~/.trail` until someone
- * chooses to share it: `trail skills publish` moves it into the repo's
+ * by `julius learn` lives next to its takeaways in `~/.julius` until someone
+ * chooses to share it: `julius skills publish` moves it into the repo's
  * `.claude/skills/`, where Claude Code loads it for everyone who pulls.
  *
  * Takeaways are never deleted: a folded one keeps its file, with `folded_in`
@@ -23,10 +23,10 @@ import { matter, type FrontMatterFile } from "../util/front-matter.js";
 import { shortDate, slug } from "../notes/notes.js";
 import { ensureRepoHome, repoPlace } from "../notes/home.js";
 
-/** Trail's and graft's own skills, rewritten by every `init`: never a place for takeaways. */
-const OWN_SKILLS = new Set(["trail", "graft"]);
+/** Julius's and julius's own skills, rewritten by every `init`: never a place for takeaways. */
+const OWN_SKILLS = new Set(["julius", "julius"]);
 
-/** Where a repo's skills are: the team's in the repo, and this machine's in ~/.trail. */
+/** Where a repo's skills are: the team's in the repo, and this machine's in ~/.julius. */
 export function skillDirs(dir: string): { repo: string; home: string } {
   const place = repoPlace(dir);
   return { repo: join(place.checkout, ".claude", "skills"), home: join(place.dir, "skills") };
@@ -54,7 +54,7 @@ export interface Skill {
   version: number;
   /** SKILL.md without its frontmatter. */
   body: string;
-  /** `repo`: the team's, in `.claude/skills/`. `home`: only on this machine, in ~/.trail. */
+  /** `repo`: the team's, in `.claude/skills/`. `home`: only on this machine, in ~/.julius. */
   where: "repo" | "home";
   /** Absolute path of its SKILL.md. */
   file: string;
@@ -234,7 +234,7 @@ export interface LearnResult {
 
 /**
  * Save one takeaway, on this machine. A skill the repo has gets it as is; a
- * name nobody has used starts a skill in ~/.trail, whose SKILL.md is empty
+ * name nobody has used starts a skill in ~/.julius, whose SKILL.md is empty
  * but for its description: the takeaways are its content until the first fold.
  */
 export function learn(dir: string, input: LearnInput): LearnResult {
@@ -388,7 +388,7 @@ export function skillStatus(s: Skill): string {
 /**
  * What an agent reads before working in a skill's area: its SKILL.md, then
  * every takeaway not yet folded in, newest first, which win where the two
- * disagree. `trail skills show` prints it.
+ * disagree. `julius skills show` prints it.
  */
 export function skillForAgent(s: Skill): string {
   const open = waiting(s).sort((a, b) => b.date.localeCompare(a.date) || b.path.localeCompare(a.path));
@@ -403,7 +403,7 @@ export function skillForAgent(s: Skill): string {
 /**
  * The line a session starts with about skills an agent can't see by itself:
  * ones kept only on this machine (Claude Code loads `.claude/skills/`, not
- * ~/.trail), and the team's ones with corrections waiting. Empty when there
+ * ~/.julius), and the team's ones with corrections waiting. Empty when there
  * are none, so the directive is unchanged everywhere else.
  */
 export function skillsDirective(dir: string, show: string): string {

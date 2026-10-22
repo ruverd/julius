@@ -1,14 +1,14 @@
 /**
- * Learnings from a repo's past Claude sessions, for `trail init` to offer on
+ * Learnings from a repo's past Claude sessions, for `julius init` to offer on
  * day one: the things the person had to tell Claude more than once.
  *
- * trail reads the person's own messages from Claude Code's transcripts for the
+ * julius reads the person's own messages from Claude Code's transcripts for the
  * checkout and its worktrees, drops what isn't theirs (tool output, reminders,
  * slash-command expansions, pasted text, other sessions' hand-backs), and asks
  * their own Claude Code, headless, which instructions and corrections come up
  * in more than one session. Nothing new sees the messages: they went to the
  * same model when they were written. Claude cites the quotes each finding
- * rests on; trail keeps a finding only when those quotes really are in two or
+ * rests on; julius keeps a finding only when those quotes really are in two or
  * more sessions, and counts the sessions itself.
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -376,7 +376,7 @@ export function hasClaude(home?: string): boolean {
  * One headless Claude Code call with the person's own login: no tools, no MCP
  * servers, no slash commands, nothing saved as a session (so this run never
  * shows up as a past session), from a scratch folder so no repo's CLAUDE.md or
- * hooks load. `TRAIL_NO_HOOKS` keeps trail's own user-level hooks quiet too.
+ * hooks load. `JULIUS_NO_HOOKS` keeps julius's own user-level hooks quiet too.
  * Past sessions by default; the PR review read brings its own system prompt
  * and schema, with `findings` at the top.
  */
@@ -401,7 +401,7 @@ export function askClaude<T = RawFinding>(
     ];
     let child;
     try {
-      child = spawn(bin, args, { cwd: tmpdir(), env: { ...process.env, TRAIL_NO_HOOKS: "1" }, stdio: ["pipe", "pipe", "ignore"] });
+      child = spawn(bin, args, { cwd: tmpdir(), env: { ...process.env, JULIUS_NO_HOOKS: "1" }, stdio: ["pipe", "pipe", "ignore"] });
     } catch {
       done(null);
       return;
@@ -546,7 +546,7 @@ export async function findLearnings(
 }
 
 /* -------------------------------------------------------------------------- */
-/* At trail init                                                              */
+/* At julius init                                                              */
 /* -------------------------------------------------------------------------- */
 
 /** Where a repo remembers that its past sessions were read, on this machine. */
@@ -563,12 +563,12 @@ export interface PastRead {
 
 /**
  * Start reading the repo's past Claude sessions, once per repo per machine,
- * for `trail init` to collect at its end; null when there's nothing to read,
- * it was read before, or TRAIL_NO_FETCH is set.
+ * for `julius init` to collect at its end; null when there's nothing to read,
+ * it was read before, or JULIUS_NO_FETCH is set.
  */
 export function beginPastRead(repo: string, env: NodeJS.ProcessEnv = process.env): PastRead | null {
   try {
-    if (env.TRAIL_NO_FETCH === "1" || readJson<{ at?: number }>(readMark(repo))?.at) return null;
+    if (env.JULIUS_NO_FETCH === "1" || readJson<{ at?: number }>(readMark(repo))?.at) return null;
     const sessions = pastSessions(repo);
     if (sessions.length < 2) {
       track("cold_start", { source: "sessions", outcome: "no_sessions", sessions_bucket: countBucket(sessions.length) }, { repo });
@@ -583,8 +583,8 @@ export function beginPastRead(repo: string, env: NodeJS.ProcessEnv = process.env
 }
 
 /**
- * Each finding as a standing learning: the team's in `.trail/learnings/`,
- * the person's own in ~/.trail. The body says where it came from.
+ * Each finding as a standing learning: the team's in `.julius/learnings/`,
+ * the person's own in ~/.julius. The body says where it came from.
  */
 export function saveFindings(repo: string, findings: Finding[], author = noteAuthor(repo), date = new Date().toISOString().slice(0, 10)): Note[] {
   return findings.map((f) =>

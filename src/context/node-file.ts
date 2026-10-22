@@ -28,8 +28,8 @@ import { contentHash, normalizeName } from "../util/id.js";
 import { relPosix, stripTrailingSlashes } from "../util/paths.js";
 // Value-only import of a constant; `write.ts` pulls in nothing from here, so no cycle.
 import { GRAPH_DIR } from "../graph/write.js";
-import { mapDirFor, isTrailMapDir } from "./map-dir.js";
-import { ignoreInTrailDir } from "../notes/repo-trail.js";
+import { mapDirFor, isJuliusMapDir } from "./map-dir.js";
+import { ignoreInJuliusDir } from "../notes/repo-julius.js";
 
 /** A source file a node was derived from, with its content hash at generation time. */
 export interface SourceRef {
@@ -82,7 +82,7 @@ const MANIFEST_FILE = "manifest.json";
 /** Gitignored cache dir (per-file summaries + extractions), never committed. */
 export const CACHE_DIR = ".cache";
 
-/** Env kill switch — same truthy parsing as `GRAFT_NO_REFRESH` in ../graph/refresh.ts. */
+/** Env kill switch — same truthy parsing as `JULIUS_NO_REFRESH` in ../graph/refresh.ts. */
 function envTruthy(name: string): boolean {
   const v = process.env[name];
   return v !== undefined && v !== "" && v !== "0" && v !== "false";
@@ -105,49 +105,49 @@ export function digestSources(sources: SourceRef[]): string {
   return contentHash(lines);
 }
 
-/** Absolute path of a repo's code map: `graft/`, or `.trail/cache/` in a repo
- * on trail (see context/map-dir.ts). An explicit `--dir` wins. `graft/` is
+/** Absolute path of a repo's code map: `julius/`, or `.julius/cache/` in a repo
+ * on julius (see context/map-dir.ts). An explicit `--dir` wins. `julius/` is
  * visible (not dot-prefixed) on purpose: default ripgrep skips hidden dirs, so
- * a grep can land on its cards; under trail the hooks name the path instead. */
+ * a grep can land on its cards; under julius the hooks name the path instead. */
 export function contextDirFor(root: string, override?: string): string {
   if (override) return override;
   return mapDirFor(root);
 }
 
 /**
- * Make sure the repo's root `.gitignore` ignores the graft output dir. The
+ * Make sure the repo's root `.gitignore` ignores the julius output dir. The
  * graph is a local, regenerable cache (like `node_modules`), not a committed
- * artifact, so every `graft build` adds the entry itself the first time — the
+ * artifact, so every `julius build` adds the entry itself the first time — the
  * user never has to think about it. No-ops when the entry is already present
  * or the dir lives outside `root` (a custom `--dir` elsewhere, which can't be
  * expressed as a repo-relative ignore). Best-effort: an unwritable `.gitignore`
  * must never abort a build, so write failures are swallowed.
  */
-const GRAPH_CACHE_NOTE = "graft's local graph cache — regenerable, not committed (run `graft build`).";
+const GRAPH_CACHE_NOTE = "julius's local graph cache — regenerable, not committed (run `julius build`).";
 
-/** Why `.graft/` is ignored, which is a different reason: not that it is cheap
+/** Why `.julius/` is ignored, which is a different reason: not that it is cheap
  *  to regenerate, but that it holds a token. */
-export const LINK_NOTE = "graft's brain link — holds a read token, never commit it.";
+export const LINK_NOTE = "julius's brain link — holds a read token, never commit it.";
 
 export function ensureGitignored(root: string, contextDir: string, note = GRAPH_CACHE_NOTE): void {
-  if (envTruthy("GRAFT_NO_GITIGNORE")) return;
-  // trail's map: `.trail/.gitignore` keeps it out, and the repo's own file is never touched.
-  if (isTrailMapDir(root, contextDir)) {
-    try { ignoreInTrailDir(root, "cache/"); } catch { /* best-effort */ }
+  if (envTruthy("JULIUS_NO_GITIGNORE")) return;
+  // julius's map: `.julius/.gitignore` keeps it out, and the repo's own file is never touched.
+  if (isJuliusMapDir(root, contextDir)) {
+    try { ignoreInJuliusDir(root, "cache/"); } catch { /* best-effort */ }
     return;
   }
   const rel = relPosix(root, contextDir);
   if (rel === "" || rel.startsWith("..")) return; // dir is at/above the repo root — nothing sane to ignore
-  const bare = stripTrailingSlashes(rel); // "graft" (or a `--dir` subpath like "tools/ctx")
-  // Root-ANCHORED, so it ignores exactly this repo's `graft/` and not a directory named
-  // `graft` at any depth. An unanchored `graft/` also matched `.claude/skills/graft/`, so
-  // committing the skill graft just wrote was silently dropped (#79). `rel` is always
+  const bare = stripTrailingSlashes(rel); // "julius" (or a `--dir` subpath like "tools/ctx")
+  // Root-ANCHORED, so it ignores exactly this repo's `julius/` and not a directory named
+  // `julius` at any depth. An unanchored `julius/` also matched `.claude/skills/julius/`, so
+  // committing the skill julius just wrote was silently dropped (#79). `rel` is always
   // repo-relative here, so a leading `/` is always safe (incl. a `--dir` subpath).
   const entry = `/${bare}/`;
   const path = join(root, ".gitignore");
   let current = "";
   try { current = readFileSync(path, "utf8"); } catch { /* no .gitignore yet — we create one */ }
-  // Accept the anchored form AND the older unanchored `graft/` / `graft`, so existing
+  // Accept the anchored form AND the older unanchored `julius/` / `julius`, so existing
   // repos aren't double-appended and a hand-anchored entry survives the next build.
   const present = current.split("\n").some((l) => {
     const t = l.trim();
@@ -180,9 +180,9 @@ export function ensureGitignored(root: string, contextDir: string, note = GRAPH_
  * must not fail over a convenience file.
  */
 export function ensureSearchable(root: string, contextDir: string): void {
-  if (envTruthy("GRAFT_NO_IGNORE")) return;
-  // trail's map is reached by the path the hooks name, not by a grep from the root: no `.ignore`.
-  if (isTrailMapDir(root, contextDir)) return;
+  if (envTruthy("JULIUS_NO_IGNORE")) return;
+  // julius's map is reached by the path the hooks name, not by a grep from the root: no `.ignore`.
+  if (isJuliusMapDir(root, contextDir)) return;
   const rel = relPosix(root, contextDir);
   if (rel === "" || rel.startsWith("..")) return; // outside the repo — nothing to re-admit
   const dir = stripTrailingSlashes(rel);
@@ -195,7 +195,7 @@ export function ensureSearchable(root: string, contextDir: string): void {
   if (current.split("\n").some((l) => l.trim() === entry)) return;
   const gap = current === "" ? "" : current.endsWith("\n") ? "\n" : "\n\n";
   const block =
-    `${gap}# graft's cards are gitignored but should stay greppable: ripgrep reads\n` +
+    `${gap}# julius's cards are gitignored but should stay greppable: ripgrep reads\n` +
     `# .ignore before .gitignore, so this re-admits the tree to search only.\n` +
     `${entry}\n${dir}/${CACHE_DIR}/\n${dir}/${GRAPH_DIR}/\n`;
   try { writeFileSync(path, current + block); } catch { /* best-effort */ }
@@ -278,9 +278,9 @@ export interface ParsedNode {
 }
 
 /**
- * Stems of per-file wiring cards that sit at the graft/ top level — i.e. cards
+ * Stems of per-file wiring cards that sit at the julius/ top level — i.e. cards
  * for source files in the repo root. Those cards share a directory with concept
- * nodes (`graft/<stem>.md`) but are recorded in `manifest.files`, not
+ * nodes (`julius/<stem>.md`) but are recorded in `manifest.files`, not
  * `manifest.nodes`. Nested file cards live in subdirs and are never scanned here.
  *
  * Incomplete on its own (#261): the graph can write a root card for a source

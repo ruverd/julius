@@ -1,9 +1,9 @@
 /**
  * Code the map leaves out because git ignores it, named when a search comes up
  * empty. A migration repo kept the old app's code in git-ignored dumps (they
- * held credentials); `trail grep` found nothing, said all indexed code was
+ * held credentials); `julius grep` found nothing, said all indexed code was
  * searched, and the agent's own grep then found the file. After that the agent
- * stopped trusting trail for the session.
+ * stopped trusting julius for the session.
  */
 import { spawnSync } from "node:child_process";
 import { readdirSync } from "node:fs";

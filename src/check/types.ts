@@ -1,5 +1,5 @@
 /**
- * What `trail check` reports: one finding per changed file a learning, a
+ * What `julius check` reports: one finding per changed file a learning, a
  * skill or a takeaway bears on, saying whether the change goes against it or
  * follows it.
  */

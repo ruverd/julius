@@ -1,14 +1,14 @@
 /**
- * Shared "tokens saved" estimate for every retrieval-style graft command.
+ * Shared "tokens saved" estimate for every retrieval-style julius command.
  *
  * The model is always the same: baseline (what you'd have read otherwise, in
- * full) − this output (what graft handed you). The baseline is measured from
+ * full) − this output (what julius handed you). The baseline is measured from
  * the `chars` the build stored on each file node, so it costs nothing and is
  * honest about the alternative — opening the files whole. When no file in the
  * baseline has a known size (a pre-`chars` graph), the estimate is omitted
  * rather than faked.
  *
- * `graft ask` keeps its own footer (it carries an escalation nudge and feeds
+ * `julius ask` keeps its own footer (it carries an escalation nudge and feeds
  * the session saved-token counter); everything else — skeleton, grep, callers,
  * map — routes through {@link savingsFor} + {@link withSavings} here.
  */
@@ -80,7 +80,7 @@ export function setInputRate(usdPerMtok: number | null): void {
 
 /** Appended to every retrieval footer so the agent reports the turn's running
  * total even when SKILL.md isn't loaded — the instruction rides along in the
- * tool output itself. Deliberately free of the `[graft] tokens saved ≈ <n>`
+ * tool output itself. Deliberately free of the `[julius] tokens saved ≈ <n>`
  * pattern so the PostToolUse accumulator that parses these footers never
  * mistakes the nudge (or its example) for a second number to count.
  *
@@ -128,16 +128,16 @@ export function savingsLine(body: string, saved: Savings | undefined): string {
 }
 
 /**
- * Sum every `[graft] tokens saved ≈ N` footer in a blob of text — the reader
+ * Sum every `[julius] tokens saved ≈ N` footer in a blob of text — the reader
  * half of {@link savingsLine}, kept next to the writer so the two never drift.
- * A single blob can carry several (an agent that made two graft calls in one
+ * A single blob can carry several (an agent that made two julius calls in one
  * turn); the nudge from `savingsTurnNudge` deliberately omits the pattern, so its example
  * text is not miscounted here.
  */
 export function sumSavingsFooters(text: string): number {
   let total = 0;
   // The code a query saved reading, and the digging a reused learning saved.
-  for (const m of text.matchAll(/\[(?:graft|trail)\] (?:tokens|learnings) saved ≈ ([\d,]+)/g)) {
+  for (const m of text.matchAll(/\[(?:julius)\] (?:tokens|learnings) saved ≈ ([\d,]+)/g)) {
     total += Number(m[1].replace(/,/g, '')) || 0;
   }
   return total;
@@ -145,7 +145,7 @@ export function sumSavingsFooters(text: string): number {
 
 /** Render `body` with the savings line on TOP.
  *
- * Deliberately a header, not a footer: agents routinely pipe graft through
+ * Deliberately a header, not a footer: agents routinely pipe julius through
  * `head -N` (and hosts truncate long tool output from the end), which silently
  * ate the number and, with it, the PostToolUse accumulator that feeds the
  * statusline's `~N tok saved`. Every clipper keeps the head, so the number

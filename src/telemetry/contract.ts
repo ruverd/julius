@@ -1,5 +1,5 @@
 /**
- * The telemetry contract: the complete, machine-enforced list of what graft may
+ * The telemetry contract: the complete, machine-enforced list of what julius may
  * send. `TELEMETRY.md` is the same list in prose, and the two are kept in
  * lockstep — an event or property that is not in this file cannot be sent, and
  * one that is not in `TELEMETRY.md` must not be added here.
@@ -31,17 +31,17 @@
  */
 export const EVENTS: Record<string, ReadonlySet<string>> = {
   /** Once per machine per version, from the npm postinstall hook. The real
-   *  denominator: a machine that installs graft and never runs a command emits
+   *  denominator: a machine that installs julius and never runs a command emits
    *  this event and no other, so it is the only place the "installed, never
    *  used" leak is visible at all. Version-scoped rather than once-ever so an
    *  upgrade counts; distinct install ids still give unique machines.
-   *  `global` separates `npm i -g graft` from a project dependency, which is
+   *  `global` separates `npm i -g julius` from a project dependency, which is
    *  roughly the difference between a person and a lockfile. */
   install: new Set<string>(['global']),
   /** Once per machine, the first time a command actually runs. Paired with
    *  `install`, the gap between the two is the top of the funnel. */
   first_run: new Set<string>(),
-  /** `graft init` completed. Tells us which agents people actually wire, and
+  /** `julius init` completed. Tells us which agents people actually wire, and
    *  how many decline telemetry at the picker. */
   init_completed: new Set<string>(['agents', 'consent']),
   /** A build finished. The activation event — an install that never reaches one
@@ -51,14 +51,14 @@ export const EVENTS: Record<string, ReadonlySet<string>> = {
   build_failed: new Set<string>(['stage', 'code']),
   /** One query, from any surface. The DAU backbone and the dead-command detector. */
   query: new Set<string>(['command', 'surface', 'hit', 'notes']),
-  /** A trail command handing the agent a sign-in link to pass on. Queued the
+  /** A julius command handing the agent a sign-in link to pass on. Queued the
    *  moment the link is printed, so a sign-in somebody walked away from is still
    *  counted — the settle below never fires for those. */
   brain_signup_opened: new Set<string>(['mode', 'command', 'wording']),
   /** That handoff reaching an end. `outcome` is a closed set, so the reason a
    *  signup failed travels as a category and never as the error's own words. */
   brain_signup_settled: new Set<string>(['outcome', 'mode', 'duration_bucket']),
-  /** `trail note` saved a session note (into `~/.trail/`). Whether it carries
+  /** `julius note` saved a session note (into `~/.julius/`). Whether it carries
    *  a cost, and how many files it is about, as a bucket. The title, the text
    *  and the paths never travel. The supply side of the notes loop; the
    *  `notes` property on `query` is the demand side. */
@@ -67,37 +67,37 @@ export const EVENTS: Record<string, ReadonlySet<string>> = {
    *  teammate's, and what they took to work out less reading them, as a
    *  bucket. The reuse half of the learnings loop; `note_saved` is supply. */
   learning_reused: new Set<string>(['teammate', 'saved_tokens_bucket']),
-  /** Once a day per repo, from the session-start hook, for a repo trail runs
-   *  in: whether `.trail/` is committed there, how many learnings it holds,
+  /** Once a day per repo, from the session-start hook, for a repo julius runs
+   *  in: whether `.julius/` is committed there, how many learnings it holds,
    *  as a bucket, and whether this machine shares it with a workspace. With
    *  `repo_id` and the install id this counts devs and repos touched, and
-   *  repos with Trail committed. Paths and names never travel. */
-  repo_seen: new Set<string>(['trail_committed', 'learnings_bucket', 'workspace']),
+   *  repos with Julius committed. Paths and names never travel. */
+  repo_seen: new Set<string>(['julius_committed', 'learnings_bucket', 'workspace']),
   /** At session start, when the learnings committed on HEAD went up since the
    *  last session in that clone: how many came in and how many there are, as
    *  buckets, and whether it's the clone's first look. Committed learnings
-   *  are trail's activation. Paths and titles never travel. */
+   *  are julius's activation. Paths and titles never travel. */
   learnings_committed: new Set<string>(['added_bucket', 'total_bucket', 'first_look']),
-  /** `trail init` read the repo's past Claude sessions, or the review comments
+  /** `julius init` read the repo's past Claude sessions, or the review comments
    *  on its merged PRs (`source`), for learnings: how it went, how many
-   *  sessions or reviewed PRs there were, findings Claude offered and trail
+   *  sessions or reviewed PRs there were, findings Claude offered and julius
    *  saved, as buckets, how long it took, and the model. The messages, the
    *  comments and the findings never travel. */
   cold_start: new Set<string>(['source', 'outcome', 'sessions_bucket', 'reviews_bucket', 'offered_bucket', 'picked_bucket', 'duration_bucket', 'model']),
-  /** `trail learn` saved a correction as a takeaway on a skill (into
-   *  `~/.trail/`). `new_skill` says whether it started a skill. The text never
+  /** `julius learn` saved a correction as a takeaway on a skill (into
+   *  `~/.julius/`). `new_skill` says whether it started a skill. The text never
    *  travels. */
   takeaway_saved: new Set<string>(['new_skill']),
-  /** `trail skills fold` wrote waiting takeaways into a skill's SKILL.md;
+  /** `julius skills fold` wrote waiting takeaways into a skill's SKILL.md;
    *  how many, as a bucket. Whether corrections become the skill. */
   skills_folded: new Set<string>(['takeaways_bucket']),
-  /** One closed agent session, summarised. `graft_reads` vs `source_reads` is
-   *  the single number that says whether an agent prefers graft to grep; the two
-   *  `*_turns` buckets are the follow-up question — of the turns that used graft,
+  /** One closed agent session, summarised. `julius_reads` vs `source_reads` is
+   *  the single number that says whether an agent prefers julius to grep; the two
+   *  `*_turns` buckets are the follow-up question — of the turns that used julius,
    *  how many told the user what it saved. Both are counts of turns, never text. */
   session_summary: new Set<string>([
-    'graft_reads_bucket', 'source_reads_bucket', 'saved_tokens_bucket',
-    'graft_turns_bucket', 'reported_turns_bucket',
+    'julius_reads_bucket', 'source_reads_bucket', 'saved_tokens_bucket',
+    'julius_turns_bucket', 'reported_turns_bucket',
   ]),
 };
 
@@ -121,14 +121,14 @@ export const COMMON_KEYS = [
  *  queries on the user's behalf without them typing a command. */
 export type Surface = 'cli' | 'mcp' | 'hook';
 
-/** Which editor/agent graft is running under. Derived from the surface and the
+/** Which editor/agent julius is running under. Derived from the surface and the
  *  wiring on disk — never from a hostname, a username, or an env var's value. */
 export type AgentHost = 'claude-code' | 'cursor' | 'mcp' | 'cli';
 
 /**
  * The commands worth counting. A command absent here is simply not reported —
  * `track()` drops the event rather than sending a free-form string, which is
- * what keeps a future `graft <something-user-named>` from becoming a data leak.
+ * what keeps a future `julius <something-user-named>` from becoming a data leak.
  */
 export const TRACKED_COMMANDS = [
   'ask', 'grep', 'callers', 'skeleton', 'map', 'check', 'blast', 'viz',

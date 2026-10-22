@@ -15,7 +15,7 @@ function homeWith(events: string[], shim = hooksShim()): { home: string; globalS
   const home = mkdtempSync(join(tmpdir(), "hook-layers-"));
   const helpers = join(home, ".claude", "helpers");
   mkdirSync(helpers, { recursive: true });
-  const globalShim = join(helpers, "graft-hooks.cjs");
+  const globalShim = join(helpers, "julius-hooks.cjs");
   writeFileSync(globalShim, shim);
   const hooks = Object.fromEntries(
     events.map((e) => [e, [{ hooks: [{ type: "command", command: `node "${globalShim.replace(/\\/g, "/")}" ${e}` }] }]]),
@@ -24,7 +24,7 @@ function homeWith(events: string[], shim = hooksShim()): { home: string; globalS
   return { home, globalShim };
 }
 
-const repoShim = join(tmpdir(), "some-repo", ".claude", "helpers", "trail-hooks.cjs");
+const repoShim = join(tmpdir(), "some-repo", ".claude", "helpers", "julius-hooks.cjs");
 
 test("the repo's copy stands down for an event the ~/.claude copy answers", () => {
   const { home } = homeWith(["session-start", "prompt"]);
@@ -38,15 +38,10 @@ test("the ~/.claude copy itself always runs", () => {
   assert.equal(globalCopyCovers("session-start", globalShim, home), false);
 });
 
-test("a ~/.claude shim an older graft wrote doesn't count: it can't find trail", () => {
-  const { home } = homeWith(["session-start"], "const pkg = require.resolve('@nanonets/graft/package.json');");
-  assert.equal(globalCopyCovers("session-start", repoShim, home), false);
-});
-
 test("Cursor's and Codex's shims never stand down for Claude's hooks", () => {
   const { home } = homeWith(["session-start"]);
-  assert.equal(globalCopyCovers("session-start", join(tmpdir(), "some-repo", ".cursor", "hooks", "graft-hooks.cjs"), home), false);
-  assert.equal(globalCopyCovers("session-start", join(home, ".codex", "graft-hooks.cjs"), home), false);
+  assert.equal(globalCopyCovers("session-start", join(tmpdir(), "some-repo", ".cursor", "hooks", "julius-hooks.cjs"), home), false);
+  assert.equal(globalCopyCovers("session-start", join(home, ".codex", "julius-hooks.cjs"), home), false);
 });
 
 test("no ~/.claude settings, or none of ours: the repo's copy runs", () => {

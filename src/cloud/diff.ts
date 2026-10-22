@@ -1,5 +1,5 @@
 /**
- * The change `trail check` looks at: everything this branch would put in a
+ * The change `julius check` looks at: everything this branch would put in a
  * pull request, committed or not, measured from where it left its base.
  */
 import { execFileSync } from "node:child_process";
@@ -33,24 +33,24 @@ export interface BranchDiff {
 }
 
 /**
- * What `trail init` writes to wire agents up. Never a decision anyone made, so
+ * What `julius init` writes to wire agents up. Never a decision anyone made, so
  * never part of what a check reads: on a branch cut before the wiring was
  * committed upstream, it would otherwise be most of the diff.
  */
 export const WIRING = [
-  ".claude/skills/trail",
-  ".claude/skills/graft",
-  ".claude/helpers/trail-hooks.cjs",
-  ".claude/helpers/graft-hooks.cjs",
-  ".cursor/rules/trail.mdc",
-  ".cursor/rules/graft.mdc",
+  ".claude/skills/julius",
+  ".claude/skills/julius",
+  ".claude/helpers/julius-hooks.cjs",
+  ".claude/helpers/julius-hooks.cjs",
+  ".cursor/rules/julius.mdc",
+  ".cursor/rules/julius.mdc",
   ".mcp.json",
   ".ignore",
 ];
 
 const NOT_WIRING = ["--", ".", ...WIRING.map((p) => `:(exclude)${p}`)];
 
-/** The branch's diff against its base's merge base, working tree included, without trail's own wiring. Null outside a git repo. */
+/** The branch's diff against its base's merge base, working tree included, without julius's own wiring. Null outside a git repo. */
 export function branchDiff(repo: string, base = defaultBase(repo), maxBytes = 400 * 1024): BranchDiff | null {
   const from = git(repo, ["merge-base", "HEAD", base])?.trim() || base;
   const files = git(repo, ["diff", "--name-only", from, ...NOT_WIRING]);

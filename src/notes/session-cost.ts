@@ -8,7 +8,7 @@
  * agents keep no transcript we can read, so their notes carry no cost unless
  * the agent passes `--minutes` / `--tokens`.
  *
- * Counted from the session's last finished `trail note` (or its start), so two
+ * Counted from the session's last finished `julius note` (or its start), so two
  * notes from one long session don't both claim the same work. Within that,
  * from the turn where the work the note names first came up: the first prompt
  * or tool call that mentions one of its files, symbols or commands. A long
@@ -101,10 +101,10 @@ function blocks(e: Entry): Array<Record<string, unknown>> {
 /** Claude Code's tools that change a file, each naming it in `file_path` (`notebook_path` for notebooks). */
 const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
 
-export const NOTE_CALL = /(^|[|&;]\s*|\s)(npx\s+(-y\s+)?(@trailhq\/|@nanonets\/)?)?(trail|graft)\s+note\b/;
+export const NOTE_CALL = /(^|[|&;]\s*|\s)(npx\s+(-y\s+)?(@ruverd\/)?)?julius\s+note\b/;
 
 /** Words too common to say what a note is about: they'd match the first turn of any session. */
-const TOO_COMMON = new Set(["trail", "graft", "claude", "true", "false", "null", "main", "master", "node", "git", "npm", "test", "tests"]);
+const TOO_COMMON = new Set(["julius", "julius", "claude", "true", "false", "null", "main", "master", "node", "git", "npm", "test", "tests"]);
 
 /**
  * What a note is about, as strings a transcript would show when that work
@@ -130,7 +130,7 @@ export function aboutTerms(body: string, files: string[] = []): string[] {
 /**
  * Whether a backticked term names something specific enough to date the work:
  * a path or file (`a/b`, `x.ts`), or an identifier (`dropHtmlComments`,
- * `repo_id`, `check-ignore`). A phrase or a plain word (`trail init`,
+ * `repo_id`, `check-ignore`). A phrase or a plain word (`julius init`,
  * `publish`) comes up in any session about the product, so it would date
  * the work to the session's first turn.
  */
@@ -152,7 +152,7 @@ function promptText(e: Entry): string | null {
 /**
  * Index into `entries` where the work on a note began: the prompt of the turn
  * whose prompt or tool calls first mention one of `terms`, never earlier than
- * `from`. A `trail note` call doesn't count: the one being saved names them all.
+ * `from`. A `julius note` call doesn't count: the one being saved names them all.
  */
 function firstMention(entries: Entry[], from: number, terms: string[]): number | null {
   if (!terms.length) return null;

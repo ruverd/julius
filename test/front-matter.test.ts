@@ -1,6 +1,6 @@
 /**
  * Front matter is YAML only: gray-matter would eval `---js` front matter, and
- * learnings, skills and graft/ cards all come from repos, a teammate's pushed
+ * learnings, skills and julius/ cards all come from repos, a teammate's pushed
  * branch included.
  */
 import { test } from "node:test";

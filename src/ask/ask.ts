@@ -1,5 +1,5 @@
 /**
- * `graft ask "<task>"` — the ACTIVE channel.
+ * `julius ask "<task>"` — the ACTIVE channel.
  *
  * One tool that routes a plain-words query to the right graph and returns a lean,
  * ranked context pack (prose + exact `file:line` + related), never raw JSON and
@@ -352,7 +352,7 @@ type StructuralOutcome = { result: AskResult } | { fallthroughNote: string } | n
 function fallthroughNoteFor(subject: string): string {
   return (
     `structural index: no entries for '${subject}' — showing lexical matches; ` +
-    `for precise edges try ${cmd("graft callers")} '${subject}', or ${cmd("graft grep")} '${subject}' for every reference (loosen the pattern if it returns nothing)`
+    `for precise edges try ${cmd("julius callers")} '${subject}', or ${cmd("julius grep")} '${subject}' for every reference (loosen the pattern if it returns nothing)`
   );
 }
 
@@ -389,7 +389,7 @@ function structural(query: string, graph: GraphV1, limit: number, inPrefix?: str
   }
 
   // Subject resolved but the graph has no indexed edges for it — same "loud,
-  // never a bare empty" contract as `graft callers`/`callees` — fall through
+  // never a bare empty" contract as `julius callers`/`callees` — fall through
   // to lexical rather than returning a structural result with zero hits.
   if (hits.length === 0) return { fallthroughNote: fallthroughNoteFor(subjects[0].name) };
 
@@ -1201,7 +1201,7 @@ function lexical(
     // so a query that missed everywhere still tells the caller where to look.
     note: scored.length
       ? undefined
-      : `no matching nodes — try different words, or \`${cmd("graft build")}\` if the code map is empty${scopesHereClause(scopes ?? [])}`,
+      : `no matching nodes — try different words, or \`${cmd("julius build")}\` if the code map is empty${scopesHereClause(scopes ?? [])}`,
   };
 }
 
@@ -1315,7 +1315,7 @@ function baselineFor(hits: AskHit[], graph: GraphV1 | null): AskResult["saved"] 
   return savingsFor(graph, hitFiles(hits));
 }
 
-/** Answer a query from the graft/ graph at `dir`. Deterministic, $0. */
+/** Answer a query from the julius/ graph at `dir`. Deterministic, $0. */
 export function ask(dir: string, query: string, opts: AskOptions = {}): AskResult {
   const root = resolve(dir);
   const outDir = contextDirFor(root, opts.contextDir);
@@ -1422,7 +1422,7 @@ export interface SkeletonResult {
 export function skeleton(dir: string, file: string, opts: { contextDir?: string } = {}): SkeletonResult {
   const outDir = contextDirFor(resolve(dir), opts.contextDir);
   const graph = loadGraphCached(outDir);
-  if (!graph) return { file, entries: [], note: `no wiring graph — run \`${cmd("graft build")}\` first` };
+  if (!graph) return { file, entries: [], note: `no wiring graph — run \`${cmd("julius build")}\` first` };
 
   let defs = graph.nodes.filter((n) => n.kind !== "file" && n.path === file);
   if (!defs.length) {
@@ -1453,7 +1453,7 @@ export function skeleton(dir: string, file: string, opts: { contextDir?: string 
 
 /** Render a {@link SkeletonResult} as compact markdown. */
 export function formatSkeleton(r: SkeletonResult): string {
-  const head = `${cmd("graft skeleton")} — ${r.file}`;
+  const head = `${cmd("julius skeleton")} — ${r.file}`;
   if (!r.entries.length) return `${head}\n\n${r.note ?? "no definitions."}\n`;
   const lines = r.entries.map((e) => {
     const sig = e.signature ? `  ${e.signature}` : "";
@@ -1471,7 +1471,7 @@ function toTokens(chars: number): number {
 
 /** Render an {@link AskResult} as a compact markdown context pack. */
 export function formatAsk(r: AskResult): string {
-  const head = `${cmd("graft ask")} — "${r.query}"  (${r.mode})`;
+  const head = `${cmd("julius ask")} — "${r.query}"  (${r.mode})`;
   // The note prints as its own prominent line(s) right under the header —
   // above every hit — so a loud structural-fallthrough note (or the
   // no-structural-edges / no-lexical-match note) can never be missed by only
@@ -1536,7 +1536,7 @@ function escalationNudge(r: AskResult): string {
   const n = r.hits.length;
   return (
     `\n\n${tag()} ${n === 0 ? "no hits" : `only ${n} hit${n === 1 ? "" : "s"}`} — don't re-ask with new wording; switch tool: ` +
-    `\`${cmd("graft grep")} "<literal>"\` for every occurrence · \`${cmd("graft skeleton")} <file>\` for a file's full API · \`${cmd("graft callers")} <symbol>\` for who-uses.`
+    `\`${cmd("julius grep")} "<literal>"\` for every occurrence · \`${cmd("julius skeleton")} <file>\` for a file's full API · \`${cmd("julius callers")} <symbol>\` for who-uses.`
   );
 }
 

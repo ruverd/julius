@@ -1,8 +1,8 @@
 /**
- * `trail check` without a server: the deterministic half of Trail's check,
- * ported from the Go service (trail_check.go, trail_check_rules.go and
- * trail_text.go in assign's backend), so a diff can be held up against the
- * learnings in the repo's `.trail/` (teammates' pushed branches included),
+ * `julius check` without a server: the deterministic half of Julius's check,
+ * ported from the Go service (julius_check.go, julius_check_rules.go and
+ * julius_text.go in assign's backend), so a diff can be held up against the
+ * learnings in the repo's `.julius/` (teammates' pushed branches included),
  * the person's own, and the repo's skills, all on this machine. ("Notes"
  * below are learnings: the type kept its old name.)
  *
@@ -63,19 +63,19 @@ export interface LocalCheckInput {
 
 /**
  * Check a diff against the notes and skills on this machine, with the rules
- * Trail's server falls back to when it has no model. Same shape as the
+ * Julius's server falls back to when it has no model. Same shape as the
  * server's answer: `files` is the changed-file count, `notes` and `skills`
  * how many the check was given (the server reports how many it has indexed),
  * and the findings, conflicts first.
  */
 export function checkLocally(input: LocalCheckInput): CheckResult {
   const now = input.now ?? new Date();
-  const diffFiles = parseTrailDiff(input.diff);
-  const files = trailCheckFiles(input.files, diffFiles).slice(0, MAX_FILES);
+  const diffFiles = parseJuliusDiff(input.diff);
+  const files = juliusCheckFiles(input.files, diffFiles).slice(0, MAX_FILES);
   const out: CheckResult = { files: files.length, notes: input.notes.length, skills: input.skills.length, findings: [] };
   if (files.length === 0) return out;
 
-  const terms = trailDiffTerms(
+  const terms = juliusDiffTerms(
     diffFiles.flatMap((f) => addedText(f)),
     DIFF_TERMS,
   );
@@ -85,9 +85,9 @@ export function checkLocally(input: LocalCheckInput): CheckResult {
     skill,
     textScore: localTextScore(termHits(`${skill.name}\n${candidateText({ kind: "skill", skill })}`, terms)),
   }));
-  const candidates = selectTrailCheckCandidates(files, terms, notes, skills, now);
+  const candidates = selectJuliusCheckCandidates(files, terms, notes, skills, now);
   if (candidates.length === 0) return out;
-  out.findings = judgeTrailCheck(candidates, diffFiles);
+  out.findings = judgeJuliusCheck(candidates, diffFiles);
   return out;
 }
 
@@ -155,7 +155,7 @@ function keepTerm(t: string): boolean {
  * order. Identifiers give their parts and, for camelCase, the whole word too.
  * At most `max` (0: no cap).
  */
-export function trailTerms(text: string, max = 0): string[] {
+export function juliusTerms(text: string, max = 0): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const add = (raw: string) => {
@@ -187,7 +187,7 @@ export function normTerm(term: string): string {
 }
 
 function normTermSet(text: string): Set<string> {
-  return new Set(trailTerms(text).map(normTerm));
+  return new Set(juliusTerms(text).map(normTerm));
 }
 
 /** `./a.go` → `a.go`. */
@@ -307,7 +307,7 @@ function parseHunkHeader(line: string): { newStart: number; oldLen: number; newL
  * declared line counts, so an added line that itself starts with `+++` is not
  * taken for a file header. A deleted file keeps its old path.
  */
-export function parseTrailDiff(diff: string): DiffFile[] {
+export function parseJuliusDiff(diff: string): DiffFile[] {
   const files: DiffFile[] = [];
   let cur: DiffFile | null = null;
   let oldPath = "";
@@ -368,14 +368,14 @@ export function parseTrailDiff(diff: string): DiffFile[] {
 }
 
 /** The words and identifiers the diff adds: identifiers (camelCase, snake_case, with digits) first, then by how often they appear. */
-export function trailDiffTerms(added: string[], max: number): string[] {
+export function juliusDiffTerms(added: string[], max: number): string[] {
   const count = new Map<string, number>();
   const ident = new Set<string>();
   const first = new Map<string, number>();
   for (const line of added) {
     for (const w of rawWords(line)) {
       const isIdent = splitIdentifier(w).length > 1 || /[0-9]/.test(w);
-      for (const t of trailTerms(w)) {
+      for (const t of juliusTerms(w)) {
         if (!first.has(t)) first.set(t, first.size);
         count.set(t, (count.get(t) ?? 0) + 1);
         if (isIdent) ident.add(t);
@@ -391,7 +391,7 @@ export function trailDiffTerms(added: string[], max: number): string[] {
 }
 
 /** The changed files: what the caller listed, then every file the diff names, deduplicated in that order. */
-export function trailCheckFiles(listed: string[], diffFiles: DiffFile[]): string[] {
+export function juliusCheckFiles(listed: string[], diffFiles: DiffFile[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const raw of [...listed, ...diffFiles.map((f) => f.path)]) {
@@ -509,7 +509,7 @@ function notePool(notes: Note[], terms: string[], files: string[], dirs: string[
  * these files or their folders, or share the diff's words, best first. Notes
  * come first in the returned order. Exported for tests.
  */
-export function selectTrailCheckCandidates(
+export function selectJuliusCheckCandidates(
   files: string[],
   diffTerms: string[],
   notes: Array<{ note: Note; textScore: number }>,
@@ -588,7 +588,7 @@ const LIST_MARKER = /^(?:[-*+•>]+|\d+[.)])[\t\n\f\r ]+/;
  * a verbatim run of the line, so it can be quoted back as written. Exported
  * for tests.
  */
-export function trailSentences(raw: string): string[] {
+export function juliusSentences(raw: string): string[] {
   let line = raw.trim();
   for (let m = LIST_MARKER.exec(line); m; m = LIST_MARKER.exec(line)) line = line.slice(m[0].length).trim();
   if (!line) return [];
@@ -621,17 +621,17 @@ function statementsOf(c: Candidate): Statement[] {
         kind = noteSection(t.replace(/^[# ]+/, ""));
         continue;
       }
-      for (const s of trailSentences(t)) out.push({ kind, text: s });
+      for (const s of juliusSentences(t)) out.push({ kind, text: s });
     }
     return out;
   }
   for (const t of c.skill.takeaways) {
     if (t.foldedIn !== undefined) continue;
-    for (const line of t.text.split("\n")) for (const s of trailSentences(line)) out.push({ kind: "takeaway", text: s });
+    for (const line of t.text.split("\n")) for (const s of juliusSentences(line)) out.push({ kind: "takeaway", text: s });
   }
   for (const line of c.skill.body.split("\n")) {
     if (line.trim().startsWith("#")) continue;
-    for (const s of trailSentences(line)) if (DIRECTIVE.test(s)) out.push({ kind: "takeaway", text: s });
+    for (const s of juliusSentences(line)) if (DIRECTIVE.test(s)) out.push({ kind: "takeaway", text: s });
   }
   return out;
 }
@@ -703,7 +703,7 @@ const FRAMING_WORDS = new Set([
 ]);
 
 /** Every number a sentence states, in digits (`60s`, `4th`) or words (`three`, `fourth`). Exported for tests. */
-export function trailNumbers(text: string): Set<number> {
+export function juliusNumbers(text: string): Set<number> {
   const out = new Set<number>();
   for (const m of text.match(NUMBER) ?? []) out.add(Number(m));
   for (const w of rawWords(text.toLowerCase())) {
@@ -719,12 +719,12 @@ export function trailNumbers(text: string): Set<number> {
  * hour" decided 4, not 10. A head with no number falls back to the sentence.
  */
 function decidedNumbers(text: string): Set<number> {
-  const head = trailNumbers(approachHead(text));
-  return head.size ? head : trailNumbers(text);
+  const head = juliusNumbers(approachHead(text));
+  return head.size ? head : juliusNumbers(text);
 }
 
 /** The numbers a code line carries outside its identifiers (`retries2` gives no 2), in order. Exported for tests. */
-export function trailLineNumbers(line: string): string[] {
+export function juliusLineNumbers(line: string): string[] {
   return line.replace(IDENTIFIER, " ").match(NUMBER) ?? [];
 }
 
@@ -749,11 +749,11 @@ function valueChanges(b: ChangeBlock): ValueChange[] {
   const out: ValueChange[] = [];
   for (const a of b.added) {
     const aIds = new Set(a.text.match(IDENTIFIER) ?? []);
-    const aNums = trailLineNumbers(a.text);
+    const aNums = juliusLineNumbers(a.text);
     for (const r of b.removed) {
       const name = (r.match(IDENTIFIER) ?? []).find((id) => aIds.has(id) && nameTerms(id).size > 0);
       if (!name) continue;
-      const rNums = trailLineNumbers(r);
+      const rNums = juliusLineNumbers(r);
       const from = firstMissing(rNums, aNums);
       const to = firstMissing(aNums, rNums);
       if (!from || !to) continue;
@@ -767,7 +767,7 @@ function valueChanges(b: ChangeBlock): ValueChange[] {
 /** The normalised parts of an identifier that name a thing: `maxRetries` → {maxretry, retry}. */
 function nameTerms(name: string): Set<string> {
   return new Set(
-    trailTerms(name)
+    juliusTerms(name)
       .filter((t) => !GENERIC_NAME_PARTS.has(t))
       .map(normTerm),
   );
@@ -781,7 +781,7 @@ function mentionsName(sentence: string, name: string): boolean {
 
 /** A sentence's terms without framing words, normalised. */
 function distinctTerms(text: string): string[] {
-  return [...new Set(trailTerms(text).filter((t) => !FRAMING_WORDS.has(t)).map(normTerm))];
+  return [...new Set(juliusTerms(text).filter((t) => !FRAMING_WORDS.has(t)).map(normTerm))];
 }
 
 /**
@@ -820,7 +820,7 @@ function firstLineWith(lines: DiffLine[], terms: string[]): number {
  * (file, candidate), a conflict winning over a follow; conflicts first, then
  * by file and line; at most 20. Exported for tests.
  */
-export function judgeTrailCheck(candidates: Candidate[], diffFiles: DiffFile[]): CheckFinding[] {
+export function judgeJuliusCheck(candidates: Candidate[], diffFiles: DiffFile[]): CheckFinding[] {
   const best = new Map<string, CheckFinding>();
   const put = (file: string, ci: number, f: CheckFinding) => {
     const k = `${file}\0${ci}`;
@@ -830,7 +830,7 @@ export function judgeTrailCheck(candidates: Candidate[], diffFiles: DiffFile[]):
   const statements = candidates.map(statementsOf);
 
   for (const f of diffFiles) {
-    const addedTerms = trailDiffTerms(addedText(f), DIFF_TERMS);
+    const addedTerms = juliusDiffTerms(addedText(f), DIFF_TERMS);
     const blocks = changeBlocks(f);
     candidates.forEach((c, ci) => {
       const stmts = statements[ci]!;
@@ -851,7 +851,7 @@ export function judgeTrailCheck(candidates: Candidate[], diffFiles: DiffFile[]):
           for (const st of stmts) {
             if (st.kind === "other" || !mentionsName(st.text, vc.name)) continue;
             if (st.kind === "watch" || st.kind === "ruledOut") {
-              if (trailNumbers(st.text).has(vc.to)) {
+              if (juliusNumbers(st.text).has(vc.to)) {
                 const what = st.kind === "ruledOut" ? "ruled out" : "warned about";
                 put(f.path, ci, finding("conflict", `sets ${vc.name} to ${vc.toText}, which ${owner(c)} ${what}`, vc.line, st.text));
               }

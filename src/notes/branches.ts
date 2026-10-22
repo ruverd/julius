@@ -8,7 +8,7 @@
  * before the branch merges.
  *
  * Reading branches takes git, and hooks and `ask` must not wait on it, so a
- * detached `_trail-branches` child fetches and writes what it found to a
+ * detached `_julius-branches` child fetches and writes what it found to a
  * cache, at most every REFRESH_MS. Everything that reads it reads the cache.
  *
  * A branch whose work is already on the default branch is left out: a
@@ -19,9 +19,9 @@ import { execFileSync, spawn } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { brand } from "../brand.js";
-import { graftCliPath } from "../claude/paths.js";
+import { juliusCliPath } from "../claude/paths.js";
 import { cacheDir, readJson, writeJsonAtomic } from "../util/state.js";
-import { LEARNINGS_DIR } from "./repo-trail.js";
+import { LEARNINGS_DIR } from "./repo-julius.js";
 
 /** How old the cache may get before the next command refreshes it in the
  * background: about what editors that fetch on their own wait between fetches. */
@@ -36,7 +36,7 @@ export const BRANCH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_BRANCHES = 30;
 /** Most changed files kept per branch. */
 const MAX_FILES = 200;
-/** A learning file name as `trail note` writes it: no folders, no shell characters. */
+/** A learning file name as `julius note` writes it: no folders, no shell characters. */
 export const SAFE_LEARNING_NAME = /^[A-Za-z0-9._-]+\.md$/;
 /** Most learnings read per branch, and the most bytes per learning. */
 const MAX_LEARNINGS = 20;
@@ -73,7 +73,7 @@ export interface BranchCache {
 }
 
 function cachePath(repo: string): string {
-  return join(cacheDir(repo), "trail-branches.json");
+  return join(cacheDir(repo), "julius-branches.json");
 }
 
 export function readBranchCache(repo: string): BranchCache | null {
@@ -180,8 +180,8 @@ export function refreshBranches(
   opts: { fetch?: boolean; now?: number; fetchTimeoutMs?: number; prs?: boolean; closed?: ClosedHeads } = {},
 ): BranchCache {
   const now = opts.now ?? Date.now();
-  // TRAIL_NO_FETCH: tests, and anyone who'd rather fetch themselves.
-  const online = opts.fetch !== false && !process.env.TRAIL_NO_FETCH;
+  // JULIUS_NO_FETCH: tests, and anyone who'd rather fetch themselves.
+  const online = opts.fetch !== false && !process.env.JULIUS_NO_FETCH;
   if (online) git(repo, ["fetch", "--quiet", "--prune", "origin"], opts.fetchTimeoutMs ?? 30_000);
   const closed = opts.closed ?? (online && opts.prs ? closedPrHeads(repo) : null) ?? readBranchCache(repo)?.closed ?? {};
   const base = defaultRef(repo);
@@ -202,7 +202,7 @@ export function refreshBranches(
       const changed = (git(repo, ["diff", "--name-only", `${base}...${ref}`]) ?? "").split("\n").map((f) => f.trim()).filter(Boolean);
       if (changed.length === 0 || onBase(repo, base, ref)) continue;
       const learnings: PushedBranch["learnings"] = [];
-      // Only names trail itself would write: the name reaches a command the agent may run.
+      // Only names julius itself would write: the name reaches a command the agent may run.
       const named = changed.filter((f) => f.startsWith(`${LEARNINGS_DIR}/`) && SAFE_LEARNING_NAME.test(f.slice(LEARNINGS_DIR.length + 1)));
       for (const path of named.slice(0, MAX_LEARNINGS)) {
         const text = git(repo, ["show", `${ref}:${path}`]);
@@ -276,7 +276,7 @@ export function maybeRefreshBranches(repo: string, now = Date.now(), maxAgeMs = 
     if (!branchesStale(repo, now, maxAgeMs)) return false;
     if (cache?.runningSince && now - cache.runningSince < STALE_RUN_MS) return false;
     writeJsonAtomic(cachePath(repo), { ...(cache ?? { fetchedAt: 0, base: null, branches: [] }), runningSince: now }, true);
-    const child = spawn(process.execPath, [graftCliPath(), "_trail-branches", repo], { detached: true, stdio: "ignore", windowsHide: true });
+    const child = spawn(process.execPath, [juliusCliPath(), "_julius-branches", repo], { detached: true, stdio: "ignore", windowsHide: true });
     child.unref();
     return true;
   } catch {
@@ -298,7 +298,7 @@ export interface Overlap {
  */
 export function overlapsWith(repo: string, files: string[], me: string, cache: BranchCache | null = readBranchCache(repo)): Overlap[] {
   if (!cache || files.length === 0) return [];
-  const mine = new Set(files.filter((f) => !f.startsWith(".trail/")));
+  const mine = new Set(files.filter((f) => !f.startsWith(".julius/")));
   const out: Overlap[] = [];
   for (const b of cache.branches) {
     if (!b.author || b.author === me) continue;
@@ -318,12 +318,12 @@ export function pushedWhen(at: number, now = Date.now()): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-/** What starts every overlap line a person sees: `🔀 trail`. */
+/** What starts every overlap line a person sees: `🔀 julius`. */
 export function overlapMark(): string {
   return `🔀 ${brand()}`;
 }
 
-/** `🔀 trail · Kumar's branch kumar/jitter also changes client.go (pushed today 14:20)`. */
+/** `🔀 julius · Kumar's branch kumar/jitter also changes client.go (pushed today 14:20)`. */
 export function formatOverlap(o: Overlap, now = Date.now()): string {
   const branch = o.ref.replace(/^origin\//, "");
   const files = o.shared.length <= 2 ? o.shared.join(" and ") : `${o.shared.slice(0, 2).join(", ")} and ${o.shared.length - 2} more`;

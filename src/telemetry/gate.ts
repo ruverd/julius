@@ -5,20 +5,20 @@
  * Four independent gates, in the order a user would expect them to win:
  *
  *   1. A key at all — dev builds and forks have none (see key.ts), so the whole
- *      subsystem is inert for anyone who did not install a published graft.
+ *      subsystem is inert for anyone who did not install a published julius.
  *   2. `DO_NOT_TRACK` — the cross-tool convention (consoledonottrack.com).
  *      Honoured unconditionally: it outranks our own setting, because a user who
  *      set it machine-wide has already answered the question for every tool.
  *   3. CI — a build server is not a user. Counting it would inflate every number
  *      we care about and tell us nothing about a person.
- *   4. The user's own choice, from the `graft init` picker or
- *      `graft telemetry disable`. Default on when never set.
+ *   4. The user's own choice, from the `julius init` picker or
+ *      `julius telemetry disable`. Only available after explicitly configuring a key and host.
  *
- * Re-checked at every append rather than cached at boot, so `graft telemetry
+ * Re-checked at every append rather than cached at boot, so `julius telemetry
  * disable` in one terminal takes effect in a long-lived MCP server in another
  * without a restart.
  */
-import { posthogKey } from './key.js';
+import { posthogKey, posthogHost } from './key.js';
 import { readState } from './identity.js';
 import { cmd } from '../brand.js';
 
@@ -60,7 +60,7 @@ export function inCi(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /** Null when telemetry may run, otherwise the first gate that closed. */
 export function offReason(home?: string, env: NodeJS.ProcessEnv = process.env): OffReason | null {
-  if (!posthogKey()) return 'no-key';
+  if (!posthogKey() || !posthogHost()) return 'no-key';
   if (doNotTrack(env)) return 'do-not-track';
   if (inCi(env)) return 'ci';
   if (readState(home)?.enabled === false) return 'disabled';
@@ -71,13 +71,13 @@ export function telemetryOn(home?: string, env: NodeJS.ProcessEnv = process.env)
   return offReason(home, env) === null;
 }
 
-/** One line for `graft telemetry status`, naming the gate that is closed so a
+/** One line for `julius telemetry status`, naming the gate that is closed so a
  *  user who thinks they disabled it can see which switch actually took. */
 export function explainOff(reason: OffReason): string {
   switch (reason) {
     case 'no-key':        return 'off — this build has no telemetry key (a fork, or a local `npm run build`); nothing can be sent';
     case 'do-not-track':  return 'off — DO_NOT_TRACK is set in this environment';
     case 'ci':            return 'off — this looks like CI';
-    case 'disabled':      return `off — you disabled it (\`${cmd('graft telemetry enable')}\` to turn it back on)`;
+    case 'disabled':      return `off — you disabled it (\`${cmd('julius telemetry enable')}\` to turn it back on)`;
   }
 }

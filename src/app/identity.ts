@@ -85,7 +85,7 @@ export class InstallationTokens {
       headers: {
         authorization: `Bearer ${appJwt(this.creds, this.now())}`,
         accept: "application/vnd.github+json",
-        "user-agent": "graft-app",
+        "user-agent": "julius-app",
       },
     });
     const body = await res.text();

@@ -23,9 +23,10 @@ const OPEN: NodeJS.ProcessEnv = {};
 
 function home(tag: string, state?: Record<string, unknown>): string {
   const dir = tmpRepo(tag);
-  mkdirSync(join(dir, '.graft'), { recursive: true });
-  if (state) writeFileSync(join(dir, '.graft', 'telemetry.json'), JSON.stringify(state));
-  process.env.GRAFT_POSTHOG_KEY = 'phc_test_key';
+  mkdirSync(join(dir, '.julius'), { recursive: true });
+  if (state) writeFileSync(join(dir, '.julius', 'telemetry.json'), JSON.stringify(state));
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_test_key';
   return dir;
 }
 
@@ -34,7 +35,7 @@ test('the notice prints once per machine, then never again', () => {
   const first = firstRunNotice(h, OPEN);
   assert.ok(first, 'the first run must disclose');
   assert.match(first, /anonymous/);
-  assert.match(first, /graft telemetry disable/);
+  assert.match(first, /julius telemetry disable/);
   assert.match(first, /TELEMETRY\.md/);
   assert.equal(firstRunNotice(h, OPEN), null);
   assert.equal(firstRunNotice(h, OPEN), null);
@@ -50,7 +51,7 @@ test('nothing is disclosed when nothing can be sent', () => {
   // A fork: no key, so there is no collection to announce and announcing one
   // would be worse than saying nothing.
   const h = home('notice-nokey', { installId: 'x' });
-  delete process.env.GRAFT_POSTHOG_KEY;
+  delete process.env.JULIUS_POSTHOG_KEY;
   assert.equal(firstRunNotice(h, OPEN), null);
   assert.equal(readState(h)?.noticeShownAt, undefined, 'and the notice stays pending');
 });
@@ -59,7 +60,7 @@ test('status names the switch that is actually closed', () => {
   const h = home('notice-status-off', { installId: 'x', enabled: false });
   const out = formatStatus(h, OPEN);
   assert.match(out, /telemetry: off/);
-  assert.match(out, /graft telemetry enable/);
+  assert.match(out, /julius telemetry enable/);
 });
 
 test('status shows the endpoint and the pending count when it is on', () => {
@@ -69,7 +70,7 @@ test('status shows the endpoint and the pending count when it is on', () => {
   assert.match(out, /telemetry: on/);
   assert.match(out, /1 event waiting/);
   assert.match(out, /https:\/\//);
-  assert.match(out, /graft telemetry debug/);
+  assert.match(out, /julius telemetry debug/);
 });
 
 test('debug prints the exact batch and sends nothing', () => {
@@ -86,7 +87,8 @@ test('debug prints the exact batch and sends nothing', () => {
 
 test('debug never prints the project key — this output is written to be pasted into an issue', () => {
   const h = home('notice-debug-key', { installId: 'x' });
-  process.env.GRAFT_POSTHOG_KEY = 'phc_do_not_print_me';
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_do_not_print_me';
   enqueue({ event: 'query', properties: { command: 'ask' }, distinct_id: 'abc' }, h);
   const out = formatDebug(h);
   assert.equal(out.includes('phc_do_not_print_me'), false, 'the ingestion key leaked into terminal output');
@@ -95,7 +97,8 @@ test('debug never prints the project key — this output is written to be pasted
 });
 
 test('buildBatch itself carries no key, so no logging path can reach one', () => {
-  process.env.GRAFT_POSTHOG_KEY = 'phc_do_not_print_me';
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_do_not_print_me';
   const batch = buildBatch([{ event: 'query', properties: {}, distinct_id: 'abc' }]);
   assert.equal('api_key' in batch, false);
   assert.equal(JSON.stringify(batch).includes('phc_do_not_print_me'), false);
@@ -103,7 +106,8 @@ test('buildBatch itself carries no key, so no logging path can reach one', () =>
 
 test('status prints the endpoint but never the key', () => {
   const h = home('notice-status-key', { installId: 'x' });
-  process.env.GRAFT_POSTHOG_KEY = 'phc_do_not_print_me';
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_do_not_print_me';
   assert.equal(formatStatus(h, OPEN).includes('phc_do_not_print_me'), false);
 });
 

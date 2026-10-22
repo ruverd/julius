@@ -1,10 +1,10 @@
 /**
- * CLI wiring + human formatter for `graft grep`.
+ * CLI wiring + human formatter for `julius grep`.
  *
  * Kept out of cli.ts (argument wiring only) and out of grep.ts (pure core,
  * unit-testable against hand-built fixture graphs without touching a real
  * repo root) — same split as traverse.ts/traverse-cli.ts. `formatGrepResult`
- * is exported so `graft_find_all` in `src/mcp/tools.ts` renders the identical
+ * is exported so `julius_find_all` in `src/mcp/tools.ts` renders the identical
  * report, rather than re-implementing it.
  */
 import { resolve } from "node:path";
@@ -76,13 +76,13 @@ export function formatGrepResult(result: GrepResult): string {
  * `ignored`: git-ignored code under the root (see `ignoredCode`). When there
  * is some, the note names it instead of saying all the code was searched. */
 export function zeroHitNote(result: GrepResult, ignored: string[] = []): string {
-  const retry = `no hits for "${result.pattern}" in ${result.filesSearched} indexed files. The pattern may be too specific — retry ${cmd("graft grep")} with a bare symbol name or short substring (drop the receiver, full signature, and regex anchors).`;
+  const retry = `no hits for "${result.pattern}" in ${result.filesSearched} indexed files. The pattern may be too specific — retry ${cmd("julius grep")} with a bare symbol name or short substring (drop the receiver, full signature, and regex anchors).`;
   const base = ignored.length
     ? `${retry} Git-ignored code isn't indexed and wasn't searched: ${ignoredLabel(ignored)}. Run grep -rn there, and on docs and configs`
     : `${retry} All indexed code was searched; use raw grep -rn only for genuinely unindexed files (docs, configs, brand-new files)`;
   const { files } = result.truncated;
   if (files === 0) return base;
-  return `${base} — note: ${files} indexed file${files === 1 ? "" : "s"} could not be read (stale graph? run ${cmd("graft build")})`;
+  return `${base} — note: ${files} indexed file${files === 1 ? "" : "s"} could not be read (stale graph? run ${cmd("julius build")})`;
 }
 
 /**
@@ -97,7 +97,7 @@ export function runGrepCommand(pattern: string, dir: string, opts: GrepCliOption
   const contextDir = contextDirFor(root, opts.globalDir);
   const graph = loadGraphCached(contextDir);
   if (!graph) {
-    console.error(`✗ no graph — run ${cmd("graft build")} first`);
+    console.error(`✗ no graph — run ${cmd("julius build")} first`);
     process.exit(1);
   }
 

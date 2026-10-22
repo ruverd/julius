@@ -1,5 +1,5 @@
 /**
- * An empty `trail grep` names the git-ignored code it never searched, instead
+ * An empty `julius grep` names the git-ignored code it never searched, instead
  * of saying all the code was searched.
  */
 import { test } from "node:test";

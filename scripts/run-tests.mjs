@@ -11,7 +11,8 @@
  * Enumerating the files here instead means `npm test` behaves identically in
  * cmd.exe, PowerShell, bash and CI, on any supported Node.
  */
-import { readdirSync } from "node:fs";
+import { readdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,14 +44,18 @@ const gitEnv = {
   GIT_CONFIG_KEY_1: "tag.gpgsign", GIT_CONFIG_VALUE_1: "false",
 };
 
-// A graft repo moves to trail when a session opens on a machine with the trail
-// command, so a contributor who has trail installed would see test repos move.
-// Off for the run; the tests of the move turn it back on.
+// Inherited integration tests exercise host wiring. Keep every default home write
+// in disposable state, including direct API calls without an explicit home.
+const testHome = mkdtempSync(join(tmpdir(), "julius-suite-home-"));
+const testEnv = { ...process.env, ...gitEnv, HOME: testHome, USERPROFILE: testHome, XDG_CONFIG_HOME: join(testHome, ".config") };
+delete testEnv.JULIUS_HOME;
 const result = spawnSync(process.execPath, ["--import", "tsx", "--test", ...files], {
   cwd: repoRoot,
   stdio: "inherit",
-  env: { ...process.env, ...gitEnv, GRAFT_NO_TRAIL_SWITCH: "1" },
+  env: testEnv,
 });
+
+rmSync(testHome, { recursive: true, force: true });
 
 if (result.error) {
   console.error(`✗ could not start the test runner: ${result.error.message}`);

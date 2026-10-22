@@ -159,7 +159,7 @@ export interface NativeFallback {
 
 /**
  * The one line a build prints when some languages fell back, or null when none did.
- * One line on purpose: `graft init` passes on only the `⚠`/`✗` lines of the build
+ * One line on purpose: `julius init` passes on only the `⚠`/`✗` lines of the build
  * it runs, so a second line holding the fix would be dropped there.
  */
 export function nativeFallbackNotice(fallback: NativeFallback | undefined, packageName: string): string | null {

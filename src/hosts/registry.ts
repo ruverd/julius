@@ -1,17 +1,17 @@
 /**
- * Registry of AI coding hosts Graft can write instructions for.
+ * Registry of AI coding hosts Julius can write instructions for.
  * Adding a host = adding one entry here (plus a renderer if it needs
  * a new file format).
  *
  * kind: 'section' → upsert the fenced block into a shared file the user owns.
- * kind: 'owned'   → graft owns the whole file; overwrite it each run.
+ * kind: 'owned'   → julius owns the whole file; overwrite it each run.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { instructionBody, cursorRule, kiroSteering, windsurfRule } from './instructions.js';
 import { skillTemplate } from '../claude/skill-template.js';
 import { markersFor } from './sections.js';
-import { repoWiredForTrail, type Brand } from '../brand.js';
+import { repoWiredForJulius, type Brand } from '../brand.js';
 
 export interface DetectProbe {
   home: string;
@@ -23,7 +23,7 @@ export interface HostTarget {
   id: string;
   name: string;
   kind: 'section' | 'owned';
-  /** Target file, relative to the repo root, under graft's names (see `hostRelPath`). */
+  /** Target file, relative to the repo root, under julius's names (see `hostRelPath`). */
   relPath: string;
   /** The text, in the spelling of the repo's name for the tool. */
   content(name?: Brand): string;
@@ -46,7 +46,7 @@ export const HOSTS: HostTarget[] = [
     id: 'adal',
     name: 'AdaL',
     kind: 'owned',
-    relPath: join('.adal', 'skills', 'graft', 'SKILL.md'),
+    relPath: join('.adal', 'skills', 'julius', 'SKILL.md'),
     content: skillTemplate,
     detect: (p) => p.dirExists(join(p.home, '.adal')) || p.dirExists(join(p.repo, '.adal')),
   },
@@ -54,7 +54,7 @@ export const HOSTS: HostTarget[] = [
     id: 'cursor',
     name: 'Cursor',
     kind: 'owned',
-    relPath: join('.cursor', 'rules', 'graft.mdc'),
+    relPath: join('.cursor', 'rules', 'julius.mdc'),
     content: cursorRule,
     detect: (p) => p.dirExists(join(p.home, '.cursor')) || p.dirExists(join(p.repo, '.cursor')),
   },
@@ -70,7 +70,7 @@ export const HOSTS: HostTarget[] = [
     id: 'grok',
     name: 'Grok (xAI)',
     kind: 'owned',
-    relPath: join('.grok', 'skills', 'graft', 'SKILL.md'),
+    relPath: join('.grok', 'skills', 'julius', 'SKILL.md'),
     content: skillTemplate,
     detect: (p) => p.dirExists(join(p.home, '.grok')) || p.dirExists(join(p.repo, '.grok')),
   },
@@ -81,7 +81,7 @@ export const HOSTS: HostTarget[] = [
     relPath: 'AGENTS.md',
     content: instructionBody,
     // Hermes is repo-aware: it reads AGENTS.md at the repo root (and the
-    // Graft-for-Hermes plugin keeps the graph fresh on every session start).
+    // Julius-for-Hermes plugin keeps the graph fresh on every session start).
     detect: (p) =>
       p.dirExists(join(p.home, '.hermes')) ||
       p.dirExists(join(p.home, 'AppData', 'Local', 'hermes')) ||
@@ -113,7 +113,7 @@ export const HOSTS: HostTarget[] = [
     id: 'kiro',
     name: 'Kiro',
     kind: 'owned',
-    relPath: join('.kiro', 'steering', 'graft.md'),
+    relPath: join('.kiro', 'steering', 'julius.md'),
     content: kiroSteering,
     detect: (p) => p.dirExists(join(p.home, '.kiro')) || p.dirExists(join(p.repo, '.kiro')),
   },
@@ -121,7 +121,7 @@ export const HOSTS: HostTarget[] = [
     id: 'windsurf',
     name: 'Windsurf',
     kind: 'owned',
-    relPath: join('.windsurf', 'rules', 'graft.md'),
+    relPath: join('.windsurf', 'rules', 'julius.md'),
     content: windsurfRule,
     detect: (p) => p.dirExists(join(p.home, '.codeium', 'windsurf')) || p.dirExists(join(p.repo, '.windsurf')),
   },
@@ -137,11 +137,11 @@ export function detectHosts(probe: DetectProbe): HostTarget[] {
 
 /**
  * A host's file under `name`. A file the tool owns carries its name, like
- * Claude Code's skill and shims do (`.cursor/rules/trail.mdc`,
- * `.adal/skills/trail/SKILL.md`); a shared file is the same file either way.
+ * Claude Code's skill and shims do (`.cursor/rules/julius.mdc`,
+ * `.adal/skills/julius/SKILL.md`); a shared file is the same file either way.
  */
 export function hostRelPath(host: HostTarget, name: Brand): string {
-  return name === 'trail' && host.kind === 'owned' ? host.relPath.replace(/\bgraft\b/g, 'trail') : host.relPath;
+  return host.relPath;
 }
 
 /** Cursor's hooks shim is repo-local, so it carries the repo's name too. */
@@ -150,14 +150,14 @@ export function cursorHookShimRelPath(name: Brand): string {
 }
 
 /**
- * Whether another agent's files in `repo` are already under trail's names: a
- * trail-named file, or a shared file holding trail's block.
+ * Whether another agent's files in `repo` are already under julius's names: a
+ * julius-named file, or a shared file holding julius's block.
  */
-export function hostsWiredForTrail(repo: string): boolean {
-  if (existsSync(join(repo, cursorHookShimRelPath('trail')))) return true;
+export function hostsWiredForJulius(repo: string): boolean {
+  if (existsSync(join(repo, cursorHookShimRelPath('julius')))) return true;
   const seen = new Set<string>();
   for (const host of HOSTS) {
-    const path = join(repo, hostRelPath(host, 'trail'));
+    const path = join(repo, hostRelPath(host, 'julius'));
     if (seen.has(path)) continue;
     seen.add(path);
     if (host.kind === 'owned') {
@@ -165,7 +165,7 @@ export function hostsWiredForTrail(repo: string): boolean {
       continue;
     }
     try {
-      if (readFileSync(path, 'utf8').includes(markersFor('trail').start)) return true;
+      if (readFileSync(path, 'utf8').includes(markersFor('julius').start)) return true;
     } catch {
       /* not there */
     }
@@ -175,11 +175,11 @@ export function hostsWiredForTrail(repo: string): boolean {
 
 /**
  * The name the other agents' wiring goes by in `repo`, decided the way Claude
- * Code's is (`wiringName` in claude/init.ts): trail's where `trail init` is
- * wiring it now (`initBrand`) or the repo is already on trail, graft's
+ * Code's is (`wiringName` in claude/init.ts): julius's where `julius init` is
+ * wiring it now (`initBrand`) or the repo is already on julius, julius's
  * everywhere else. Read from the repo, not the machine, so a teammate on
- * graft refreshing the files writes the same ones and never flips them back.
+ * julius refreshing the files writes the same ones and never flips them back.
  */
 export function hostWiringName(repo: string, initBrand?: Brand): Brand {
-  return initBrand === 'trail' || repoWiredForTrail(repo) || hostsWiredForTrail(repo) ? 'trail' : 'graft';
+  return 'julius';
 }

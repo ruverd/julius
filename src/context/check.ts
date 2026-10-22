@@ -4,7 +4,7 @@
  * Pure I/O + hashing: no LLM, no network, milliseconds. It re-hashes the source
  * files the manifest recorded and compares. Meant to run in CI: exit 0 when the
  * graph is fresh, 1 when it has drifted (so a PR that changed code but not the
- * graph fails until `graft build --deep` is re-run and committed).
+ * graph fails until `julius build --deep` is re-run and committed).
  *
  * Drift categories:
  *   content     a recorded source file's bytes changed
@@ -125,7 +125,7 @@ export interface FreshnessResult {
  * check (stat, never a read or a hash), safe to call on a hot path like session
  * start. This catches the common "index built on a different tree" case: a
  * branch switch, a `git checkout` to an older commit, an unpulled move — states
- * where graft would otherwise confidently point at files that aren't there and
+ * where julius would otherwise confidently point at files that aren't there and
  * send the agent chasing them. Returns null when there's no graph at all.
  */
 export function indexFreshness(dir: string, opts: CheckOptions = {}): FreshnessResult | null {
@@ -148,14 +148,14 @@ export function staleBanner(f: FreshnessResult | null): string | null {
   return (
     `⚠ ${brand()}'s index may be ahead of your working tree: ${f.missing} of ${f.total} indexed ` +
     `files are not on disk (branch switch or uncommitted move?). If ${brand()} names a path that ` +
-    `isn't there, don't chase it — \`${cmd("graft grep")}\` the symbol to find where it lives now; run \`${cmd("graft build")}\` to refresh.`
+    `isn't there, don't chase it — \`${cmd("julius grep")}\` the symbol to find where it lives now; run \`${cmd("julius build")}\` to refresh.`
   );
 }
 
 /** Render a check result as a human-readable report. */
-export function formatCheckReport(r: CheckResult, label = "graft check"): string {
+export function formatCheckReport(r: CheckResult, label = "julius check"): string {
   if (r.missing) {
-    return `${label}: NO GRAPH\n\nNo graft/manifest.json found. Run \`${cmd("graft build --deep")}\` first.`;
+    return `${label}: NO GRAPH\n\nNo julius/manifest.json found. Run \`${cmd("julius build --deep")}\` first.`;
   }
   if (r.ok) return `${label}: OK — the graph is in sync with the code.`;
 
@@ -176,7 +176,7 @@ export function formatCheckReport(r: CheckResult, label = "graft check"): string
     lines.push(`index mismatch (${r.indexDrift.length}):`);
     for (const s of r.indexDrift) lines.push(`  ! ${s}`);
   }
-  lines.push("", `Run \`${cmd("graft build --deep")}\` to regenerate, then commit graft/.`);
+  lines.push("", `Run \`${cmd("julius build --deep")}\` to regenerate, then commit julius/.`);
   return lines.join("\n");
 }
 

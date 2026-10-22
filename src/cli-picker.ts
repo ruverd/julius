@@ -1,5 +1,5 @@
 /**
- * `graft init`'s agent picker and `--dry-run` plan printer.
+ * `julius init`'s agent picker and `--dry-run` plan printer.
  *
  * Split three ways so the logic is testable without a TTY: `renderPicker` and
  * `reducePicker` are pure, `runPicker` is the only part that touches stdin.
@@ -112,7 +112,7 @@ export interface PickerRow {
 /**
  * The id of the telemetry consent row.
  *
- * The picker is where a user is already deciding what graft may touch, which
+ * The picker is where a user is already deciding what julius may touch, which
  * makes it the honest place to also ask whether they mind anonymous usage stats
  * — the same move munder-difflin makes with a pre-checked box in onboarding, and
  * the reason this is a disclosed default rather than a silent one. It is only
@@ -128,7 +128,7 @@ export interface PickerState {
   checked: ReadonlySet<string>;
   done: boolean;
   aborted: boolean;
-  /** Agents graft cannot find on this machine are folded into one line until `m`. */
+  /** Agents julius cannot find on this machine are folded into one line until `m`. */
   showHidden?: boolean;
 }
 
@@ -407,7 +407,7 @@ async function drivePicker(initial: PickerState, title?: string | null): Promise
   }
 }
 
-/** One thing `trail init` found the person kept telling Claude, or reviewers kept flagging, as the picker shows it. */
+/** One thing `julius init` found the person kept telling Claude, or reviewers kept flagging, as the picker shows it. */
 export interface LearningChoice {
   title: string;
   forTeam: boolean;

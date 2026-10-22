@@ -1,7 +1,7 @@
 /**
  * Generic "breadth" extractor tier — one language-agnostic extractor over any
  * tree-sitter grammar + its `tags.scm` (the standard tree-sitter tags convention). This is how
- * graft covers the long tail of languages for ~one registry row each, instead of
+ * julius covers the long tail of languages for ~one registry row each, instead of
  * a hand-written extractor per language (the depth tier in extract.ts).
  *
  * Grammars are WASM (`tree-sitter-wasm` bundle) loaded via `web-tree-sitter`, so
@@ -30,7 +30,7 @@ const require = createRequire(import.meta.url);
 // queries/ ships beside the compiled JS (copied by the build); fall back to src.
 const QUERY_DIRS = [join(HERE, "queries"), join(HERE, "..", "..", "src", "graph", "queries")];
 
-/** A breadth-tier language: graft name, file extensions, and the wasm basename
+/** A breadth-tier language: julius name, file extensions, and the wasm basename
  * in tree-sitter-wasm/<wasm>/tree-sitter-<wasm>.wasm. One row per language. */
 export interface GenericLang {
   name: string;
@@ -108,7 +108,7 @@ export function genericExtensions(): string[] {
   return GENERIC_LANGS.flatMap((l) => l.exts);
 }
 
-// tags.scm @definition.<X>  →  graft Kind (types.ts). Unmapped → "function".
+// tags.scm @definition.<X>  →  julius Kind (types.ts). Unmapped → "function".
 const KIND: Record<string, Kind> = {
   function: "function", method: "method", class: "class", interface: "interface",
   type: "type", struct: "struct", enum: "enum", module: "module",
@@ -116,7 +116,7 @@ const KIND: Record<string, Kind> = {
   object: "class", property: "variable", // Scala object; Swift/Scala property
 };
 
-// Loaded grammars + compiled tags queries, keyed by graft lang name. Populated by
+// Loaded grammars + compiled tags queries, keyed by julius lang name. Populated by
 // warmGenericGrammars; read synchronously by extractGeneric.
 export interface Loaded { language: unknown; query: unknown | null }
 const loaded = new Map<string, Loaded>();
@@ -159,7 +159,7 @@ function loadQuery(row: GenericLang): string | null {
   return parts.length > 0 ? sanitizeQuery(parts.join("\n")) : null;
 }
 
-/** Warm the WASM grammars for the given graft lang names. Idempotent; must be
+/** Warm the WASM grammars for the given julius lang names. Idempotent; must be
  * awaited once before extractGeneric is used in a sync loop. Unknown/unavailable
  * grammars are silently skipped (their files then extract as file-only). */
 export async function warmGenericGrammars(langNames: Iterable<string>): Promise<void> {

@@ -1,20 +1,12 @@
 #!/usr/bin/env node
-/**
- * The `trail` CLI, also run as `graft`, its old name. Commands: build, ask,
- * check, viz, mcp, callers, skeleton, grep, map, init. Git is the sync: commit
- * graft/ and a clone has the graph. A workspace parent (≥2 git children)
- * federates query commands across children.
- *
- * Both names run this file. Under `graft` every command keeps its old name and
- * meaning; under `trail` the layout changes (see `TRAIL` below and brand.ts).
- */
+/** Julius CLI: local graph navigation and shared repository learnings. */
 import { spawnSync } from "node:child_process";
 import "dotenv/config";
 import { Command } from "commander";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Graft } from "./engine.js";
+import { Julius } from "./engine.js";
 import { resolveConfig, type EngineConfig } from "./ai/providers.js";
 import type { ProviderKind } from "./ai/llm/factory.js";
 import { formatCheckReport } from "./context/check.js";
@@ -24,7 +16,7 @@ import { statuslineWanted } from "./claude/settings-merge.js";
 import { runHostsInit } from "./hosts/init.js";
 import { hostIds } from "./hosts/registry.js";
 import { checkoutRoot, ensureRepoHome, keepsNotes, noteCount, rememberRepo, repoName, repoPlace, shownPath } from "./notes/home.js";
-import { brand, cmd, graftNotice, strandedRepoNotice, tag } from "./brand.js";
+import { brand, cmd, tag } from "./brand.js";
 import { branchDiff } from "./cloud/diff.js";
 import { openBrowser } from "./util/browser.js";
 import { learningsAtBase, teammateEdits, withBaseLearnings } from "./check/learning-edits.js";
@@ -33,7 +25,7 @@ import { loadGraphCached } from "./graph/load.js";
 import { ensureFreshChildren, ensureFreshGraph, refreshNote } from "./graph/refresh.js";
 import { isWorkspaceBuildRoot, readWorkspace } from "./graph/workspace.js";
 import { NOT_GIT_LINE, homeFolderRefusal, isGitWorkTree } from "./init-guard.js";
-import { hasGraftIndex, nearestGraftRoot } from "./graph/root.js";
+import { hasJuliusIndex, nearestJuliusRoot } from "./graph/root.js";
 import { unsupportedExtensions, supportedExtensions } from "./graph/source-files.js";
 import { discoverWorkspaceChildren } from "./graph/scopes.js";
 import {
@@ -68,11 +60,10 @@ import { inWorkspace, maybeSyncInBackground, recordActivity, runSyncChild, syncR
 import type { CheckResult } from "./check/types.js";
 import { checkLocally } from "./check/local-check.js";
 import { formatOverlap, maybeRefreshBranches, overlapsWith, pushedWhen, readBranchCache, refreshBranches } from "./notes/branches.js";
-import { ensureRepoTrail, LEARNINGS_DIR } from "./notes/repo-trail.js";
+import { ensureRepoJulius, LEARNINGS_DIR } from "./notes/repo-julius.js";
 import type { AskResult } from "./ask/ask.js";
 import { setInputRate } from "./context/savings.js";
 import { formatUpdateNudge, maybeRefreshInBackground, readStamp, readUpdateCache, refreshUpdateCache, wiredHostIds, wiringOpts, writeStamp } from "./upkeep.js";
-import { shouldMoveToTrail } from "./upkeep-run.js";
 import {
   countBucket,
   savedTokensBucket,
@@ -95,16 +86,7 @@ import {
 const program = new Command();
 const currentVersion = readCurrentVersion(import.meta.url);
 
-/**
- * Started as `trail` rather than `graft`. Decided once, before any command is
- * registered, because it changes which commands exist: under trail the old
- * `graft trail …` group moves to the top level, `check` hands its name to the
- * team check (the freshness check is `build --check`), and `stats` and
- * `trail status` become one `status`. Under graft nothing moves.
- */
-const TRAIL = brand() === "trail";
-
-/** Help-screen groups under trail; graft keeps its one flat list. */
+/** Help-screen groups under julius; julius keeps its one flat list. */
 const GROUP = {
   find: "Find code · your agent runs these:",
   memory: "Team memory:",
@@ -113,9 +95,9 @@ const GROUP = {
   ci: "CI:",
 } as const;
 
-/** Put a command in a help group, under trail only. */
+/** Put a command in a help group, under julius only. */
 function grouped(c: Command, heading: string): Command {
-  if (TRAIL) c.helpGroup(heading);
+  c.helpGroup(heading);
   return c;
 }
 
@@ -149,17 +131,15 @@ function noteHit(found: boolean): void {
 program
   .name(brand())
   .description(
-    TRAIL
-      ? "Memory for your coding agents: a code map, and the learnings each session\n" +
-          "leaves in your repo's .trail/, so your whole team's Claude starts from them."
-      : "Build a repo's context graph as linked markdown, and keep it in sync with the code.",
+    "Memory for your coding agents: a code map, and the learnings each session\n" +
+          "leaves in your repo's .julius/, so your whole team's Claude starts from them.",
   )
   .version(currentVersion, "-v, --version")
-  .option("--dir <path>", "context graph directory (default: <repo>/graft)")
-  .option("--provider <name>", "LLM wire format: openai | anthropic | litellm | orcarouter (env GRAFT_PROVIDER)")
-  .option("--model <id>", "model id for the LLM pass (env GRAFT_MODEL)")
-  .option("--api-key <key>", "provider API key (env GRAFT_API_KEY)")
-  .option("--base-url <url>", "OpenAI-compatible endpoint URL (env GRAFT_BASE_URL)");
+  .option("--dir <path>", "context graph directory (default: <repo>/.julius/cache)")
+  .option("--provider <name>", "LLM wire format: openai | anthropic | litellm | orcarouter (env JULIUS_PROVIDER)")
+  .option("--model <id>", "model id for the LLM pass (env JULIUS_MODEL)")
+  .option("--api-key <key>", "provider API key (env JULIUS_API_KEY)")
+  .option("--base-url <url>", "OpenAI-compatible endpoint URL (env JULIUS_BASE_URL)");
 
 interface GlobalOpts {
   dir?: string;
@@ -181,11 +161,11 @@ function cliConfig(): EngineConfig {
   };
 }
 
-const engineFrom = (): Graft => new Graft(cliConfig());
+const engineFrom = (): Julius => new Julius(cliConfig());
 
 /**
  * Warn (never fail) when a user's `-e` extension has no parser, so it is never a silent
- * no-op — `graft build -e ".vue"` used to accept it, index nothing, and exit 0. The
+ * no-op — `julius build -e ".vue"` used to accept it, index nothing, and exit 0. The
  * supported set is listed so `-e` also answers "what is actually supported".
  */
 function warnUnsupportedExtensions(exts?: string[]): void {
@@ -200,17 +180,17 @@ function warnUnsupportedExtensions(exts?: string[]): void {
 }
 
 /** Text for the omitted-`[dir]` case, shared by every query command's help. */
-const DIR_ARG = ["[dir]", "repository root (default: nearest ancestor with a graft/ index)"] as const;
+const DIR_ARG = ["[dir]", "repository root (default: nearest ancestor with a julius/ index)"] as const;
 
 /**
  * The root a query runs against: the dir the user named, else the nearest
- * ancestor holding a graft index (`graph/root.ts`) so a shell or agent session
+ * ancestor holding a julius index (`graph/root.ts`) so a shell or agent session
  * in a subdirectory still finds the graph. The walk is announced on stderr —
  * answering from an ancestor's graph must never be silent.
  */
 function queryRoot(dir?: string): string {
   if (dir !== undefined) return resolve(dir);
-  const { root, levels } = nearestGraftRoot(process.cwd(), program.opts<GlobalOpts>().dir);
+  const { root, levels } = nearestJuliusRoot(process.cwd(), program.opts<GlobalOpts>().dir);
   if (levels > 0) console.error(`${tag()} no code map here — answering from ${contextDirFor(root, program.opts<GlobalOpts>().dir)}`);
   return root;
 }
@@ -264,29 +244,21 @@ function parseTabs(raw: string | undefined): VizTab[] | undefined {
  * not editorialize on stderr at startup (`mcp` runs its own upkeep at boot, and
  * `_update-check` IS the fetch).
  */
-const UPKEEP_SKIP = new Set(["version", "upgrade", "_update-check", "_trail-past-read", "mcp"]);
+const UPKEEP_SKIP = new Set(["version", "upgrade", "_update-check", "_julius-past-read", "mcp"]);
 
 /**
  * Every other command: top up the cached registry answer in the background and,
- * if a newer graft is out, say so once on stderr. This is what makes the CLI the
+ * if a newer julius is out, say so once on stderr. This is what makes the CLI the
  * cache filler for the hooks, which are not allowed to touch the network.
  */
 program.hook("preAction", (_parent, action) => {
   if (UPKEEP_SKIP.has(action.name())) return;
-  // Someone typing graft by hand learns its new name, once a day. Agents,
-  // hooks, CI and pipes never see it (see graftNotice).
-  const renamed = graftNotice({ ran: spelling(action), tty: Boolean(process.stderr.isTTY) });
-  if (renamed) console.error(renamed);
-  // Someone typing trail in a repo whose graft-era hooks can't reach it learns
-  // the one command that moves it (init itself is that command).
-  const stranded = action.name() === "init" ? null : strandedRepoNotice({ cwd: process.cwd(), tty: Boolean(process.stderr.isTTY) });
-  if (stranded) console.error(stranded);
   maybeRefreshInBackground();
   const nudge = formatUpdateNudge(currentVersion, readUpdateCache()?.latest);
   if (nudge) console.error(nudge);
   // Telemetry, in the order a user should experience it: disclose first, then
   // record, then (at most once a day, detached) send. Every step is a no-op in a
-  // fork, in CI, under DO_NOT_TRACK, or after `graft telemetry disable`.
+  // fork, in CI, under DO_NOT_TRACK, or after `julius telemetry disable`.
   const notice = firstRunNotice();
   if (notice) console.error(notice);
   trackFirstRunIfNew();
@@ -300,25 +272,25 @@ program.hook("preAction", (_parent, action) => {
  * is the right failure mode for a metric.
  */
 program.hook("postAction", (_parent, action) => {
-  // `trail build --check` is graft's `check`, and counts as it always has.
+  // `julius build --check` is julius's `check`, and counts as it always has.
   const name = queryNote.command ?? action.name();
   if (!isTrackedCommand(name)) return;
   track("query", { command: name, surface: "cli", hit: queryNote.hit, notes: queryNote.notes }, { repo: queryNote.repo });
 });
 
-/** `graft ask`, `graft build`: a command as graft spells it, whatever ran it. */
+/** `julius ask`, `julius build`: a command as julius spells it, whatever ran it. */
 function spelling(action: Command): string {
   const words: string[] = [];
   for (let c: Command | null = action; c && c.parent; c = c.parent) words.unshift(c.name());
-  return ["graft", ...words].join(" ");
+  return ["julius", ...words].join(" ");
 }
 
 // Hidden: spawned detached by maybeSyncInBackground when a workspace repo's
 // learnings changed, or uses are waiting to go. Running it by hand syncs now.
-// A repo that moved from graft to trail at session start reads its past
+// A repo that moved from julius to julius at session start reads its past
 // sessions and PR reviews here, detached, so the session doesn't wait on it.
 program
-  .command("_trail-past-read", { hidden: true })
+  .command("_julius-past-read", { hidden: true })
   .argument("<dir>")
   .action(async (dir: string) => {
     const repo = resolve(dir);
@@ -329,8 +301,8 @@ program
   });
 
 program
-  .command("_trail-sync", { hidden: true })
-  .description("internal: send this repo's learnings and the waiting uses to the Trail workspace")
+  .command("_julius-sync", { hidden: true })
+  .description("internal: send this repo's learnings and the waiting uses to the Julius workspace")
   .argument("[dir]", "target repo directory", ".")
   .action(async (dir: string) => {
     await runSyncChild(resolve(dir));
@@ -338,7 +310,7 @@ program
 
 // Hidden: spawned detached by maybeRefreshBranches.
 program
-  .command("_trail-branches", { hidden: true })
+  .command("_julius-branches", { hidden: true })
   .description("internal: fetch, then note which files teammates' open branches change and the learnings they carry")
   .argument("[dir]", "target repo directory", ".")
   .action((dir: string) => {
@@ -346,8 +318,8 @@ program
   });
 
 program
-  .command("_trail-claim", { hidden: true })
-  .description("internal: wait for a sign-in through the link trail handed the agent, then connect the workspace")
+  .command("_julius-claim", { hidden: true })
+  .description("internal: wait for a sign-in through the link julius handed the agent, then connect the workspace")
   .action(async () => {
     await waitForConnect();
   });
@@ -378,7 +350,7 @@ grouped(program.command("telemetry"), GROUP.setup)
         return;
       case "enable":
         patchState({ enabled: true });
-        console.log(`telemetry: on — anonymous, aggregate-only. \`${cmd("graft telemetry status")}\` for details.`);
+        console.log(`telemetry: on — anonymous, aggregate-only. \`${cmd("julius telemetry status")}\` for details.`);
         return;
       case "disable":
         // Also stamp the notice as shown: someone who has just opted out should
@@ -395,9 +367,9 @@ grouped(program.command("telemetry"), GROUP.setup)
     }
   });
 
-// Hidden under trail, where -v says the same; listed under graft as it was.
+// Hidden under julius, where -v says the same; listed under julius as it was.
 program
-  .command("version", { hidden: TRAIL })
+  .command("version", { hidden: true })
   .description("Print the installed version and the latest published on npm")
   .action(() => {
     const latest = getNpmViewVersion();
@@ -410,39 +382,16 @@ grouped(program.command("upgrade"), GROUP.setup)
     const result = runUpgrade(import.meta.url);
     console.log(formatUpgradeReport(result));
     if (result.ran && !result.ok) process.exit(1);
-    if (!TRAIL && result.ok && result.trailVersion) moveHereToTrail(process.cwd());
   });
-
-/**
- * After `graft upgrade` brought the trail command along, the repo it ran in
- * moves to trail now, with the agents and flags its last init chose, and its
- * past sessions are read for learnings. Every other repo wired as graft moves
- * the next time a session opens in it (upkeep-run.ts).
- */
-function moveHereToTrail(dir: string): void {
-  const root = checkoutRoot(dir);
-  if (!root || !shouldMoveToTrail(root)) return;
-  const stamp = readStamp(root);
-  const hosts = [...new Set([...(stamp?.hosts ?? []), ...wiredHostIds(root)])];
-  const o = wiringOpts(stamp);
-  const flags = [o.global ? null : "--no-global", o.mcp ? null : "--no-mcp", o.hooks ? null : "--no-hooks", o.statusline ? null : "--no-statusline"].filter(
-    (f): f is string => f !== null,
-  );
-  console.log(`· moving this repo to trail: trail init ${hosts.length ? `--agents ${hosts.join(" ")} ` : ""}${flags.join(" ")}`.trimEnd());
-  spawnSync("trail", ["init", root, "--agents", ...hosts, ...flags], { stdio: "inherit" });
-}
 
 grouped(program.command("build"), GROUP.setup)
   .description(
-    TRAIL
-      ? "Rebuild the code map in .trail/cache/ ($0, no key). --check fails if it's stale; --deep adds LLM summaries."
-      : "Build graft/ from your code — wiring graph + per-file cards ($0, no key). " +
-          "Add --deep for the LLM concept map + per-symbol summaries/crux.",
+    "Rebuild the code map in .julius/cache/ ($0, no key). --check fails if it's stale; --deep adds LLM summaries.",
   )
   .argument("[dir]", "repository root", ".")
-  .option("--check", "build nothing: fail if graft/ is stale relative to the code (for CI)")
+  .option("--check", "build nothing: fail if julius/ is stale relative to the code (for CI)")
   .option("--json", "with --check: output the drift as JSON")
-  .option("--deep", "run the LLM pass: concept nodes (graft/*.md) + per-symbol summary/crux")
+  .option("--deep", "run the LLM pass: concept nodes (julius/*.md) + per-symbol summary/crux")
   .option("-e, --extensions <exts...>", 'code extensions to include (e.g. ".ts" ".py"); an extension with no parser is ignored with a warning that lists the supported set')
   .option("-j, --concurrency <n>", "files summarized in parallel during --deep (default 5)")
   .option("--no-reuse", "re-parse every file instead of replaying unchanged ones from the extraction cache")
@@ -480,8 +429,8 @@ grouped(program.command("build"), GROUP.setup)
     (val: string, prev: string[]) => [...prev, val],
     [] as string[],
   )
-  .option("--no-gitignore", "skip writing graft/ into .gitignore (same as GRAFT_NO_GITIGNORE=1)")
-  .option("--no-ignore", "skip writing .ignore for ripgrep re-admit (same as GRAFT_NO_IGNORE=1)")
+  .option("--no-gitignore", "skip writing julius/ into .gitignore (same as JULIUS_NO_GITIGNORE=1)")
+  .option("--no-ignore", "skip writing .ignore for ripgrep re-admit (same as JULIUS_NO_IGNORE=1)")
   .action(async (
     dir: string,
     opts: {
@@ -503,15 +452,15 @@ grouped(program.command("build"), GROUP.setup)
     command: Command,
   ) => {
     if (opts.check) {
-      // The freshness check, which was `graft check`. Counted as `check` so the
+      // The freshness check, which was `julius check`. Counted as `check` so the
       // metric carries on across the rename; the dir defaults like a query's.
       queryNote.command = "check";
-      await runCheckCommand(command.args[0], { extensions: opts.extensions, json: opts.json }, cmd("graft check"));
+      await runCheckCommand(command.args[0], { extensions: opts.extensions, json: opts.json }, cmd("julius build --check"));
       return;
     }
     const buildStartedAt = Date.now();
-    if (opts.gitignore === false) process.env.GRAFT_NO_GITIGNORE = "1";
-    if (opts.ignore === false) process.env.GRAFT_NO_IGNORE = "1";
+    if (opts.gitignore === false) process.env.JULIUS_NO_GITIGNORE = "1";
+    if (opts.ignore === false) process.env.JULIUS_NO_IGNORE = "1";
     const concurrency = opts.concurrency ? Math.max(1, Number(opts.concurrency)) : undefined;
     if (opts.concurrency && !Number.isFinite(concurrency)) {
       console.error(`✗ --concurrency must be a number, got "${opts.concurrency}"`);
@@ -540,7 +489,7 @@ grouped(program.command("build"), GROUP.setup)
       }
       buildConfigPatch.includeDirs = opts.includeDir;
     }
-    // The whitelist is NOT persisted to `.graft/config.json`: it belongs with the
+    // The whitelist is NOT persisted to `.julius/config.json`: it belongs with the
     // graph (the fingerprint records it at build time), never in the source repo,
     // so a `--only-dir` build leaves no trace under the repo being indexed.
     let onlyDirs: string[] | undefined;
@@ -582,17 +531,17 @@ grouped(program.command("build"), GROUP.setup)
       deep = false;
       console.error(
         "⚠ no API key set — falling back to the structural build (no LLM summaries).\n" +
-          "  Set GRAFT_API_KEY (and GRAFT_PROVIDER / GRAFT_BASE_URL / GRAFT_MODEL for your\n" +
-          `  provider) and re-run \`${cmd("graft build --deep")}\` to add concept nodes and summaries.`,
+          "  Set JULIUS_API_KEY (and JULIUS_PROVIDER / JULIUS_BASE_URL / JULIUS_MODEL for your\n" +
+          `  provider) and re-run \`${cmd("julius build --deep")}\` to add concept nodes and summaries.`,
       );
     }
     if (deep && resolved.usedLegacyEnv) {
       console.error(
-        "⚠ using OPENROUTER_API_KEY (deprecated) — prefer GRAFT_API_KEY + GRAFT_BASE_URL.",
+        "⚠ using OPENROUTER_API_KEY (deprecated) — prefer JULIUS_API_KEY + JULIUS_BASE_URL.",
       );
     }
 
-    // Workspace parent: build each child into its OWN graft/ + a workspace index.
+    // Workspace parent: build each child into its OWN julius/ + a workspace index.
     const buildRoot = resolve(dir);
     const buildGlobalDir = program.opts<GlobalOpts>().dir;
     if (isWorkspaceBuildRoot(buildRoot, buildGlobalDir)) {
@@ -679,16 +628,16 @@ grouped(program.command("build"), GROUP.setup)
     const fallbackNotice = nativeFallbackNotice(g.nativeFallback, readPackageName(import.meta.url));
     if (fallbackNotice) console.error(fallbackNotice);
 
-    const rel = relative(process.cwd(), g.contextDir) || "graft";
-    if (process.env.GRAFT_NO_GITIGNORE) {
+    const rel = relative(process.cwd(), g.contextDir) || "julius";
+    if (process.env.JULIUS_NO_GITIGNORE) {
       console.log(`  ${rel}/ is a local cache — add it to your gitignore if you want it untracked.`);
     } else {
-      console.log(`  ${rel}/ is git-ignored (added automatically) — a local cache; teammates run \`${cmd("graft build")}\` to get their own.`);
+      console.log(`  ${rel}/ is git-ignored (added automatically) — a local cache; teammates run \`${cmd("julius build")}\` to get their own.`);
     }
 
     // #127: a --deep run whose LLM calls failed used to print the same success
     // footer and exit 0, so a quota-exhausted build looked identical to a clean
-    // one and `graft check` still said "in sync" (it only ever checked Tier-1).
+    // one and `julius check` still said "in sync" (it only ever checked Tier-1).
     // The structural graph IS still written and every successful summary is
     // cached, so this is a loud warning about a degraded tier, not a rollback.
     if (deep) {
@@ -710,7 +659,7 @@ grouped(program.command("build"), GROUP.setup)
         if (conceptErrors.length > 0) console.error(`  ${conceptErrors.length} concept-pass error(s).`);
         console.error(`  meaning coverage: ${ready}/${total} symbols (${pct}%).`);
         console.error(
-          `  Nothing computed was lost: re-run \`${cmd("graft build --deep")}\` to resume from what is cached.\n` +
+          `  Nothing computed was lost: re-run \`${cmd("julius build --deep")}\` to resume from what is cached.\n` +
             "  Pass --allow-partial to accept a degraded meaning tier and exit 0.",
         );
         if (!opts.allowPartial) process.exitCode = 1;
@@ -724,7 +673,7 @@ function pointerFile(pointer: string): string {
 }
 
 /**
- * After `ask`, under trail: which shown learnings are a teammate's, and the
+ * After `ask`, under julius: which shown learnings are a teammate's, and the
  * shown learnings recorded as a use, which is what the team page counts as
  * reuse. Then the background upkeep that keeps branches and the workspace
  * current. Spawns no git itself. Teammates' branches come up after an edit
@@ -757,7 +706,7 @@ function afterAsk(r: AskResult, repo: string): void {
 }
 
 grouped(program.command("ask"), GROUP.find)
-  .description("Query the graft/ graph — returns ranked nodes + exact file:line, routed to prose or wiring ($0, no key)")
+  .description("Query the julius/ graph — returns ranked nodes + exact file:line, routed to prose or wiring ($0, no key)")
   .argument("<query>", "what you want to understand, in plain words")
   .argument(...DIR_ARG)
   .option("-n, --limit <n>", "max results", "8")
@@ -788,8 +737,8 @@ grouped(program.command("ask"), GROUP.find)
     }
     noteHit(r.hits.length > 0);
     // Teammates' branches on the same files, and the learnings shown, counted as a use.
-    if (TRAIL) afterAsk(r, dir);
-    // How many notes reached the agent: the demand side of `trail note`.
+    afterAsk(r, dir);
+    // How many notes reached the agent: the demand side of `julius note`.
     if (r.notesChecked) queryNote.notes = String(Math.min(r.notes?.length ?? 0, 2));
     if (opts.json) {
       console.log(JSON.stringify(r, null, 2));
@@ -816,22 +765,12 @@ grouped(program.command("skeleton"), GROUP.find)
     else process.stdout.write(formatSkeleton(r));
   });
 
-if (!TRAIL) {
-  program
-    .command("check")
-    .description("Fail if graft/ is stale relative to the code (for CI)")
-    .argument(...DIR_ARG)
-    .option("-e, --extensions <exts...>", "code extensions to include")
-    .option("--json", "output the drift as JSON")
-    .action(async (dirArg: string | undefined, opts: { extensions?: string[]; json?: boolean }) => {
-      await runCheckCommand(dirArg, opts, "graft check");
-    });
-}
-// Under trail, `check` is the team check (teamCheckCommand, with the cloud
-// commands below); the freshness check is `trail build --check`.
+;
+// Under julius, `check` is the team check (teamCheckCommand, with the cloud
+// commands below); the freshness check is `julius build --check`.
 
 /**
- * The freshness check: `graft check`, and `trail build --check`. `label` is how
+ * The freshness check: `julius check`, and `julius build --check`. `label` is how
  * the report names the command, so each name prints its own spelling.
  */
 async function runCheckCommand(
@@ -859,11 +798,11 @@ async function runCheckCommand(
     if (opts.json) {
       console.log(JSON.stringify({ context: r, graph: g.missing ? null : g }, null, 2));
     } else if (bothMissing) {
-      console.log(`${label}: NO GRAPH\n\nNo code map found. Run \`${cmd("graft build")}\` first.`);
+      console.log(`${label}: NO GRAPH\n\nNo code map found. Run \`${cmd("julius build")}\` first.`);
     } else {
       if (r.missing) {
         console.log(
-          `deep layer: not built (run \`${cmd("graft build --deep")}\` for concept nodes) — wiring graph is the source of truth`,
+          `deep layer: not built (run \`${cmd("julius build --deep")}\` for concept nodes) — wiring graph is the source of truth`,
         );
       } else {
         console.log(formatCheckReport(r, label));
@@ -874,9 +813,9 @@ async function runCheckCommand(
     if (bothMissing || markdownFail || wiringFail) process.exit(1);
 }
 
-// Under trail this is part of `status`; the old name still runs, unlisted.
+// Under julius this is part of `status`; the old name still runs, unlisted.
 program
-  .command("stats", { hidden: TRAIL })
+  .command("stats", { hidden: true })
   .description(`Show this agent session's ${brand()}-vs-source usage mix and tokens saved`)
   .argument(...DIR_ARG)
   .option("--json", "output the session stats as JSON")
@@ -894,7 +833,7 @@ program
   });
 
 program
-  .command("viz", { hidden: TRAIL })
+  .command("viz", { hidden: true })
   .description("Serve an interactive visualization of the context graph (and graph.json when present)")
   .argument(...DIR_ARG)
   .option("-p, --port <port>", "port to serve on", "4400")
@@ -919,7 +858,7 @@ program
     const globalOpts = program.opts<{ dir?: string }>();
     const contextDir = contextDirFor(root, globalOpts.dir);
     if (!existsSync(contextDir)) {
-      console.error(`✗ no context graph at ${contextDir} — run \`${cmd("graft build --deep")}\` first`);
+      console.error(`✗ no context graph at ${contextDir} — run \`${cmd("julius build --deep")}\` first`);
       process.exit(1);
     }
     const viewerDir = fileURLToPath(new URL("./viewer/", import.meta.url)); // prebuilt
@@ -936,7 +875,7 @@ program
       });
       const kb = Math.round(out.bytes / 1024);
       console.log(
-        `${cmd("graft viz")} → ${out.file} (${kb} kB, ${out.contextNodes} concept nodes, ${out.codeNodes} code nodes)`,
+        `${cmd("julius viz")} → ${out.file} (${kb} kB, ${out.contextNodes} concept nodes, ${out.codeNodes} code nodes)`,
       );
       return;
     }
@@ -947,7 +886,7 @@ program
       port: Number(opts.port),
       repoName: basename(root),
     });
-    console.log(`${cmd("graft viz")} → ${srv.url}  (ctrl-c to stop)`);
+    console.log(`${cmd("julius viz")} → ${srv.url}  (ctrl-c to stop)`);
     if (opts.open) {
       const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
       spawn(opener, [srv.url], { stdio: "ignore", detached: true, shell: process.platform === "win32" }).unref();
@@ -955,8 +894,8 @@ program
   });
 
 program
-  .command("mcp", { hidden: TRAIL })
-  .description("Serve the graph over MCP (stdio) — exposes graft_find_code, graft_trace_calls, graft_find_all, graft_file_api, graft_repo_map and graft_check_freshness as tools")
+  .command("mcp", { hidden: true })
+  .description("Serve the graph over MCP (stdio) — exposes julius_find_code, julius_trace_calls, julius_find_all, julius_file_api, julius_repo_map and julius_check_freshness as tools")
   .argument(...DIR_ARG)
   .action(async (dirArg: string | undefined) => {
     const dir = noteQuery(queryRoot(dirArg));
@@ -1015,7 +954,7 @@ grouped(program.command("blast"), GROUP.ci)
   .option("--base <ref>", "diff against this ref's merge base with HEAD (e.g. origin/main); default: the working tree vs HEAD")
   .option("-d, --depth <n>", 'hops to walk over incoming edges, or "all" for the full closure (default 2)')
   .option("--format <fmt>", "text (default) | markdown | mermaid | json")
-  .option("--name", "name the affected areas with one cached LLM call (needs GRAFT_API_KEY); without it, areas are named after their hub symbol")
+  .option("--name", "name the affected areas with one cached LLM call (needs JULIUS_API_KEY); without it, areas are named after their hub symbol")
   .option("--export-viz <dir>", "also write the interactive page for this radius (one self-contained index.html — for CI, GitHub Pages, or an artifact)")
   .option("--title <text>", "subtitle beside the repo name on the exported page (e.g. \"PR #171\")")
   .option("--no-owners", "do not suggest who to tag (by default, git history names the people behind each affected area)")
@@ -1104,7 +1043,7 @@ grouped(program.command("map"), GROUP.find)
     const contextDir = contextDirFor(root, globalOpts.dir);
     const graph = loadGraphCached(contextDir);
     if (!graph) {
-      console.error(`✗ no graph — run ${cmd("graft build")} first`);
+      console.error(`✗ no graph — run ${cmd("julius build")} first`);
       process.exit(1);
       return;
     }
@@ -1116,14 +1055,14 @@ grouped(program.command("map"), GROUP.find)
     process.stdout.write(formatRepoMap(map));
   });
 
-// `trail note`: what a session worked out, saved for the next person. Listed
-// under trail; under graft it still runs, unlisted, for a teammate on graft in
-// a repo where someone else set up trail.
-grouped(program.command("note", { hidden: !TRAIL }), GROUP.memory)
-  .description("Save what this session decided, tried and ruled out, as a learning in the repo's .trail/learnings/ (the text on stdin)")
+// `julius note`: what a session worked out, saved for the next person. Listed
+// under julius; under julius it still runs, unlisted, for a teammate on julius in
+// a repo where someone else set up julius.
+grouped(program.command("note", { hidden: false }), GROUP.memory)
+  .description("Save what this session decided, tried and ruled out, as a learning in the repo's .julius/learnings/ (the text on stdin)")
   .requiredOption("--title <text>", "what the session was about, in a few words")
   .option("-m, --body <text>", "the learning itself, instead of stdin")
-  .option("--personal", "about your own setup or habits, not the code: keep it in ~/.trail, out of the repo")
+  .option("--personal", "about your own setup or habits, not the code: keep it in ~/.julius, out of the repo")
   .option("--touches <list>", "comma-separated files or file#Symbol it's about (default: the files this session changed, in every repo it changed)")
   .option("--author <name>", "who wrote it (default: the first word of git config user.name)")
   .option("--minutes <n>", "what it took to work out, when the agent's transcript can't say")
@@ -1134,12 +1073,12 @@ grouped(program.command("note", { hidden: !TRAIL }), GROUP.memory)
     await runNoteCommand(resolve(dir), opts);
   });
 
-// `trail learn` and `trail skills`: corrections become takeaways on a skill,
+// `julius learn` and `julius skills`: corrections become takeaways on a skill,
 // kept on this machine, and takeaways fold into its SKILL.md. Unlisted under
-// graft, like `note`, but they run.
-// Still runs; unlisted while learnings are the one thing trail keeps.
+// julius, like `note`, but they run.
+// Still runs; unlisted while learnings are the one thing julius keeps.
 grouped(program.command("learn", { hidden: true }), GROUP.memory)
-  .description("Turn a correction into a takeaway on a skill, kept in ~/.trail (the takeaway on stdin)")
+  .description("Turn a correction into a takeaway on a skill, kept in ~/.julius (the takeaway on stdin)")
   .argument("<skill>", "the skill it belongs to, e.g. pdf-coords; a new name makes a new skill")
   .argument("[dir]", "repository root", ".")
   .option("-m, --text <text>", "the takeaway itself, instead of stdin")
@@ -1151,7 +1090,7 @@ grouped(program.command("learn", { hidden: true }), GROUP.memory)
     const text = (opts.text ?? (await readStdin())).trim();
     if (!text) {
       console.error(`✗ a takeaway needs its text, on stdin or with -m:`);
-      console.error(`  ${cmd("graft learn")} ${skill} <<'EOF'\n  Read rotation with page.Rotation(), never pdfcpu: it drops /Rotate on linearized files.\n  EOF`);
+      console.error(`  ${cmd("julius learn")} ${skill} <<'EOF'\n  Read rotation with page.Rotation(), never pdfcpu: it drops /Rotate on linearized files.\n  EOF`);
       process.exitCode = 1;
       return;
     }
@@ -1168,7 +1107,7 @@ grouped(program.command("learn", { hidden: true }), GROUP.memory)
     const kind = r.created ? "new skill" : r.skill.where === "repo" ? "the repo's skill" : "skill";
     console.log(`✓ takeaway saved to ${kind} ${r.skill.name}${author ? ` · taught by ${author}` : ""}`);
     console.log(`· your agent follows it from now on · kept on this machine, in ${shownPath(dirname(dirname(r.takeaway.path)))}`);
-    console.log(`· ${cmd("graft skills")} fold ${r.skill.name} writes it into SKILL.md`);
+    console.log(`· ${cmd("julius skills")} fold ${r.skill.name} writes it into SKILL.md`);
   });
 
 const skillsCmd = grouped(program.command("skills", { hidden: true }), GROUP.memory)
@@ -1183,7 +1122,7 @@ const skillsCmd = grouped(program.command("skills", { hidden: true }), GROUP.mem
       return;
     }
     if (all.length === 0) {
-      console.log(`no skills yet · ${cmd("graft learn")} <skill> saves the first takeaway and makes the skill`);
+      console.log(`no skills yet · ${cmd("julius learn")} <skill> saves the first takeaway and makes the skill`);
       return;
     }
     const width = Math.max(...all.map((s) => s.name.length)) + 2;
@@ -1192,7 +1131,7 @@ const skillsCmd = grouped(program.command("skills", { hidden: true }), GROUP.mem
 
 /** `✗ no skill called x` and the exit code, for a name that isn't one. */
 function noSuchSkill(name: string): void {
-  console.error(`✗ no skill called ${skillName(name)} · ${cmd("graft skills")} lists them`);
+  console.error(`✗ no skill called ${skillName(name)} · ${cmd("julius skills")} lists them`);
   process.exitCode = 1;
 }
 
@@ -1237,7 +1176,7 @@ skillsCmd
       return;
     }
     if (inRepo) console.log("· review with git diff, then commit");
-    else console.log(`· ${cmd("graft skills")} publish <skill> moves a skill into the repo's .claude/skills/, to commit for your team`);
+    else console.log(`· ${cmd("julius skills")} publish <skill> moves a skill into the repo's .claude/skills/, to commit for your team`);
   });
 
 skillsCmd
@@ -1274,14 +1213,12 @@ skillsCmd
       return;
     }
     for (const t of done) console.log(`✓ confirmed ${t.taughtBy || "a"}'s takeaway from ${shortDate(t.date)} · ${shownPath(t.path)}`);
-    console.log(`· ${cmd("graft skills")} fold ${skillName(skill)} writes it into SKILL.md`);
+    console.log(`· ${cmd("julius skills")} fold ${skillName(skill)} writes it into SKILL.md`);
   });
 
 grouped(program.command("init"), GROUP.setup)
   .description(
-    TRAIL
-      ? "Wire trail into your agents: instruction files and MCP for each, plus hooks and a statusline for Claude Code"
-      : "Wire Graft into the AI coding agents used with this repo (instruction files + MCP server; full hooks + statusline + MCP for Claude Code)",
+    "Wire julius into your agents: instruction files and MCP for each, plus hooks and a statusline for Claude Code",
   )
   .argument("[dir]", "target repo directory", ".")
   .option("--no-build", "skip building the graph (wire files only)")
@@ -1323,7 +1260,7 @@ async function runNoteCommand(repo: string, opts: NoteOptions): Promise<void> {
   const body = (opts.body ?? (await readStdin())).trim();
   if (!opts.title.trim() || !body) {
     console.error(`✗ a learning needs a --title and a body, on stdin or with -m:`);
-    console.error(`  ${cmd("graft note")} --title "What it was about" <<'EOF'`);
+    console.error(`  ${cmd("julius note")} --title "What it was about" <<'EOF'`);
     console.error("  ## Decided\n  …\n  ## Tried and ruled out\n  …\n  ## Watch out\n  …\n  EOF");
     process.exitCode = 1;
     return;
@@ -1400,14 +1337,14 @@ async function runNoteCommand(repo: string, opts: NoteOptions): Promise<void> {
     // Who else works on these files, for the case for committing it.
     const lines = commitLines(note, teammatesOn(repo, [...files].filter((f): f is string => !!f)));
     console.log(`${lines.uncommitted} · git add ${repoSaved.map(notePlace).join(" ")}`);
-    if (!process.stdout.isTTY && TRAIL)
+    if (!process.stdout.isTTY)
       console.log(
-        `[trail] Close your reply with one line, word for word. If this learning is committed by the end of your turn: ${lines.committed}\n` +
+        `[julius] Close your reply with one line, word for word. If this learning is committed by the end of your turn: ${lines.committed}\n` +
           `  If it isn't: ${lines.uncommitted}`,
       );
   } else {
     console.log("· just for you: kept on this machine, out of the repo");
-    if (!process.stdout.isTTY && TRAIL) console.log(`[trail] Close your reply with this line, word for word: ${PERSONAL_SAVED_LINE}`);
+    if (!process.stdout.isTTY) console.log(`[julius] Close your reply with this line, word for word: ${PERSONAL_SAVED_LINE}`);
   }
   for (const t of targets) {
     rememberRepo(t.dir);
@@ -1421,7 +1358,7 @@ function printLines(lines: string[]): void {
   if (lines.length) console.log(`\n${lines.join("\n")}`);
 }
 
-/** `graft init`'s flags, as commander hands them over. */
+/** `julius init`'s flags, as commander hands them over. */
 interface InitOptions { build?: boolean; agents?: string[]; allAgents?: boolean; listAgents?: boolean; mcp?: boolean; hooks?: boolean; statusline?: boolean; dryRun?: boolean; yes?: boolean; global?: boolean; verbose?: boolean }
 
 /** Repo-relative with forward slashes, for printing. */
@@ -1429,7 +1366,7 @@ function shown(repo: string, path: string): string {
   return relative(repo, path).split("\\").join("/");
 }
 
-/** `graft init`. */
+/** `julius init`. */
 async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: string[] } | null> {
     if (opts.listAgents) {
       for (const id of [...hostIds(), "claude"]) console.log(id);
@@ -1522,27 +1459,26 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
     const wantClaude = ids.includes("claude");
     const cliPath = fileURLToPath(import.meta.url);
 
-    // Under trail, each repo gets its `.trail/learnings/`, committed with the
-    // code, and its folder in ~/.trail for personal learnings and corrections.
+    // Under julius, each repo gets its `.julius/learnings/`, committed with the
+    // code, and its folder in ~/.julius for personal learnings and corrections.
     // First, before the reads below send their first event: that makes the
-    // repo one on trail, so the event's repo id lands in `.trail/cache/` and
-    // not in a `graft/` that nothing ignores.
+    // repo one on julius, so the event's repo id lands in `.julius/cache/` and
+    // not in a `julius/` that nothing ignores.
     const notesHome = new Map<string, { created: boolean; dir: string }>();
-    if (TRAIL)
-      for (const target of targets) {
+    for (const target of targets) {
         const { place } = ensureRepoHome(target);
-        const created = place.git ? ensureRepoTrail(place.checkout) : false;
+        const created = place.git ? ensureRepoJulius(place.checkout) : false;
         notesHome.set(target, { created, dir: place.git ? place.checkout : place.dir });
         if (place.git) maybeRefreshBranches(place.checkout);
       }
 
-    // Under trail, with Claude Code picked: what the person kept telling Claude
+    // Under julius, with Claude Code picked: what the person kept telling Claude
     // in this repo's past sessions, and what reviewers kept flagging on its
     // merged PRs, read while the rest of init runs and saved as learnings at
     // the end. Once per repo, and never asked about first.
-    const pastRead = TRAIL && wantClaude ? beginPastRead(repo) : null;
+    const pastRead = wantClaude ? beginPastRead(repo) : null;
     if (pastRead) console.error(`· reading your ${pastRead.sessions} past Claude sessions here for what you keep telling Claude`);
-    const reviewRead = TRAIL && wantClaude ? beginReviewRead(repo) : null;
+    const reviewRead = wantClaude ? beginReviewRead(repo) : null;
     if (reviewRead) console.error("· reading review comments on this repo's merged PRs for what reviewers keep flagging");
 
     if (children.length)
@@ -1570,13 +1506,13 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
       } else if (res.built) {
         graphLine = "✓ graph built";
       } else if (res.failed) {
-        graphLine = `⚠ the graph build failed — run ${cmd("graft build")} to see why`;
+        graphLine = `⚠ the graph build failed — run ${cmd("julius build")} to see why`;
       } else if (existing) {
         graphLine = `✓ graph ready · ${fmt(existing.meta.nodeCount)} nodes, ${fmt(existing.meta.edgeCount)} edges`;
-      } else if (hasGraftIndex(repo)) {
+      } else if (hasJuliusIndex(repo)) {
         graphLine = "✓ graph ready";
       } else {
-        graphLine = `· skipped the graph build — run ${cmd("graft build")}`;
+        graphLine = `· skipped the graph build — run ${cmd("julius build")}`;
       }
     }
 
@@ -1595,10 +1531,10 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
       }
     }
 
-    // Under trail: what init learned from past sessions and PR reviews, where
+    // Under julius: what init learned from past sessions and PR reviews, where
     // this repo's learnings are, and how many there already are.
     let learnedNow = false;
-    if (TRAIL && (pastRead || reviewRead)) {
+    if ((pastRead || reviewRead)) {
       if (pastRead && !pastRead.done) console.error("· still reading your past sessions…");
       const fromSessions = pastRead ? (await pastRead.result).findings : [];
       if (reviewRead && !reviewRead.done) console.error("· still reading PR reviews…");
@@ -1634,11 +1570,11 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
             console.error(`    ${note.scope === "personal" ? "just for you " : "for your team"} · ${count}${note.title}`);
           });
         } else if (cancelled) {
-          console.error(`· saved none of the ${offered} things you told Claude more than once; ${cmd("graft init")} again asks again`);
+          console.error(`· saved none of the ${offered} things you told Claude more than once; ${cmd("julius init")} again asks again`);
         } else if (offered) {
           console.error(`· kept none of the ${offered} things you told Claude more than once`);
         } else if (result.reason === "failed") {
-          console.error(`· couldn't read your past sessions this time; ${cmd("graft init")} again tries again`);
+          console.error(`· couldn't read your past sessions this time; ${cmd("julius init")} again tries again`);
         }
         learned.push(...saved);
       }
@@ -1652,11 +1588,11 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
           // saveReviewFindings keeps the findings' order.
           saved.forEach((note, i) => console.error(`    for your team · flagged in review on ${kept[i]?.prs.length ?? 2} PRs: ${note.title}`));
         } else if (cancelled) {
-          console.error(`· saved none of the ${offered} things reviewers flagged; ${cmd("graft init")} again asks again`);
+          console.error(`· saved none of the ${offered} things reviewers flagged; ${cmd("julius init")} again asks again`);
         } else if (offered) {
           console.error(`· kept none of the ${offered} things reviewers flagged`);
         } else if (result.reason === "failed") {
-          console.error(`· couldn't read PR reviews this time; ${cmd("graft init")} again tries again`);
+          console.error(`· couldn't read PR reviews this time; ${cmd("julius init")} again tries again`);
         }
         learned.push(...saved);
       }
@@ -1666,7 +1602,7 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
         if (learned.some((s) => s.scope === "repo")) console.error(commitLines({}, teammatesOn(repo), "repo").uncommitted);
       }
     }
-    if (TRAIL && !learnedNow) {
+    if (!learnedNow) {
       const home = notesHome.get(repo);
       if (home) {
         const learnings = listNotes(repo, { branches: false }).filter((n) => n.scope === "repo");
@@ -1681,14 +1617,14 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
       for (const w of selectedWrites(plan, ids)) {
         if (w.scope !== "repo") continue;
         const rel = shown(repo, w.path);
-        // trail's Claude Code setup shares one file in .claude/; the rest there is personal.
-        if (TRAIL && rel.startsWith(".claude/") && rel !== ".claude/settings.json") continue;
+        // julius's Claude Code setup shares one file in .claude/; the rest there is personal.
+        if (rel.startsWith(".claude/") && rel !== ".claude/settings.json") continue;
         const parts = rel.split("/");
-        const top = TRAIL && rel === ".claude/settings.json" ? rel : parts.length > 1 ? `${parts[0]}/` : parts[0]!;
+        const top = rel === ".claude/settings.json" ? rel : parts.length > 1 ? `${parts[0]}/` : parts[0]!;
         if (!tops.includes(top)) tops.push(top);
       }
       console.error(`· restart your agents so a new session picks up ${brand()}`);
-      if (TRAIL && !tops.includes(".trail/")) tops.push(".trail/");
+      if (!tops.includes(".julius/")) tops.push(".julius/");
       // Only what git sees as new or changed: a teammate's init over committed files has nothing to commit.
       const changedTops = tops.filter((t) => {
         const r = spawnSync("git", ["status", "--porcelain", "--", t], { cwd: repo, encoding: "utf8" });
@@ -1697,12 +1633,10 @@ async function runInitCommand(dir: string, opts: InitOptions): Promise<{ ids: st
       tops.splice(0, tops.length, ...changedTops);
       // Outside git there is nothing to commit to, and `git status` failing above
       // made every path look changed.
-      if (TRAIL && !children.length && !isGitWorkTree(repo)) console.error(NOT_GIT_LINE);
+      if (!children.length && !isGitWorkTree(repo)) console.error(NOT_GIT_LINE);
       else if (tops.length)
         console.error(
-          TRAIL
-            ? `· commit ${tops.slice(0, 5).join(" and ")}${tops.length > 5 ? ` +${tops.length - 5} more` : ""} once — after that, teammates' Claude reads your learnings even before they install trail`
-            : `· commit ${tops.slice(0, 5).join(" ")}${tops.length > 5 ? ` +${tops.length - 5} more` : ""} to share it — graft/ stays local and git-ignored`,
+          `· commit ${tops.slice(0, 5).join(" and ")}${tops.length > 5 ? ` +${tops.length - 5} more` : ""} once — after that, teammates' Claude reads your learnings even before they install julius`,
         );
     }
 
@@ -1784,14 +1718,14 @@ function wireTarget(
       for (const s of res.shims) say(`✓ wrote ${s}`);
       if (res.skill) say(`✓ wrote ${res.skill}`);
       if (!res.mcp) {
-        // trail registers no server for Claude Code: the hooks and the `trail` command cover it.
+        // julius registers no server for Claude Code: the hooks and the `julius` command cover it.
       } else if (res.mcp.action === "skipped-unparseable")
-        say(`⚠ .mcp.json: ${res.mcp.path} left unchanged (not valid JSON) — add the graft server manually`);
+        say(`⚠ .mcp.json: ${res.mcp.path} left unchanged (not valid JSON) — add the julius server manually`);
       else if (res.mcp.action === "unchanged")
         say(`· mcp claude: ${res.mcp.path} (already registered)`);
       else
-        say(`✓ mcp claude: ${res.mcp.path} (${res.mcp.action}) — restart Claude Code to load the graft MCP server`);
-      say(res.built ? `✓ built the graph (${cmd("graft build")})` : "· skipped graph build");
+        say(`✓ mcp claude: ${res.mcp.path} (${res.mcp.action}) — restart Claude Code to load the julius MCP server`);
+      say(res.built ? `✓ built the graph (${cmd("julius build")})` : "· skipped graph build");
       if (!wantStatusline) say("· skipped Claude Code statusLine (--no-statusline)");
       for (const w of res.warnings) say(`⚠ ${w}`);
     }
@@ -1816,7 +1750,7 @@ function wireTarget(
         say("· skipped out-of-repo writes (--no-global)");
     }
 
-    // Record WHICH graft wrote this repo's agent files, and under which flags.
+    // Record WHICH julius wrote this repo's agent files, and under which flags.
     // Every entry point compares this against the running binary and re-writes
     // them on a mismatch, so an `npm i -g` upgrade reaches the hooks/skill/rules
     // too — not just the binary. The flags ride along so a refresh replays the
@@ -1828,13 +1762,13 @@ function wireTarget(
       statusline: wantStatusline,
     });
 
-    // Every host's wiring points at graft/, so the graph is built whatever was
+    // Every host's wiring points at julius/, so the graph is built whatever was
     // selected — not only when Claude Code is in the list (runInit does its own).
     if (!wantClaude) {
       if (!quiet)
         say(
           buildGraphIfMissing(repo, { build: opts.build, cliPath })
-            ? `✓ built the graph (${cmd("graft build")})`
+            ? `✓ built the graph (${cmd("julius build")})`
             : "· skipped graph build",
         );
     }
@@ -1844,7 +1778,7 @@ function wireTarget(
 /** Group a retraction report by host, so the output reads as "what leaves each agent". */
 function formatRetractions(rs: Retraction[], apply: boolean): string {
   const hit = changed(rs);
-  if (hit.length === 0) return "· nothing to remove — no graft wiring found here";
+  if (hit.length === 0) return "· nothing to remove — no julius wiring found here";
   const verb = apply ? "removed" : "would remove";
   const lines: string[] = [];
   const byHost = new Map<string, Retraction[]>();
@@ -1864,7 +1798,7 @@ function formatRetractions(rs: Retraction[], apply: boolean): string {
             : "~";
       const note =
         r.action === "skipped-unparseable"
-          ? " — not valid JSON, left untouched (remove the graft entry by hand)"
+          ? " — not valid JSON, left untouched (remove the julius entry by hand)"
           : r.action === "deleted"
             ? ` (${r.what} — deleted)`
             : ` (${r.what})`;
@@ -1876,10 +1810,10 @@ function formatRetractions(rs: Retraction[], apply: boolean): string {
 }
 
 grouped(program.command("uninstall"), GROUP.setup)
-  .description(`Remove every file and config entry ${TRAIL ? "trail or graft" : "graft"} has written to this repo (the inverse of init)`)
+  .description(`Remove every file and config entry ${"julius"} has written to this repo (the inverse of init)`)
   .argument("[dir]", "target repo directory", ".")
   .option("-y, --yes", "actually remove (without this, prints what it would remove and exits)")
-  .option("--keep-cache", "keep graft/ and the .gitignore entries — wiring only")
+  .option("--keep-cache", "keep julius/ and the .gitignore entries — wiring only")
   .option("--no-global", "leave out-of-repo files alone (~/.codex, ~/.gemini)")
   .action((dir: string, opts: { yes?: boolean; keepCache?: boolean; global?: boolean }) => {
     const repo = resolve(dir);
@@ -1899,36 +1833,36 @@ grouped(program.command("uninstall"), GROUP.setup)
     console.error(
       bad.length
         ? `\n⚠ ${bad.length} file(s) could not be parsed and were left as-is — see above.`
-        : `\n✓ ${brand()} fully removed. \`${cmd("graft init")}\` re-wires from scratch.`,
+        : `\n✓ ${brand()} fully removed. \`${cmd("julius init")}\` re-wires from scratch.`,
     );
   });
 
 
 /* -------------------------------------------------------------------------- */
-/* trail login · logout · workspace                                           */
+/* julius login · logout · workspace                                           */
 /* -------------------------------------------------------------------------- */
 
 /**
- * `trail login`: connect this machine to a Trail workspace by hand. Normally
+ * `julius login`: connect this machine to a Julius workspace by hand. Normally
  * nobody runs it: Claude offers the same link once there's a learning to
  * share. Prints the link, opens it, and waits for the person to sign in and
  * pick repos, then uploads those repos' learnings.
  */
 function loginCommand(name = "login"): Command {
   return new Command(name)
-    .description("Connect this machine to a Trail workspace: sign in, pick the repos it gets, invite your team")
+    .description("Connect this machine to a Julius workspace: sign in, pick the repos it gets, invite your team")
     .argument("[dir]", "the repo you're in, ticked first in the picker", ".")
-    .option("--server <url>", "a self-hosted Trail, e.g. https://trail.acme.internal (default: Trail cloud)")
+    .option("--server <url>", "a self-hosted Julius, e.g. https://julius.acme.internal (requires JULIUS_URL; no hosted service is configured)")
     .action(async (dir: string, opts: { server?: string }) => {
       const repo = resolve(dir);
       const server = opts.server?.trim().replace(/\/+$/, "");
       if (server) {
         if (!/^https?:\/\//.test(server)) {
-          console.error(`✗ --server takes a URL, like https://trail.acme.internal`);
+          console.error(`✗ --server takes a URL, like https://julius.acme.internal`);
           process.exitCode = 1;
           return;
         }
-        process.env.TRAIL_URL = server;
+        process.env.JULIUS_URL = server;
       }
       const cloud = readCloud();
       if (cloud) {
@@ -1943,7 +1877,7 @@ function loginCommand(name = "login"): Command {
       const got = await waitForConnect({ waitMs: 10 * 60 * 1000 });
       if (got && "cloud" in got) printLines(cloudLines(repo, { command: "note", agent: false }));
       else if (got && "error" in got) {
-        console.error(`✗ ${got.error} · run ${cmd("graft login")} again for a new link`);
+        console.error(`✗ ${got.error} · run ${cmd("julius login")} again for a new link`);
         process.exitCode = 1;
       } else console.error(`· not connected yet · the link stays good for a day`);
     });
@@ -1951,7 +1885,7 @@ function loginCommand(name = "login"): Command {
 
 function logoutCommand(name = "logout"): Command {
   return new Command(name)
-    .description("Disconnect this machine from its Trail workspace (learnings stay in your repos)")
+    .description("Disconnect this machine from its Julius workspace (learnings stay in your repos)")
     .action(() => {
       const cloud = readCloud();
       clearPending();
@@ -1959,7 +1893,7 @@ function logoutCommand(name = "logout"): Command {
         console.error("· not connected to a workspace");
         return;
       }
-      console.error(`✓ disconnected from workspace ${cloud?.workspace.name ?? ""} · learnings stay in your repos' .trail/`.replace("  ", " "));
+      console.error(`✓ disconnected from workspace ${cloud?.workspace.name ?? ""} · learnings stay in your repos' .julius/`.replace("  ", " "));
     });
 }
 
@@ -1971,7 +1905,7 @@ function workspaceRepo(repo: string): { key: string; name: string; checkout: str
 
 function workspaceCommand(name = "workspace"): Command {
   const ws = new Command(name)
-    .description("Your Trail workspace: its repos, the team page and the invite link")
+    .description("Your Julius workspace: its repos, the team page and the invite link")
     .argument("[dir]", "repository root", ".")
     .option("--json", "output as JSON")
     .action(async (dir: string, opts: { json?: boolean }) => {
@@ -1979,7 +1913,7 @@ function workspaceCommand(name = "workspace"): Command {
       const cloud = readCloud();
       if (!cloud) {
         console.log("· not connected to a workspace");
-        console.log(`· Claude offers a link once this repo has learnings, or run ${cmd("graft login")}`);
+        console.log(`· Claude offers a link once this repo has learnings, or run ${cmd("julius login")}`);
         return;
       }
       const me = await fetchMe(cloud);
@@ -2004,7 +1938,7 @@ function workspaceCommand(name = "workspace"): Command {
         console.log(`  ✓ ${r.name.padEnd(width)}${r.learnings} learning${r.learnings === 1 ? "" : "s"}${by}`);
       }
       if (here.git && !me.repos.some((r) => r.key === here.key)) {
-        console.log(`  · ${here.name.padEnd(width)}not in the workspace · ${cmd("graft workspace add")} shares its learnings`);
+        console.log(`  · ${here.name.padEnd(width)}not in the workspace · ${cmd("julius workspace add")} shares its learnings`);
       }
     });
   ws.command("add")
@@ -2014,7 +1948,7 @@ function workspaceCommand(name = "workspace"): Command {
       const repo = resolve(dir);
       const cloud = readCloud();
       if (!cloud) {
-        console.error(`✗ not connected to a workspace · run ${cmd("graft login")}`);
+        console.error(`✗ not connected to a workspace · run ${cmd("julius login")}`);
         process.exitCode = 1;
         return;
       }
@@ -2045,7 +1979,7 @@ function workspaceCommand(name = "workspace"): Command {
 }
 
 /* -------------------------------------------------------------------------- */
-/* trail team · trail check                                                   */
+/* julius team · julius check                                                   */
 /* -------------------------------------------------------------------------- */
 
 /** Fold a long line at `width`, indenting what wraps. */
@@ -2122,7 +2056,7 @@ function branchOverlapTexts(repo: string, now = Date.now()): string[] {
       const a = branches[i]!;
       const b = branches[j]!;
       if (!a.author || !b.author || a.author === b.author) continue;
-      const shared = a.files.filter((f) => !f.startsWith(".trail/") && b.files.includes(f));
+      const shared = a.files.filter((f) => !f.startsWith(".julius/") && b.files.includes(f));
       if (!shared.length) continue;
       const files = shared.length <= 2 ? shared.join(" and ") : `${shared.slice(0, 2).join(", ")} and ${shared.length - 2} more`;
       out.push(
@@ -2135,7 +2069,7 @@ function branchOverlapTexts(repo: string, now = Date.now()): string[] {
 }
 
 /**
- * `trail team` before this machine is connected: what this clone can see on
+ * `julius team` before this machine is connected: what this clone can see on
  * its own. Who wrote which learnings lately, and where teammates' pushed
  * branches overlap. Reuse and the team page need the workspace.
  */
@@ -2165,7 +2099,7 @@ function localTeam(repo: string, days: number, json: boolean): void {
     console.log("\noverlap");
     for (const o of overlaps) for (const [i, l] of wrap(o, 66, "    ").entries()) console.log(i === 0 ? `  ● ${l}` : l);
   }
-  console.log("\n· reuse and the team page, across your repos, are in a Trail workspace");
+  console.log("\n· reuse and the team page, across your repos, are in a Julius workspace");
   printLines(cloudLines(repo, { command: "check" }));
 }
 
@@ -2180,17 +2114,17 @@ function teamCheckCommand(name = "check"): Command {
     });
 }
 
-/** A unified diff without the sections for `.trail/` files: a learning is never the change being checked. */
-function withoutTrailFiles(diff: string): string {
+/** A unified diff without the sections for `.julius/` files: a learning is never the change being checked. */
+function withoutJuliusFiles(diff: string): string {
   return diff
     .split(/(?=^diff --git )/m)
-    .filter((part) => !/^diff --git a\/\.trail\//.test(part))
+    .filter((part) => !/^diff --git a\/\.julius\//.test(part))
     .join("");
 }
 
 /**
- * `trail check`, on this machine: the branch's diff against the learnings in
- * the repo's `.trail/` (teammates' pushed branches included), this person's
+ * `julius check`, on this machine: the branch's diff against the learnings in
+ * the repo's `.julius/` (teammates' pushed branches included), this person's
  * own, and the repo's skills. No sign-in, no server. Exits 1 on a conflict.
  */
 async function runTeamCheck(repo: string, opts: { base?: string; json?: boolean }): Promise<void> {
@@ -2200,7 +2134,7 @@ async function runTeamCheck(repo: string, opts: { base?: string; json?: boolean 
     process.exitCode = 1;
     return;
   }
-  const files = d.files.filter((f) => !f.startsWith(".trail/"));
+  const files = d.files.filter((f) => !f.startsWith(".julius/"));
   const me = noteAuthor(repo);
   // Learnings this branch changed, as they were before it: the check reads those,
   // and changing a teammate's is a finding of its own.
@@ -2212,7 +2146,7 @@ async function runTeamCheck(repo: string, opts: { base?: string; json?: boolean 
   }
   maybeRefreshBranches(repo);
   if (d.truncated) console.error("⚠ the diff is over 400 KB; only the first 400 KB is checked");
-  const r = checkLocally({ diff: withoutTrailFiles(d.diff), files, notes: withBaseLearnings(listNotes(repo), atBase), skills: listSkills(repo), asker: me });
+  const r = checkLocally({ diff: withoutJuliusFiles(d.diff), files, notes: withBaseLearnings(listNotes(repo), atBase), skills: listSkills(repo), asker: me });
   r.findings.unshift(...edits);
   const sources = r.findings.map((f) => f.source).filter((s) => s.path);
   recordActivity({
@@ -2285,7 +2219,7 @@ function shortCount(n: number): string {
 }
 
 /**
- * `trail status`: what was `graft stats`, on one
+ * `julius status`: what was `julius stats`, on one
  * screen. The code map and whether it matches the code, the learnings for
  * this repo, the workspace, and what the agents saved this week.
  */
@@ -2325,7 +2259,7 @@ function statusCommand(name = "status"): Command {
       }
       const fmt = (x: number) => x.toLocaleString("en-US");
       const row = (k: string, v: string) => console.log(`${k.padEnd(11)} ${v}`);
-      if (!graph) row("code map", `✗ not built · run ${cmd("graft build")}`);
+      if (!graph) row("code map", `✗ not built · run ${cmd("julius build")}`);
       else if (fresh === false) row("code map", `⚠ ${fmt(graph.meta.nodeCount)} nodes · behind the code, refreshed on the next query`);
       else row("code map", `✓ ${fmt(graph.meta.nodeCount)} nodes · in sync with the code`);
       if (kept) {
@@ -2339,15 +2273,15 @@ function statusCommand(name = "status"): Command {
       } else
         row(
           "workspace",
-          `${cloud.workspace.name} · ${cloud.repos.length} repo${cloud.repos.length === 1 ? "" : "s"}${shared ? ", this one included" : `, not this one (${cmd("graft workspace add")})`} · ${cloud.workspace.url}`,
+          `${cloud.workspace.name} · ${cloud.repos.length} repo${cloud.repos.length === 1 ? "" : "s"}${shared ? ", this one included" : `, not this one (${cmd("julius workspace add")})`} · ${cloud.workspace.url}`,
         );
       row("this week", saved > 0 ? `~${shortCount(saved)} tokens saved` : "nothing saved yet");
     });
 }
 
-if (TRAIL) {
+{
   for (const c of [teamCheckCommand(), teamCommand()]) program.addCommand(c.helpGroup(GROUP.memory));
-  // Signing in waits until it gives a team more than committing .trail/ does.
+  // Signing in waits until it gives a team more than committing .julius/ does.
   for (const c of [workspaceCommand(), loginCommand(), logoutCommand()]) program.addCommand(c.helpGroup(GROUP.cloud), { hidden: !cloudEnabled() });
   program.addCommand(statusCommand().helpGroup(GROUP.setup));
 
@@ -2359,31 +2293,31 @@ if (TRAIL) {
   };
   (program.commands as Command[]).sort((a, b) => rank(a) - rank(b));
 
-  // One line each in the list; `trail <command> --help` keeps the long text.
+  // One line each in the list; `julius <command> --help` keeps the long text.
   const summaries: Record<string, string> = {
     ask: "ranked answer, with the code inlined at each file:line",
     grep: "every occurrence, grouped by enclosing symbol",
     skeleton: "a file's whole API in ~200 tokens",
     callers: "who calls it, or what it calls with --direction out",
     map: "directory clusters, hubs and hotspots",
-    note: "save what this session worked out, as a learning in .trail/",
+    note: "save what this session worked out, as a learning in .julius/",
     learn: "turn a correction into a takeaway on a skill",
     skills: "list skills, show one, fold takeaways in, publish to the repo",
-    init: "wire trail into your agents",
+    init: "wire julius into your agents",
     build: "rebuild the code map · --check fails if it's stale",
     status: "code map, learnings and tokens saved",
-    upgrade: "install the latest trail",
-    uninstall: "remove everything trail or graft wrote to this repo",
+    upgrade: "install the latest julius",
+    uninstall: "remove everything julius wrote to this repo",
     telemetry: "show or turn off the anonymous usage stats",
     check: "check your diff against everything the team has learned",
     team: "what the team learned this week, and where work overlaps",
     workspace: "your workspace's repos, team page and invite link",
-    login: "connect a Trail workspace (Claude offers you the link)",
+    login: "connect a Julius workspace (Claude offers you the link)",
     logout: "disconnect this machine from its workspace",
     blast: "what depends on the lines this diff touched",
   };
   for (const c of program.commands) if (summaries[c.name()]) c.summary(summaries[c.name()]!);
-  program.addHelpText("after", "\ntrail <command> --help for flags · every graft command still works");
+  program.addHelpText("after", "\njulius <command> --help for flags");
 }
 
 program.parseAsync(process.argv).catch((err) => {

@@ -34,8 +34,9 @@ before(async () => {
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   port = (server.address() as { port: number }).port;
-  process.env.GRAFT_POSTHOG_KEY = 'phc_send_test';
-  process.env.GRAFT_POSTHOG_HOST = `http://127.0.0.1:${port}`;
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test';
+  process.env.JULIUS_POSTHOG_KEY = 'phc_send_test';
+  process.env.JULIUS_POSTHOG_HOST = `http://127.0.0.1:${port}`;
 });
 
 after(() => { server.close(); });
@@ -81,10 +82,10 @@ test('a 500 is reported so the queue keeps the batch', async () => {
 
 test('an unreachable host is a transport error, not a path problem', async () => {
   reset();
-  const saved = process.env.GRAFT_POSTHOG_HOST;
-  process.env.GRAFT_POSTHOG_HOST = 'http://127.0.0.1:1';
+  const saved = process.env.JULIUS_POSTHOG_HOST;
+  process.env.JULIUS_POSTHOG_HOST = 'http://127.0.0.1:1';
   const res = await sendBatch(EVENTS);
-  process.env.GRAFT_POSTHOG_HOST = saved;
+  process.env.JULIUS_POSTHOG_HOST = saved;
   assert.equal(res.ok, false);
   assert.ok(res.error, 'a transport failure carries an error, not a status');
   assert.equal(res.status, undefined);
@@ -96,18 +97,18 @@ test('an empty batch is not a request', async () => {
   assert.deepEqual(hits, []);
 });
 
-test('the default host is the one the other server-side integration uses', () => {
-  const saved = process.env.GRAFT_POSTHOG_HOST;
-  delete process.env.GRAFT_POSTHOG_HOST;
-  assert.equal(posthogHost(), 'https://events.nanonets.com');
-  process.env.GRAFT_POSTHOG_HOST = saved;
+test('there is no default collector host', () => {
+  const saved = process.env.JULIUS_POSTHOG_HOST;
+  delete process.env.JULIUS_POSTHOG_HOST;
+  assert.equal(posthogHost(), '');
+  process.env.JULIUS_POSTHOG_HOST = saved;
 });
 
 test('a trailing slash on the configured host does not produce a double slash', () => {
-  const saved = process.env.GRAFT_POSTHOG_HOST;
-  process.env.GRAFT_POSTHOG_HOST = 'https://events.nanonets.com///';
-  assert.equal(posthogHost(), 'https://events.nanonets.com');
-  process.env.GRAFT_POSTHOG_HOST = saved;
+  const saved = process.env.JULIUS_POSTHOG_HOST;
+  process.env.JULIUS_POSTHOG_HOST = 'https://collector.example.test///';
+  assert.equal(posthogHost(), 'https://collector.example.test');
+  process.env.JULIUS_POSTHOG_HOST = saved;
 });
 
 test('buildBatch still carries no key, whichever path is used', () => {

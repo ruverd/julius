@@ -193,7 +193,7 @@ export async function functionOverlaps(
   cache: BranchCache | null = readBranchCache(repo),
 ): Promise<FunctionOverlap[]> {
   const rel = relative(repo, file).split(sep).join("/");
-  if (!cache?.base || !rel || rel.startsWith("..") || rel.startsWith(".trail/")) return [];
+  if (!cache?.base || !rel || rel.startsWith("..") || rel.startsWith(".julius/")) return [];
   const others = cache.branches.filter((b) => b.author && b.author !== me && b.files.includes(rel));
   if (!others.length) return [];
   let source: string;
@@ -223,7 +223,7 @@ const PLAIN_PATH = /^[A-Za-z0-9._/-]+$/;
 
 /**
  * What the agent reads after the edit: who else changes the function and
- * where to see their change, then how to tell the person, in trail's own
+ * where to see their change, then how to tell the person, in julius's own
  * words. The commit message is the teammate's text, so it's quoted as data.
  */
 export function editOverlapDirective(o: FunctionOverlap, base: string, tagText: string, mark: string): string {

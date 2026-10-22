@@ -14,7 +14,7 @@
 
 (class_specifier name: (type_identifier) @name) @definition.class
 
-; graft: call sites (upstream cpp tags.scm is definition-only)
+; julius: call sites (upstream cpp tags.scm is definition-only)
 (call_expression
   function: [
     (identifier) @name

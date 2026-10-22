@@ -1,21 +1,21 @@
 /**
- * Graft — public API.
+ * Julius — public API.
  *
  * The graph is a folder of linked markdown files (`.context/`) committed to the
  * repo. Build it from code, then check it stays in sync.
  *
  * @example
  * ```ts
- * import { Graft } from "@nanonets/graft";
+ * import { Julius } from "@ruverd/julius";
  *
- * const engine = new Graft();
+ * const engine = new Julius();
  * await engine.init(".");             // writes .context/*.md + manifest.json
  *
  * const result = engine.check(".");   // { ok: boolean, ...drift }
  * if (!result.ok) process.exitCode = 1;
  * ```
  */
-export { Graft, CODE_EXTENSIONS } from "./engine.js";
+export { Julius, CODE_EXTENSIONS } from "./engine.js";
 export type { InitOptions, CheckRunOptions, BuildResult, BuildProgress, CheckResult } from "./engine.js";
 
 export { buildContext } from "./context/build.js";

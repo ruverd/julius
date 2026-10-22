@@ -29,13 +29,13 @@ async function rpc(messages: object[], dir: string, expected: number): Promise<a
 }
 
 test('initialize → tools/list → tools/call round-trip', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'graft-mcpsrv-'));
+  const dir = mkdtempSync(join(tmpdir(), 'julius-mcpsrv-'));
   const rs = await rpc(
     [
       { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 't', version: '0' } } },
       { jsonrpc: '2.0', method: 'notifications/initialized' },
       { jsonrpc: '2.0', id: 2, method: 'tools/list' },
-      { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'graft_trace_calls', arguments: { symbol: 'x.ts', depth: 2 } } },
+      { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'julius_trace_calls', arguments: { symbol: 'x.ts', depth: 2 } } },
     ],
     dir,
     3,
@@ -44,11 +44,11 @@ test('initialize → tools/list → tools/call round-trip', async () => {
   const init = rs.find((r) => r.id === 1);
   assert.equal(init.result.protocolVersion, '2025-03-26');
   assert.ok(init.result.capabilities.tools);
-  assert.equal(init.result.serverInfo.name, 'graft');
+  assert.equal(init.result.serverInfo.name, 'julius');
   // This dir has no graph and no parent checkout, so the server advertises
-  // nothing: graft is registered at the user MCP scope now (hosts/claude-global.ts),
+  // nothing: julius is registered at the user MCP scope now (hosts/claude-global.ts),
   // which starts it in every project the user opens, and six tool schemas charged
-  // to a repo that never asked for graft is context spent for answers it cannot
+  // to a repo that never asked for julius is context spent for answers it cannot
   // give. See `advertised` in src/mcp/server.ts.
   const list = rs.find((r) => r.id === 2);
   assert.deepEqual(list.result.tools, []);
@@ -56,16 +56,16 @@ test('initialize → tools/list → tools/call round-trip', async () => {
   // still gets the soft error that names the fix.
   const call = rs.find((r) => r.id === 3);
   assert.equal(call.result.isError, true); // unbuilt repo → soft error content
-  assert.match(call.result.content[0].text, /graft build/);
+  assert.match(call.result.content[0].text, /julius build/);
 });
 
 const ALL_TOOLS = [
-  'graft_find_code',
-  'graft_file_api',
-  'graft_check_freshness',
-  'graft_trace_calls',
-  'graft_find_all',
-  'graft_repo_map',
+  'julius_find_code',
+  'julius_file_api',
+  'julius_check_freshness',
+  'julius_trace_calls',
+  'julius_find_all',
+  'julius_repo_map',
 ];
 
 async function listTools(dir: string): Promise<string[]> {
@@ -81,7 +81,7 @@ async function listTools(dir: string): Promise<string[]> {
 }
 
 test('a built repo advertises every tool', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'graft-mcpbuilt-'));
+  const dir = mkdtempSync(join(tmpdir(), 'julius-mcpbuilt-'));
   mkdirSync(join(dir, 'src'), { recursive: true });
   writeFileSync(join(dir, 'src', 'math.ts'), 'export function add(a: number, b: number) {\n  return a + b;\n}\n');
   await buildGraph(dir);
@@ -90,11 +90,11 @@ test('a built repo advertises every tool', async () => {
 });
 
 test('a fresh worktree advertises every tool, on the strength of its parent', async () => {
-  // The case the user-level registration exists for. `graft/` is gitignored, so
+  // The case the user-level registration exists for. `julius/` is gitignored, so
   // `git worktree add` never checks it out and this tree has no graph of its own —
   // it gets one from the parent on the first query (graph/seed.ts). Gating on this
-  // tree alone would hide graft in exactly the worktree the user came to work in.
-  const main = mkdtempSync(join(tmpdir(), 'graft-mcpwtmain-'));
+  // tree alone would hide julius in exactly the worktree the user came to work in.
+  const main = mkdtempSync(join(tmpdir(), 'julius-mcpwtmain-'));
   // Identity in the env, not the config: a CI runner has none, and blanking
   // GIT_CONFIG_GLOBAL removes any it had, so `git commit` would fail.
   const git = (...args: string[]): void =>
@@ -105,29 +105,29 @@ test('a fresh worktree advertises every tool, on the strength of its parent', as
         ...process.env,
         GIT_CONFIG_GLOBAL: '/dev/null',
         GIT_CONFIG_SYSTEM: '/dev/null',
-        GIT_AUTHOR_NAME: 'graft test',
+        GIT_AUTHOR_NAME: 'julius test',
         GIT_AUTHOR_EMAIL: 'test@example.invalid',
-        GIT_COMMITTER_NAME: 'graft test',
+        GIT_COMMITTER_NAME: 'julius test',
         GIT_COMMITTER_EMAIL: 'test@example.invalid',
     },
     });
   git('init', '-b', 'main');
   mkdirSync(join(main, 'src'), { recursive: true });
   writeFileSync(join(main, 'src', 'math.ts'), 'export function add(a: number, b: number) {\n  return a + b;\n}\n');
-  writeFileSync(join(main, '.gitignore'), 'graft/\n');
+  writeFileSync(join(main, '.gitignore'), 'julius/\n');
   git('add', '-A');
   git('commit', '-m', 'init');
   await buildGraph(main);
 
-  const wt = join(mkdtempSync(join(tmpdir(), 'graft-mcpwt-')), 'feature');
+  const wt = join(mkdtempSync(join(tmpdir(), 'julius-mcpwt-')), 'feature');
   git('worktree', 'add', '--detach', wt, 'HEAD');
-  assert.equal(existsSync(join(wt, 'graft')), false, 'the gitignored cache does not travel');
+  assert.equal(existsSync(join(wt, '.julius', 'cache')), false, 'the gitignored cache does not travel');
 
   assert.deepEqual(await listTools(wt), ALL_TOOLS);
 });
 
 test('initialize carries instructions — the layer that survives tool deferral', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'graft-mcpsrv-instr-'));
+  const dir = mkdtempSync(join(tmpdir(), 'julius-mcpsrv-instr-'));
   const rs = await rpc(
     [{ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 't', version: '0' } } }],
     dir,
@@ -135,11 +135,11 @@ test('initialize carries instructions — the layer that survives tool deferral'
   );
   const { instructions, serverInfo } = rs[0].result;
   assert.equal(typeof instructions, 'string');
-  // A host that defers graft's schemas shows the model six bare names and nothing
+  // A host that defers julius's schemas shows the model six bare names and nothing
   // else, so this string has to carry both the pitch and the recovery instruction.
   assert.match(instructions, /ONE lookup/, 'tells the agent to batch the schema fetch');
-  assert.match(instructions, /select:mcp__graft__graft_find_code,/, 'gives a copy-pasteable query');
-  for (const t of ['graft_find_code', 'graft_find_all', 'graft_trace_calls', 'graft_file_api', 'graft_repo_map']) {
+  assert.match(instructions, /select:mcp__julius__julius_find_code,/, 'gives a copy-pasteable query');
+  for (const t of ['julius_find_code', 'julius_find_all', 'julius_trace_calls', 'julius_file_api', 'julius_repo_map']) {
     assert.ok(instructions.includes(t), `names ${t}`);
   }
   // Observed sibling servers sit at 660–984 chars; nothing proves a longer one
@@ -149,7 +149,7 @@ test('initialize carries instructions — the layer that survives tool deferral'
 });
 
 test('unknown method returns -32601', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'graft-mcpsrv2-'));
+  const dir = mkdtempSync(join(tmpdir(), 'julius-mcpsrv2-'));
   const rs = await rpc([{ jsonrpc: '2.0', id: 9, method: 'resources/list' }], dir, 1);
   assert.equal(rs[0].error.code, -32601);
 });

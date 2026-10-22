@@ -4,7 +4,7 @@
  * The bug: npm 12 stops running dependency install scripts by default, and
  * `tree-sitter-kotlin` ships no prebuilt binary, so after `npm install -g` its addon
  * is simply absent. extract.ts imported every grammar statically, so the require
- * threw while the module graph loaded and `graft build`, the MCP server and the
+ * threw while the module graph loaded and `julius build`, the MCP server and the
  * hooks all crashed, in a repo with no Kotlin in it at all.
  *
  * Simulated here through native.ts's require seam, the way node-gyp-build fails:
@@ -74,7 +74,7 @@ test("all grammars load: native parse everywhere, and no notice", async () => {
   const r = await buildGraph(repo());
   assert.deepEqual(r.errors, []);
   assert.equal(r.nativeFallback, undefined);
-  assert.equal(nativeFallbackNotice(r.nativeFallback, "@trailhq/trail"), null);
+  assert.equal(nativeFallbackNotice(r.nativeFallback, "@trailhq/julius"), null);
   assert.deepEqual(r.languages, ["kotlin", "python", "typescript"]);
   assert.ok(nativeReady("kotlin"));
 });
@@ -93,7 +93,7 @@ test("a missing kotlin binary: kotlin goes to the WASM stand-in, the build compl
   const names = kt.map((n) => n.name).sort();
   for (const want of ["Greeter", "greet", "helper", "main"]) assert.ok(names.includes(want), `kotlin ${want} missing: ${names}`);
   assert.ok(kt.every((n) => n.origin === "generic"), "kotlin symbols come from the stand-in");
-  // The vendored kotlin tags query carries calls, so `graft callers helper` works.
+  // The vendored kotlin tags query carries calls, so `julius callers helper` works.
   assert.ok(
     g.edges.some((e) => e.relation === "calls" && e.source === "src/Main.kt#main" && e.target === "src/Main.kt#helper"),
     "main → helper call edge",
@@ -104,7 +104,7 @@ test("a missing kotlin binary: kotlin goes to the WASM stand-in, the build compl
     assert.ok(syms.length > 0 && syms.every((n) => n.origin === "ast"), `${path} stays on the native parser`);
   }
 
-  // `graft check` dispatches the same way, so the fallback graph reads as in sync.
+  // `julius check` dispatches the same way, so the fallback graph reads as in sync.
   const c = await checkGraph(dir);
   assert.deepEqual([c.added, c.removed, c.changed], [[], [], []]);
 });
@@ -113,10 +113,10 @@ test("the notice names only the grammar that failed, with the install that fixes
   setNativeRequireForTest(failing(["tree-sitter-kotlin"]));
   const r = await buildGraph(repo());
   assert.equal(
-    nativeFallbackNotice(r.nativeFallback, "@trailhq/trail"),
-    "⚠ kotlin: basic parsing only, the native parser is missing. To fix: npm install -g --allow-scripts=tree-sitter-kotlin @trailhq/trail",
+    nativeFallbackNotice(r.nativeFallback, "@trailhq/julius"),
+    "⚠ kotlin: basic parsing only, the native parser is missing. To fix: npm install -g --allow-scripts=tree-sitter-kotlin @trailhq/julius",
   );
-  assert.match(nativeFallbackNotice(r.nativeFallback, "@nanonets/graft")!, / @nanonets\/graft$/);
+  assert.match(nativeFallbackNotice(r.nativeFallback, "@ruverd/julius")!, / @ruverd\/julius$/);
 });
 
 test("a repo without kotlin never asks for its grammar", async () => {
@@ -142,8 +142,8 @@ test("no tree-sitter core binding: every depth language falls back, nothing cras
   // The bundle's own tags queries stand in for typescript and python.
   for (const want of ["add", "twice", "Store", "load", "fetch", "helper"]) assert.ok(names.has(want), `${want} missing`);
   assert.equal(
-    nativeFallbackNotice(r.nativeFallback, "@trailhq/trail"),
-    "⚠ kotlin, python, typescript: basic parsing only, the native parsers are missing. To fix: npm install -g --allow-scripts=tree-sitter @trailhq/trail",
+    nativeFallbackNotice(r.nativeFallback, "@trailhq/julius"),
+    "⚠ kotlin, python, typescript: basic parsing only, the native parsers are missing. To fix: npm install -g --allow-scripts=tree-sitter @trailhq/julius",
   );
 });
 

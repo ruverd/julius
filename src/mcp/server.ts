@@ -5,7 +5,7 @@
 import { createInterface } from 'node:readline';
 import { TOOLS, callTool } from './tools.js';
 import { mcpInstructions } from './instructions.js';
-import { hasGraftIndex } from '../graph/root.js';
+import { hasJuliusIndex } from '../graph/root.js';
 import { mainWorktreeRoot } from '../graph/seed.js';
 import { runUpkeep } from '../upkeep-run.js';
 import { runningVersion } from '../upkeep.js';
@@ -20,12 +20,12 @@ import { canonicalToolName } from './tool-names.js';
  * `ask` means the same thing in both.
  */
 const TOOL_COMMAND: Record<string, string> = {
-  graft_find_code: 'ask',
-  graft_find_all: 'grep',
-  graft_trace_calls: 'callers',
-  graft_file_api: 'skeleton',
-  graft_repo_map: 'map',
-  graft_check_freshness: 'check',
+  julius_find_code: 'ask',
+  julius_find_all: 'grep',
+  julius_trace_calls: 'callers',
+  julius_file_api: 'skeleton',
+  julius_repo_map: 'map',
+  julius_check_freshness: 'check',
 };
 
 function send(msg: object): void {
@@ -43,16 +43,16 @@ function replyError(id: unknown, code: number, message: string): void {
 /**
  * Which tools this server admits to having.
  *
- * `hosts/claude-global.ts` registers graft at the *user* MCP scope, which starts this
- * server in every project the user opens — including ones that never asked for graft.
+ * `hosts/claude-global.ts` registers julius at the *user* MCP scope, which starts this
+ * server in every project the user opens — including ones that never asked for julius.
  * Six tool schemas is real context, charged on every turn of every session, and in a
- * repo with no graph every one of them can only answer "run graft build". So a repo
- * that never invited graft is told there is nothing to call.
+ * repo with no graph every one of them can only answer "run julius build". So a repo
+ * that never invited julius is told there is nothing to call.
  *
  * The parent-checkout clause is not an optimization, it is the case the global
- * registration exists for: a fresh `git worktree add` has no `graft/` of its own
+ * registration exists for: a fresh `git worktree add` has no `julius/` of its own
  * (it's gitignored, so git never checks it out) and gets one from its parent on the
- * first query — see graph/seed.ts. Gating on this tree alone would hide graft in
+ * first query — see graph/seed.ts. Gating on this tree alone would hide julius in
  * precisely the worktree the user is trying to work in, which is the bug, inverted.
  *
  * A `--dir` override is an explicit "the graph is over there", so it always
@@ -60,9 +60,9 @@ function replyError(id: unknown, code: number, message: string): void {
  */
 function advertised(root: string, dirOverride?: string): typeof TOOLS {
   if (dirOverride !== undefined) return TOOLS;
-  if (hasGraftIndex(root)) return TOOLS;
+  if (hasJuliusIndex(root)) return TOOLS;
   const main = mainWorktreeRoot(root);
-  return main && hasGraftIndex(main) ? TOOLS : [];
+  return main && hasJuliusIndex(main) ? TOOLS : [];
 }
 
 /**
@@ -73,7 +73,7 @@ function advertised(root: string, dirOverride?: string): typeof TOOLS {
 export function startMcpServer(root: string, dirOverride?: string, version = '0'): void {
   // The self-maintenance pass, run once at boot. This is the ONLY channel that
   // reaches hosts with no hook support (Cursor, and any plain MCP client): it
-  // refreshes rule files an older `graft init` wrote, and kicks off the cached
+  // refreshes rule files an older `julius init` wrote, and kicks off the cached
   // registry check. Both are fail-soft, and the resulting lines ride along in
   // `instructions` below — stdout is protocol-only, so there is nowhere else to
   // put them. Never blocks: the registry fetch happens in a detached child.
@@ -85,7 +85,7 @@ export function startMcpServer(root: string, dirOverride?: string, version = '0'
   // Deliberately NOT the first-run notice. This server's stderr goes to an editor
   // log nobody reads, so printing it here would mark the disclosure as shown
   // without anyone having seen it. It stays pending for the next CLI command,
-  // and `graft init`'s picker is the channel that reached this user already.
+  // and `julius init`'s picker is the channel that reached this user already.
   maybeFlushInBackground();
 
   const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -119,7 +119,7 @@ export function startMcpServer(root: string, dirOverride?: string, version = '0'
         return;
       case 'tools/list': {
         if (isNotification) return;
-        // Under trail, the same tools as `trail_*`, described in trail's words.
+        // Under julius, the same tools as `julius_*`, described in julius's words.
         reply(id, { tools: advertised(root, dirOverride).map((t) => ({ name: inBrand(t.name), description: inBrand(t.description), inputSchema: t.inputSchema })) });
         return;
       }

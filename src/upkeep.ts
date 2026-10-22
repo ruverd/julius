@@ -1,14 +1,14 @@
 /**
- * Self-maintenance: keeping an installed graft, and the wiring it wrote, current.
+ * Self-maintenance: keeping an installed julius, and the wiring it wrote, current.
  *
  * Two independent kinds of staleness, both invisible to the user today:
  *
- *   1. **Binary staleness** — they installed once and never upgraded. `graft
+ *   1. **Binary staleness** — they installed once and never upgraded. `julius
  *      version` would tell them, but nobody runs it. So we keep a cached,
  *      machine-global registry answer and let every entry point surface a
  *      one-line nudge from it.
  *
- *   2. **Wiring staleness** — `graft init` copies hooks, shims, skill text and
+ *   2. **Wiring staleness** — `julius init` copies hooks, shims, skill text and
  *      rule files INTO the repo. `npm i -g` replaces the binary but touches none
  *      of them, so a repo wired by 0.7 keeps 0.7's prompts and 0.7's hook
  *      timeouts forever (see the comment on `promptAskTimeout`, which exists
@@ -33,10 +33,10 @@ import { HOSTS, hostRelPath } from './hosts/registry.js';
 import { markersFor } from './hosts/sections.js';
 import { getNpmViewVersion, readCurrentVersion } from './cli-meta.js';
 import { brand } from './brand.js';
-import { graftCliPath } from './claude/paths.js';
+import { juliusCliPath } from './claude/paths.js';
 
 /**
- * The version of the graft package this code was loaded from.
+ * The version of the julius package this code was loaded from.
  *
  * Resolved from *this* module rather than the caller's: `readCurrentVersion`
  * looks one level up from the module URL it's given, which lands on the package
@@ -49,7 +49,7 @@ export function runningVersion(): string {
   try { return readCurrentVersion(import.meta.url); } catch { return '0.0.0'; }
 }
 
-/** How long a registry answer is considered current. A day: graft ships far less
+/** How long a registry answer is considered current. A day: julius ships far less
  * often than that, and this is a nudge, not a security update. */
 export const UPDATE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -89,10 +89,10 @@ export interface UpdateCache {
   checkedAt: number;
 }
 
-/** Machine-global, not per-repo: "what's the latest graft" is one fact, and a
+/** Machine-global, not per-repo: "what's the latest julius" is one fact, and a
  * dev with twelve repos should cost the registry one request a day, not twelve. */
 export function updateCachePath(home: string = homedir()): string {
-  return join(home, '.graft', 'update-check.json');
+  return join(home, '.julius', 'update-check.json');
 }
 
 export function readUpdateCache(home?: string): UpdateCache | null {
@@ -104,7 +104,7 @@ function writeUpdateCache(cache: UpdateCache, home?: string): void {
 }
 
 /**
- * The `graft _update-check` command body: hit the registry, store the answer.
+ * The `julius _update-check` command body: hit the registry, store the answer.
  * Runs in a detached child so nothing user-facing ever waits on the network.
  */
 export function refreshUpdateCache(home?: string, now = Date.now()): UpdateCache {
@@ -128,11 +128,12 @@ export function needsRefresh(cache: UpdateCache | null, now = Date.now()): boole
  * boot) — never from a hook, which reads the cache and nothing else.
  */
 export function maybeRefreshInBackground(home?: string, now = Date.now()): boolean {
+  if (process.env.JULIUS_UPDATE_CHECK !== '1') return false;
   const cache = readUpdateCache(home);
   if (!needsRefresh(cache, now)) return false;
   writeUpdateCache({ latest: cache?.latest ?? null, checkedAt: now }, home);
   try {
-    const child = spawn(process.execPath, [graftCliPath(), '_update-check'], {
+    const child = spawn(process.execPath, [juliusCliPath(), '_update-check'], {
       detached: true,
       stdio: 'ignore',
       windowsHide: true,
@@ -148,7 +149,7 @@ export function maybeRefreshInBackground(home?: string, now = Date.now()): boole
  * "you're up to date". */
 export function formatUpdateNudge(current: string, latest: string | null | undefined): string | null {
   if (!isNewer(latest, current)) return null;
-  // `upgrade`, not a bare npm install: under graft it brings the trail command along.
+  // `upgrade`, not a bare npm install: under julius it brings the julius command along.
   return `⬆ ${brand()} ${current} → ${latest} available: run \`${brand()} upgrade\` (restart your agent after).`;
 }
 
@@ -157,14 +158,14 @@ export function formatUpdateNudge(current: string, latest: string | null | undef
 /* -------------------------------------------------------------------------- */
 
 /**
- * The subset of `graft init`'s flags a refresh has to replay.
+ * The subset of `julius init`'s flags a refresh has to replay.
  *
  * Without these, an auto-refresh would install things the user explicitly
- * declined: someone who ran `graft init --no-global` (or `--no-hooks`, or
+ * declined: someone who ran `julius init --no-global` (or `--no-hooks`, or
  * `--no-statusline`) said "keep out of `~/.codex`" / "leave my statusline
- * alone", and a later session silently writing there would be graft overriding a
+ * alone", and a later session silently writing there would be julius overriding a
  * decision rather than maintaining one. Absent from an older stamp → all true,
- * which is what plain `graft init` does.
+ * which is what plain `julius init` does.
  */
 export interface WiringOpts {
   /** false → never write outside the repo (`--no-global`). */
@@ -173,19 +174,19 @@ export interface WiringOpts {
   mcp: boolean;
   /** false → skip hook installation (`--no-hooks`). */
   hooks: boolean;
-  /** false → skip Claude Code statusLine (`--no-statusline` / GRAFT_NO_STATUSLINE). */
+  /** false → skip Claude Code statusLine (`--no-statusline` / JULIUS_NO_STATUSLINE). */
   statusline: boolean;
 }
 
 export const DEFAULT_WIRING_OPTS: WiringOpts = { global: true, mcp: true, hooks: true, statusline: true };
 
-/** An older stamp has no `opts`; a plain `graft init` wired everything. */
+/** An older stamp has no `opts`; a plain `julius init` wired everything. */
 export function wiringOpts(stamp: WiringStamp | null): WiringOpts {
   return { ...DEFAULT_WIRING_OPTS, ...(stamp?.opts ?? {}) };
 }
 
 export interface WiringStamp {
-  /** The graft version whose `init` wrote this repo's agent files. */
+  /** The julius version whose `init` wrote this repo's agent files. */
   version: string;
   /** Host ids that were wired, so a refresh re-writes exactly those and never
    * silently adopts an agent the user declined in the picker. */
@@ -195,7 +196,7 @@ export interface WiringStamp {
   at: string;
 }
 
-/** Under `graft/.cache/`, beside the other derived state: git-ignored, per-clone,
+/** Under `julius/.cache/`, beside the other derived state: git-ignored, per-clone,
  * and cheap to lose — a missing stamp just means one idempotent refresh. */
 export function stampPath(repo: string): string {
   return join(cacheDir(repo), 'wiring-stamp.json');
@@ -219,24 +220,24 @@ export function writeStamp(
       opts: { ...DEFAULT_WIRING_OPTS, ...opts },
       at,
     } satisfies WiringStamp);
-  } catch { /* unwritable graft/ — a refresh will just be retried next session */ }
+  } catch { /* unwritable julius/ — a refresh will just be retried next session */ }
 }
 
 /**
  * Which agents this repo is *already* wired for, read off disk rather than
  * re-detected. Detection answers "which editors does this machine have"; for a
  * refresh we need "which files did a previous init actually write" — otherwise
- * installing Windsurf once would silently add graft rules to every repo.
+ * installing Windsurf once would silently add julius rules to every repo.
  */
 export function wiredHostIds(repo: string): string[] {
   const ids: string[] = [];
-  if (existsSync(join(repo, '.trail', 'hook.cjs')) || ['graft', 'trail'].some((n) => existsSync(join(repo, '.claude', 'helpers', `${n}-hooks.cjs`)))) ids.push('claude');
+  if (existsSync(join(repo, '.julius', 'hook.cjs')) || ['julius'].some((n) => existsSync(join(repo, '.claude', 'helpers', `${n}-hooks.cjs`)))) ids.push('claude');
   for (const host of HOSTS) {
-    // Under either name: a repo on trail has trail's files and blocks.
-    const wired = (['graft', 'trail'] as const).some((n) => {
+    // Under either name: a repo on julius has julius's files and blocks.
+    const wired = (['julius'] as const).some((n) => {
       const path = join(repo, hostRelPath(host, n));
       if (!existsSync(path)) return false;
-      // A shared file (AGENTS.md, GEMINI.md) counts only if graft's fenced section
+      // A shared file (AGENTS.md, GEMINI.md) counts only if julius's fenced section
       // is in it — the user may own the file for entirely unrelated reasons.
       if (host.kind === 'section') {
         try { return readFileSync(path, 'utf8').includes(markersFor(n).start); } catch { return false; }
@@ -255,7 +256,7 @@ export interface WiringRefresh {
   /** True when the refresh included writes outside the repo (`~/.codex/`), so the
    * caller can say so — a session changing machine-wide config should be visible. */
   global: boolean;
-  /** True when it moved a repo wired as graft over to trail. */
+  /** True when it moved a repo wired as julius over to julius. */
   switched?: boolean;
 }
 
@@ -265,11 +266,11 @@ export interface WiringRefresh {
  * Deliberately narrow: it refreshes the hosts already wired, replays the flags
  * that init was given, never builds the graph (this runs at session start — a
  * rebuild there would stall the agent's first turn), and no-ops when the repo has
- * no graft wiring at all.
+ * no julius wiring at all.
  *
- * `toTrail` says whether this repo should move from graft's wiring to trail's
+ * `toJulius` says whether this repo should move from julius's wiring to julius's
  * (see upkeep-run.ts). When it should, the refresh runs whatever the stamp says:
- * the person installed trail, which is the signal, whether or not graft's own
+ * the person installed julius, which is the signal, whether or not julius's own
  * version moved.
  */
 export function reconcileWiring(
@@ -277,14 +278,14 @@ export function reconcileWiring(
   current: string,
   deps: {
     wired?: (repo: string) => string[];
-    rewrite: (repo: string, hosts: string[], opts: WiringOpts, toTrail: boolean) => void;
-    toTrail?: (repo: string) => boolean;
+    rewrite: (repo: string, hosts: string[], opts: WiringOpts, toJulius: boolean) => void;
+    toJulius?: (repo: string) => boolean;
   },
 ): WiringRefresh | null {
   try {
     const stamp = readStamp(repo);
-    const toTrail = deps.toTrail?.(repo) ?? false;
-    if (stamp && stamp.version === current && !toTrail) return null;
+    const toJulius = deps.toJulius?.(repo) ?? false;
+    if (stamp && stamp.version === current && !toJulius) return null;
     // The stamp is the record of *intent* (what the picker chose); disk is the
     // fallback for repos wired before stamps existed. Union, not just disk:
     // otherwise a host whose rule file went missing — deleted by hand, lost to a
@@ -294,9 +295,9 @@ export function reconcileWiring(
     const hosts = [...new Set([...(stamp?.hosts ?? []), ...onDisk])].sort();
     if (hosts.length === 0) return null; // never wired here — not our business
     const opts = wiringOpts(stamp);
-    deps.rewrite(repo, hosts, opts, toTrail);
+    deps.rewrite(repo, hosts, opts, toJulius);
     writeStamp(repo, current, hosts, opts);
-    return { from: stamp?.version ?? 'unwired', to: current, hosts, global: opts.global, ...(toTrail ? { switched: true } : {}) };
+    return { from: stamp?.version ?? 'unwired', to: current, hosts, global: opts.global, ...(toJulius ? { switched: true } : {}) };
   } catch {
     return null; // a refresh is an optimization; never fail the caller over it
   }
@@ -307,12 +308,12 @@ export function formatWiringRefresh(r: WiringRefresh | null): string | null {
   // Said to the agent at session start, which is who can tell the person.
   if (r.switched)
     return (
-      `[trail] graft is now trail, and this repo just moved to it: the same commands under the new name, plus learnings in .trail/learnings/ that the whole team shares. ` +
-      `trail is reading the user's past Claude sessions here in the background, and what it learns is there from the next session. ` +
-      `Tell the user this once, in a line at the end of your first reply, and that committing .trail/ and .claude/settings.json once moves their team over too.`
+      `[julius] julius is now julius, and this repo just moved to it: the same commands under the new name, plus learnings in .julius/learnings/ that the whole team shares. ` +
+      `julius is reading the user's past Claude sessions here in the background, and what it learns is there from the next session. ` +
+      `Tell the user this once, in a line at the end of your first reply, and that committing .julius/ and .claude/settings.json once moves their team over too.`
     );
   // Name the out-of-repo writes explicitly: those are machine-wide and shared by
   // every repo, so a user seeing this line should not have to guess what moved.
   const scope = r.global && r.hosts.includes('agents') ? " (including this machine's ~/.codex config)" : '';
-  return `· graft refreshed this repo's agent wiring${scope} (written by ${r.from}, now ${r.to}): ${r.hosts.join(', ')}.`;
+  return `· julius refreshed this repo's agent wiring${scope} (written by ${r.from}, now ${r.to}): ${r.hosts.join(', ')}.`;
 }

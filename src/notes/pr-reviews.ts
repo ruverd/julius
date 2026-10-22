@@ -1,17 +1,17 @@
 /**
- * Learnings from a repo's PR reviews, for `trail init` to offer on day one
+ * Learnings from a repo's PR reviews, for `julius init` to offer on day one
  * beside the ones from past sessions: what reviewers kept flagging, on more
  * than one PR ("handlers in src/api/ don't handle the DB error").
  *
- * trail reads the review comments on the repo's last merged PRs with the
+ * julius reads the review comments on the repo's last merged PRs with the
  * person's own `gh`, in one GraphQL call, and only when `gh` is installed and
  * signed in and the repo has a GitHub remote; otherwise it skips quietly. Bots
  * and the PR author's own replies are dropped, and anything that looks like a
  * secret is scrubbed before the comments go to the person's own Claude Code,
  * headless, the same way past sessions do. Claude cites the comments each
- * finding rests on; trail keeps a finding only when those quotes really are
+ * finding rests on; julius keeps a finding only when those quotes really are
  * on two or more PRs, and counts the PRs itself. The findings are about the
- * code, so they're the team's, in `.trail/learnings/`.
+ * code, so they're the team's, in `.julius/learnings/`.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { join } from "node:path";
@@ -64,7 +64,7 @@ const REVIEW_PRS = 50;
 /** About 50k tokens of comments. */
 const REVIEW_DIGEST_CHARS = 200_000;
 const COMMENT_CHARS = 800;
-/** The footer a review learning is saved with; finding it in `.trail/learnings/` means the repo's reviews were read. */
+/** The footer a review learning is saved with; finding it in `.julius/learnings/` means the repo's reviews were read. */
 const FLAGGED = /_Flagged in review on \d+ PRs here/;
 
 /* -------------------------------------------------------------------------- */
@@ -88,7 +88,7 @@ const QUERY = `query($owner: String!, $name: String!, $count: Int!) {
 export function ghReady(repo: string, gh = "gh"): boolean {
   const remotes = spawnSync("git", ["-C", repo, "remote", "-v"], { encoding: "utf8", timeout: 5000 });
   if (remotes.status !== 0 || !/github/i.test(remotes.stdout)) return false;
-  // The token never reaches trail: it's printed to nowhere, and only the exit code is read.
+  // The token never reaches julius: it's printed to nowhere, and only the exit code is read.
   const auth = spawnSync(gh, ["auth", "token"], { cwd: repo, stdio: "ignore", timeout: 10_000, env: { ...process.env, GH_PROMPT_DISABLED: "1" } });
   return auth.status === 0;
 }
@@ -319,7 +319,7 @@ export async function findReviewLearnings(
 }
 
 /* -------------------------------------------------------------------------- */
-/* At trail init                                                              */
+/* At julius init                                                              */
 /* -------------------------------------------------------------------------- */
 
 /** Where a repo remembers that its PR reviews were read, on this machine. */
@@ -334,14 +334,14 @@ export interface ReviewRead {
 }
 
 /**
- * Start reading the repo's PR reviews, for `trail init` to collect at its
+ * Start reading the repo's PR reviews, for `julius init` to collect at its
  * end; null when it was read on this machine before, a teammate already
- * committed what it found, TRAIL_NO_FETCH is set, or there's no `gh` to read
+ * committed what it found, JULIUS_NO_FETCH is set, or there's no `gh` to read
  * them with.
  */
 export function beginReviewRead(repo: string, env: NodeJS.ProcessEnv = process.env, gh = "gh"): ReviewRead | null {
   try {
-    if (env.TRAIL_NO_FETCH === "1" || readJson<{ at?: number }>(readMark(repo))?.at) return null;
+    if (env.JULIUS_NO_FETCH === "1" || readJson<{ at?: number }>(readMark(repo))?.at) return null;
     // The same reviews give a teammate the same findings: once is enough for the repo.
     if (listNotes(repo, { branches: false }).some((n) => n.scope === "repo" && FLAGGED.test(n.body))) return null;
     if (!ghReady(repo, gh)) {
@@ -356,7 +356,7 @@ export function beginReviewRead(repo: string, env: NodeJS.ProcessEnv = process.e
   }
 }
 
-/** Each finding as a standing learning in `.trail/learnings/`. The body says which PRs it came from. */
+/** Each finding as a standing learning in `.julius/learnings/`. The body says which PRs it came from. */
 export function saveReviewFindings(repo: string, findings: ReviewFinding[], author = noteAuthor(repo), date = new Date().toISOString().slice(0, 10)): Note[] {
   return findings.map((f) =>
     writeNote(

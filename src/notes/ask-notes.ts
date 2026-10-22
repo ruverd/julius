@@ -1,6 +1,6 @@
 /**
  * Puts past sessions' notes next to a query's results, for every surface that
- * answers through `Graft.ask` (the CLI's `ask` and the MCP `find_code`).
+ * answers through `Julius.ask` (the CLI's `ask` and the MCP `find_code`).
  */
 import type { AskResult } from "../ask/ask.js";
 import { findRepoPlace, keepsNotes } from "./home.js";

@@ -4,7 +4,7 @@
  * gray-matter picks its parser from the opening fence: `---js` or
  * `---javascript` front matter is run through `eval`. Every file read here
  * comes from a repo — a learning committed by a teammate or sitting on their
- * pushed branch, a skill, a graft/ card — so a file that opened with `---js`
+ * pushed branch, a skill, a julius/ card — so a file that opened with `---js`
  * would run its code on whoever reads it. Here those fences parse as empty
  * front matter instead: nothing runs, and the file reads as having none (a
  * learning without a title, a card without a slug), which every caller

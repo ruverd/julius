@@ -1,5 +1,5 @@
 /**
- * `graft version` / `graft --version` / `graft upgrade` support.
+ * `julius version` / `julius --version` / `julius upgrade` support.
  *
  * Split out of cli.ts so the formatting helpers can be unit-tested with
  * injected results instead of hitting the network from tests.
@@ -23,23 +23,19 @@ export function resolvePackageJsonPath(moduleUrl: string): string {
   return candidates[0];
 }
 
-/**
- * The npm package this code was installed as: `@trailhq/trail-code`, or
- * `@nanonets/graft` (the same code under its old name). Upgrades and update
- * checks go to the package actually installed, not to the name typed.
- */
+/** Read the installed Julius package identity for explicit npm operations. */
 export function readPackageName(moduleUrl: string): string {
   try {
     const pkg = JSON.parse(readFileSync(resolvePackageJsonPath(moduleUrl), "utf8")) as { name?: string };
-    return pkg.name ?? PACKAGE_FOR.graft;
+    return pkg.name ?? PACKAGE_FOR.julius;
   } catch {
-    return PACKAGE_FOR.graft;
+    return PACKAGE_FOR.julius;
   }
 }
 
 const PKG_NAME = readPackageName(import.meta.url);
 
-/** Reads the version of the graft package this module was loaded from. */
+/** Reads the version of the julius package this module was loaded from. */
 export function readCurrentVersion(moduleUrl: string): string {
   const raw = readFileSync(resolvePackageJsonPath(moduleUrl), "utf8");
   const pkg = JSON.parse(raw) as { version?: string };
@@ -51,7 +47,7 @@ export function readCurrentVersion(moduleUrl: string): string {
  *
  * Normalized first: `fileURLToPath` returns the *platform* separator, so on
  * Windows the cache path is `…\_npx\…` and a bare `includes("/_npx/")` is always
- * false — `graft upgrade` would then run `npm install -g` on top of an npx run.
+ * false — `julius upgrade` would then run `npm install -g` on top of an npx run.
  * Same hardcoded-`/` mistake as #33; `src/util/paths.ts` exists for exactly this. */
 export function isRunningViaNpx(moduleUrl: string): boolean {
   return toPosixPath(fileURLToPath(moduleUrl)).includes("/_npx/");
@@ -80,7 +76,7 @@ export function getNpmViewVersion(pkgName: string = PKG_NAME, timeoutMs = 2000):
   }
 }
 
-/** Pure formatter for `graft version` — no I/O, easy to unit-test. */
+/** Pure formatter for `julius version` — no I/O, easy to unit-test. */
 export function formatVersionReport(current: string, latest: NpmViewResult): string {
   const lines = [`${brand()} ${current}`];
   if (!latest.ok || !latest.version) {
@@ -131,8 +127,7 @@ export interface UpgradeResult {
   errorMessage?: string;
   oldVersion?: string;
   newVersion?: string;
-  /** The `trail` package's version, when `graft upgrade` installed it alongside. */
-  trailVersion?: string;
+  /** The `julius` package's version, when `julius upgrade` installed it alongside. */
 }
 
 /** Pure formatter for a finished upgrade — no I/O, easy to unit-test. */
@@ -147,10 +142,10 @@ export function formatUpgradeReport(result: UpgradeResult): string {
     return `✗ npm install -g ${PKG_NAME}@latest failed${result.errorMessage ? `: ${result.errorMessage}` : ""}`;
   }
   const line = `${brand()} ${result.oldVersion ?? "?"} → ${result.newVersion ?? result.oldVersion ?? "?"}`;
-  return result.trailVersion ? `${line}\n✓ trail ${result.trailVersion} installed too — graft keeps working, and trail is its new name` : line;
+  return line;
 }
 
-/** Runs `npm install -g @nanonets/graft@latest` (inheriting stdio so the user
+/** Runs `npm install -g @ruverd/julius@latest` (inheriting stdio so the user
  * sees npm's own progress/errors), then re-reads the freshly installed
  * version. No-ops with guidance when running via npx. */
 export function runUpgrade(moduleUrl: string): UpgradeResult {
@@ -158,14 +153,10 @@ export function runUpgrade(moduleUrl: string): UpgradeResult {
   if (isRunningViaNpx(moduleUrl)) {
     return { ran: false, ok: true, oldVersion };
   }
-  // `graft upgrade` is the handover: it also installs the `trail` command, once
-  // that package is published. One npm call, so the two land at one version.
-  const alongside = PKG_NAME === PACKAGE_FOR.graft && getNpmViewVersion(PACKAGE_FOR.trail).ok ? [`${PACKAGE_FOR.trail}@latest`] : [];
-  const res = spawnSync("npm", ["install", "-g", `${PKG_NAME}@latest`, ...alongside], { stdio: "inherit" });
+  const res = spawnSync("npm", ["install", "-g", `${PKG_NAME}@latest`], { stdio: "inherit" });
   if (res.error || (res.status ?? 1) !== 0) {
     return { ran: true, ok: false, oldVersion, errorMessage: res.error?.message };
   }
   const newVersion = readGlobalInstalledVersion(PKG_NAME) ?? getNpmViewVersion(PKG_NAME).version ?? oldVersion;
-  const trailVersion = alongside.length ? (readGlobalInstalledVersion(PACKAGE_FOR.trail) ?? undefined) : undefined;
-  return { ran: true, ok: true, oldVersion, newVersion, trailVersion };
+  return { ran: true, ok: true, oldVersion, newVersion };
 }

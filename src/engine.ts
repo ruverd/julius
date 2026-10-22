@@ -2,8 +2,8 @@
  * The Context Graph Engine.
  *
  * Two operations, no database:
- *   - {@link Graft.init}  build `.context/` from a code repo.
- *   - {@link Graft.check} report whether `.context/` is still in
+ *   - {@link Julius.init}  build `.context/` from a code repo.
+ *   - {@link Julius.check} report whether `.context/` is still in
  *     sync with the code (for CI).
  *
  * The graph is a folder of linked markdown files committed to the repo; git is
@@ -46,14 +46,14 @@ export interface GraphRunOptions {
   concurrency?: number;
   /** Replay unchanged files from the extraction cache (default true). */
   reuse?: boolean;
-  /** Opt-in compiler-grade LSP edge enrichment (`graft build --lsp`). */
+  /** Opt-in compiler-grade LSP edge enrichment (`julius build --lsp`). */
   lsp?: boolean;
   /** Repo-relative directory prefixes to limit the build to (`--only-dir`). */
   onlyDirs?: string[];
   onProgress?: GraphBuildOptions["onProgress"];
 }
 
-export class Graft {
+export class Julius {
   private cfg: ResolvedConfig;
 
   constructor(config: EngineConfig = {}) {
@@ -102,7 +102,7 @@ export class Graft {
   }
 
   /**
-   * Answer a plain-words query from the committed `graft/` graph — the active
+   * Answer a plain-words query from the committed `julius/` graph — the active
    * channel. Deterministic and $0: routes structural queries to the wiring
    * edges and everything else to a lexical rank over concepts + symbols.
    */
@@ -126,7 +126,7 @@ export class Graft {
     if (this._chatModel) return this._chatModel;
     if (!this.cfg.apiKey) {
       throw new Error(
-        "No API key. Set GRAFT_API_KEY (and GRAFT_PROVIDER / GRAFT_BASE_URL / GRAFT_MODEL " +
+        "No API key. Set JULIUS_API_KEY (and JULIUS_PROVIDER / JULIUS_BASE_URL / JULIUS_MODEL " +
           "for your provider) to build or summarize the graph.",
       );
     }

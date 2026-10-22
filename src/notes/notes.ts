@@ -6,11 +6,11 @@
  * plus what it cost to figure out. The next session on the same code reads it
  * before exploring, so nobody pays for it twice.
  *
- * Most learnings are about the code, so they go in the repo's `.trail/learnings/`
- * and are committed with the change (repo-trail.ts): every teammate's agent
+ * Most learnings are about the code, so they go in the repo's `.julius/learnings/`
+ * and are committed with the change (repo-julius.ts): every teammate's agent
  * starts from them, and teammates' pushed branches bring theirs before they
  * merge (branches.ts). A personal one, about one person's setup or habits,
- * stays on their machine in `~/.trail/repos/<repo>/notes/` (home.ts).
+ * stays on their machine in `~/.julius/repos/<repo>/notes/` (home.ts).
  *
  * One file per session and never edited after it's written. A summary only,
  * never a transcript: the agent writes the body, and nothing here reads
@@ -23,7 +23,7 @@ import { matter, type FrontMatterFile } from "../util/front-matter.js";
 import { readBranchCache } from "./branches.js";
 import { changedFiles, ownPath } from "./git-facts.js";
 import { checkoutRoot, childCheckouts, ensureRepoHome, notePlaces, repoPlace, shownPath } from "./home.js";
-import { ensureRepoTrail, LEARNINGS_DIR, learningsDir } from "./repo-trail.js";
+import { ensureRepoJulius, LEARNINGS_DIR, learningsDir } from "./repo-julius.js";
 
 export interface NoteCost {
   minutes?: number;
@@ -44,14 +44,14 @@ export interface Note {
   body: string;
   /** Written by someone other than whoever is asking. */
   teammate?: boolean;
-  /** `repo`: in the repo's `.trail/learnings/`, for everyone. `personal`: in ~/.trail, this machine only. */
+  /** `repo`: in the repo's `.julius/learnings/`, for everyone. `personal`: in ~/.julius, this machine only. */
   scope?: "repo" | "personal";
   /** A rule or preference for every session here, not knowledge about one
    * task: what the user kept having to tell Claude. The session-start hook
    * lists these up front, since no single task would bring them up. */
   standing?: boolean;
   /** Found on a teammate's pushed branch (`origin/kumar/jitter`) rather than in
-   * this checkout. `path` is then `<ref>:.trail/learnings/<name>`, readable
+   * this checkout. `path` is then `<ref>:.julius/learnings/<name>`, readable
    * with `git show`, and the whole body travels with the note. */
   ref?: string;
 }
@@ -154,7 +154,7 @@ export function noteName(n: Note): string {
 
 /**
  * Every learning that bears on the folder `dir`, newest first: the repo's
- * committed ones in `.trail/learnings/`, this person's own in ~/.trail, and
+ * committed ones in `.julius/learnings/`, this person's own in ~/.julius, and
  * the ones on teammates' pushed branches that haven't merged yet (from the
  * branch cache, so nothing here runs git). For a folder that holds several
  * repos, its own and each repo's. Touches come back relative to `dir`, so
@@ -235,8 +235,8 @@ export interface WriteNoteInput {
 
 /**
  * Write a new learning for the repo `dir` is in, and return it: into the
- * repo's `.trail/learnings/` (made if needed), or with `scope: "personal"`,
- * or outside git, into ~/.trail. Never overwrites: a second one with the same
+ * repo's `.julius/learnings/` (made if needed), or with `scope: "personal"`,
+ * or outside git, into ~/.julius. Never overwrites: a second one with the same
  * name on the same day gets `-2`, `-3`.
  */
 export function writeNote(dir: string, input: WriteNoteInput, scope: LearningScope = "repo"): Note {
@@ -244,7 +244,7 @@ export function writeNote(dir: string, input: WriteNoteInput, scope: LearningSco
   const inRepo = scope === "repo" && place.git;
   let notes: string;
   if (inRepo) {
-    ensureRepoTrail(place.checkout);
+    ensureRepoJulius(place.checkout);
     notes = learningsDir(place.checkout);
   } else {
     notes = join(place.dir, "notes");
@@ -276,7 +276,7 @@ export function standingLearnings(dir: string): Note[] {
   return listNotes(dir, { branches: false }).filter((n) => n.standing && !n.ref);
 }
 
-/** Where a learning is, as the agent and the person read it: `.trail/learnings/x.md`, `~/.trail/…`, or `origin/b:.trail/…`. */
+/** Where a learning is, as the agent and the person read it: `.julius/learnings/x.md`, `~/.julius/…`, or `origin/b:.julius/…`. */
 export function notePlace(n: Note): string {
   if (n.ref) return n.path;
   // Windows paths come with backslashes; the place is shown with `/` either way.
@@ -365,7 +365,7 @@ const MENTION = /(?:^|[\s(`'"\[])((?:[\w.-]+\/)*[\w-][\w.-]*\.[A-Za-z][A-Za-z0-9
 /**
  * Files of the checkout at `dir` that a note's text names by path. A session
  * that only read code edits nothing, so without these its note would touch no
- * file, and nothing that looks a note up by file (`trail check`, the ranked
+ * file, and nothing that looks a note up by file (`julius check`, the ranked
  * search) would ever find it.
  */
 export function mentionedFiles(dir: string, body: string): string[] {
@@ -545,7 +545,7 @@ export const PR_SPEEDUP = "3x faster";
 
 /**
  * Below this many tokens, what a learning saves is too small a number to
- * impress, so trail credits it as a faster PR instead.
+ * impress, so julius credits it as a faster PR instead.
  */
 export const TOKEN_CREDIT_FLOOR = 80_000;
 
@@ -596,15 +596,15 @@ export function commitLines(
 }
 
 /**
- * The line asking for trail's shared setup to be committed, once: `.trail/`
+ * The line asking for julius's shared setup to be committed, once: `.julius/`
  * and the SessionStart entry in `.claude/settings.json` are what let a
  * teammate's Claude read the learnings before they install anything.
  */
 export function setupCommitLine(teammates: string[]): string {
-  const ask = "Commit .trail/ and .claude/settings.json once";
-  if (!teammates.length) return `🌱 ${ask}, and your teammates' Claude starts from your learnings, even before they install trail`;
+  const ask = "Commit .julius/ and .claude/settings.json once";
+  if (!teammates.length) return `🌱 ${ask}, and your teammates' Claude starts from your learnings, even before they install julius`;
   const work = teammates.length === 1 ? "works" : "work";
-  return `🌱 ${namesLabel(teammates)} ${work} in this repo. ${ask}, and their Claude starts from your learnings, even before they install trail`;
+  return `🌱 ${namesLabel(teammates)} ${work} in this repo. ${ask}, and their Claude starts from your learnings, even before they install julius`;
 }
 
 /**
@@ -627,9 +627,9 @@ export function learningCredit(hits: NoteHit[]): string {
 export function learningSavingsLine(hits: NoteHit[]): string | null {
   if (!hits.length) return null;
   const saved = hits.reduce((sum, h) => sum + savedByNote(h.note), 0);
-  if (!tokensWorthSaying(saved)) return `[trail] starting from ${hits.length === 1 ? "this learning" : "these learnings"} gets you to a PR ${PR_SPEEDUP}.`;
+  if (!tokensWorthSaying(saved)) return `[julius] starting from ${hits.length === 1 ? "this learning" : "these learnings"} gets you to a PR ${PR_SPEEDUP}.`;
   const read = hits.reduce((sum, h) => sum + readingTokens(h.note), 0);
   const minutes = hits.reduce((sum, h) => sum + (h.note.cost?.minutes ?? 0), 0);
   const time = minutes > 0 ? ` and ~${minutes} min` : "";
-  return `[trail] learnings saved ≈ ${saved.toLocaleString("en-US")} tokens${time} (estimate): what they took to work out, less the ~${read.toLocaleString("en-US")} tokens to read them here.`;
+  return `[julius] learnings saved ≈ ${saved.toLocaleString("en-US")} tokens${time} (estimate): what they took to work out, less the ~${read.toLocaleString("en-US")} tokens to read them here.`;
 }
