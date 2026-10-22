@@ -1,3 +1,4 @@
+import { INVESTIGATION_WORKFLOW } from './investigation-instructions.js';
 /** Canonical Julius instructions, wrapped in each coding host's native format. */
 import type { Brand } from '../brand.js';
 import { juliusSpelling } from '../claude/skill-template.js';
@@ -12,6 +13,8 @@ export function instructionBody(name: Brand = 'julius'): string {
 
 function juliusBody(): string {
   return `## Julius — repo context graph
+
+${INVESTIGATION_WORKFLOW}
 
 This repo is indexed in \`julius/\`: small linked markdown nodes that explain each
 system and carry exact file:line spans, kept in sync with the code through git.

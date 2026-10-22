@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { parse as parseToml } from 'smol-toml';
 import { isDeepStrictEqual } from 'node:util';
 
-export type InstallHost = 'claude' | 'cursor' | 'codex';
+export type InstallHost = 'claude' | 'cursor' | 'codex' | 'grok';
 interface Change { path: string; before: string | null; after: string | null; kind: 'config' | 'copy' | 'state' }
 interface Owned { path: string; before: string | null; after: string; keys: string[] }
 interface Manifest { version: 1; configs: Owned[]; migrationRepos?: string[] }
@@ -16,7 +16,7 @@ export interface InstallOptions {
   /** Fault-injection seam; never an environment-controlled production behavior. */
   afterWrite?: (path: string, index: number) => void;
 }
-const targets = (home: string): Record<InstallHost, string> => ({ claude: join(home, '.claude.json'), cursor: join(home, '.cursor', 'mcp.json'), codex: join(home, '.codex', 'config.toml') });
+const targets = (home: string): Record<InstallHost, string> => ({ claude: join(home, '.claude.json'), cursor: join(home, '.cursor', 'mcp.json'), codex: join(home, '.codex', 'config.toml'), grok: join(home, '.grok', 'config.toml') });
 const statePath = (home: string) => join(home, '.julius', 'install', 'manifest.json');
 function safePath(path: string): void {
   for (let p = resolve(path);; p = dirname(p)) {
@@ -149,8 +149,8 @@ function migration(repo: string): Change[] {
 export function installGlobal(opts: InstallOptions): string[] {
   const home = realpathSync(opts.home); opts = { ...opts, home }; const paths = targets(home);
   const hosts = opts.hosts ?? (Object.keys(paths) as InstallHost[]).filter(id => existsSync(join(home, `.${id}`)) || existsSync(paths[id]));
-  if (!hosts.length) throw new Error('No supported host detected. Select --hosts claude,cursor,codex explicitly.');
-  for (const id of hosts) if (!Object.hasOwn(paths, id)) throw new Error(`Unsupported host: ${id}; supported: claude,cursor,codex`);
+  if (!hosts.length) throw new Error('No supported host detected. Select --hosts claude,cursor,codex,grok explicitly.');
+  for (const id of hosts) if (!Object.hasOwn(paths, id)) throw new Error(`Unsupported host: ${id}; supported: claude,cursor,codex,grok`);
   const binary = fileURLToPath(new URL('../../dist/bin/julius.js', import.meta.url));
   // Both src/hosts and dist/hosts resolve to package/dist/bin, independent of cwd.
   if (!existsSync(binary)) throw new Error('Build Julius before installing: npm run build');
@@ -176,7 +176,7 @@ export function installGlobal(opts: InstallOptions): string[] {
   for (const id of new Set(hosts)) {
     const path = paths[id as InstallHost]; const before = read(path);
     const old = manifest.configs.find(c => c.path === path); if (old) assertOwned(before, old);
-    if (id === 'codex') {
+    if (id === 'codex' || id === 'grok') {
       const section = `[mcp_servers.julius]\ncommand = ${JSON.stringify(entry.command)}\nargs = ${JSON.stringify(entry.args)}\n`;
       let text = decode(before); const keys = new Set(old?.keys ?? ['julius']);
       if (opts.migrateTrail) {

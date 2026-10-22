@@ -1,3 +1,4 @@
+import { parse as parseToml } from 'smol-toml';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, spawn } from 'node:child_process';
@@ -108,11 +109,11 @@ test('setup rejects invalid config, unknown hosts and owned TOML changes without
   } finally { f.close(); }
 });
 
-test('installed launch command serves the actual second repository without init or a loader', async () => {
+for (const host of ['claude', 'codex', 'grok']) test(`${host} installed launch serves investigations in a second repository without init or user commands`, async () => {
   const f = fixture();
   try {
-    assert.equal(f.cli('install', '--hosts', 'claude').status, 0);
-    const entry = JSON.parse(readFileSync(f.claude, 'utf8')).mcpServers.julius;
+    assert.equal(f.cli('install', '--hosts', host).status, 0);
+    const entry = host === 'claude' ? JSON.parse(readFileSync(f.claude, 'utf8')).mcpServers.julius : (parseToml(readFileSync(join(f.home, `.${host}`, 'config.toml'), 'utf8')).mcp_servers as any).julius;
     const second = join(f.root, 'second repo'); mkdirSync(second);
     writeFileSync(join(second, 'feature.ts'), 'export function secondRepositoryOnly() { return 42; }\n');
     const child = spawn(entry.command, entry.args, { cwd: second, env: f.env, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -127,7 +128,7 @@ test('installed launch command serves the actual second repository without init 
           const end = buffer.indexOf('\n');
           if (end >= 0) { clearTimeout(timeout); resolveReply(JSON.parse(buffer.slice(0, end))); }
         });
-        child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'julius_call', arguments: { operation: 'julius_file_api', args: { file: 'feature.ts' } } } }) + '\n');
+        child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'julius_call', arguments: { operation: 'investigation.execute', args: { recipe: 'change-impact', paths: ['feature.ts'] } } } }) + '\n');
       });
       assert.equal(result.result.isError, false, JSON.stringify(result)); assert.match(result.result.content[0].text, /secondRepositoryOnly/);
       assert.equal(existsSync(join(second, '.julius', 'cache')), true); assert.equal(existsSync(join(f.repo, '.julius', 'cache')), false);
@@ -245,4 +246,19 @@ test('Trail migration leaves Graft launchers unmanaged in global and repository 
       assert.equal(readFileSync(codex, 'utf8'), toml);
     } finally { f.close(); }
   }
+});
+
+test('Grok native TOML is autodetected, reversible and preserves unrelated configuration', () => {
+  const f = fixture();
+  try {
+    mkdirSync(join(f.home, '.grok')); const path = join(f.home, '.grok', 'config.toml');
+    const original = 'model = "grok-code"\n\n[mcp_servers.other]\ncommand = "other"\n';
+    writeFileSync(path, original);
+    let r = f.cli('install', '--dry-run'); assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /\.grok/); assert.equal(readFileSync(path, 'utf8'), original);
+    r = f.cli('install'); assert.equal(r.status, 0, r.stderr);
+    const installed = readFileSync(path, 'utf8'); assert.match(installed, /\[mcp_servers.julius\]/); assert.match(installed, /julius\.js/);
+    assert.equal(f.cli('install', '--hosts', 'grok').status, 0); assert.equal(readFileSync(path, 'utf8'), installed);
+    r = f.cli('uninstall', '--global'); assert.equal(r.status, 0, r.stderr); assert.equal(readFileSync(path, 'utf8'), original);
+  } finally { f.close(); }
 });
