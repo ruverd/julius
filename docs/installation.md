@@ -62,8 +62,8 @@ original bytes. Equal copies are skipped, conflicting destinations fail before
 writes, and symlinks/special files are refused. The old directory is never
 changed. Graph caches are rebuilt locally instead of copied.
 
-Only exact known upstream MCP launch entries (`trail mcp`, `graft mcp`, or
-`npx -y @trailhq/trail-code mcp` / `npx -y @nanonets/graft mcp`) qualify for removal.
+Only exact known Trail MCP launch entries (`trail mcp` or
+`npx -y @trailhq/trail-code mcp`) qualify for removal.
 Additional arguments/settings or merely similar names do not qualify. Setup
 removes verified entries in selected global host configs and the explicitly
 named repository's `.mcp.json` and `.cursor/mcp.json`. Those removals participate
