@@ -32,3 +32,6 @@ transcripts/
 
 # Local package build staging.
 /build/
+
+# Local git worktrees.
+/.worktrees/
