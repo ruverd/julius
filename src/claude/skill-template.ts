@@ -1,3 +1,4 @@
+import { INVESTIGATION_WORKFLOW } from '../hosts/investigation-instructions.js';
 import { cmd, type Brand } from "../brand.js";
 // The julius Claude Code skill, bundled as a string so `julius init` can write it into a
 // consumer repo's .claude/skills/julius/SKILL.md (no network fetch, version-locked to the
@@ -31,7 +32,9 @@ const JULIUS_DESCRIPTION = `Use for ANY task in this repo. What past sessions wo
   julius init --no-agents.`;
 
 /** The same moments, first in the body, so they're read before the tool docs. */
-const JULIUS_MOMENTS = `## When to reach for julius
+const JULIUS_MOMENTS = `${INVESTIGATION_WORKFLOW}
+
+## When to reach for julius
 - **Before exploring code**, run \`julius ask "<task>" --source\`. Learnings
   from past sessions, yours and your team's, on what was decided, tried and
   ruled out print above the code. Read them first.

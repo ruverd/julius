@@ -14,7 +14,7 @@ supported global targets are:
 | Cursor | `~/.cursor/mcp.json` | `mcpServers.julius` |
 | Codex | `~/.codex/config.toml` | `[mcp_servers.julius]` |
 
-Explicit selection: `julius install --hosts claude,cursor,codex`. The selected
+Explicit selection: `julius install --hosts claude,cursor,codex,grok`. The selected
 home must exist; `--home <path>` supports isolated testing. All paths may contain
 spaces. Installed paths are argv elements, never shell-interpolated commands.
 The host must launch MCP in the working repository; Julius does not infer a
@@ -43,7 +43,7 @@ Migration copies remain after uninstall; deleting user learnings is not part of
 undoing MCP setup. Snapshots may contain private configuration; files are written
 with owner-only permissions.
 
-Codex input is validated with smol-toml. The text editor supports canonical
+Codex and Grok input is validated with smol-toml. The text editor supports canonical
 single-line table headers and rejects multiline TOML or ambiguous quoted,
 dotted, nested or duplicate owned tables. This conservative limitation avoids
 editing text whose ownership cannot be established; use manual MCP registration
@@ -75,3 +75,16 @@ other host adapters. Its best-effort cleanup is different from this ownership
 transaction. `julius uninstall` without `--global` remains the inherited inverse
 of init (preview by default, `-y` to apply). Avoid mixing both setup methods in
 one host without reviewing their configurations.
+
+## Normal conversation after setup
+
+Once Julius is registered and the host loads its MCP server, ask normal coding
+questions. The agent discovers and runs investigations itself; no Julius command
+or slash command is needed during coding. New repositories are indexed locally
+on demand. A session may need restarting after installation or an upgrade.
+Host tool permissions still apply, and model tool selection cannot be guaranteed.
+This integration targets coding clients with local MCP support, not ordinary web
+chats. Grok uses the native xAI CLI TOML format documented in its
+[MCP guide](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/07-mcp-servers.md).
+
+See [investigations](investigations.md) for current behavior and limitations.

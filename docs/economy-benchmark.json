@@ -27,17 +27,17 @@
         "totalTokens": 8411
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 50,
         "textTokens": 399,
         "responseTokens": 458,
-        "followupTokens": 266,
+        "followupTokens": 283,
         "followupCalls": 1,
-        "totalTokens": 1716
+        "totalTokens": 1826
       },
-      "differenceVsRawOutput": 5494,
-      "differenceVsInheritedStyle": 6695
+      "differenceVsRawOutput": 5384,
+      "differenceVsInheritedStyle": 6585
     },
     {
       "name": "middle-failure",
@@ -57,17 +57,17 @@
         "totalTokens": 5214
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 50,
         "textTokens": 354,
         "responseTokens": 430,
-        "followupTokens": 445,
+        "followupTokens": 462,
         "followupCalls": 1,
-        "totalTokens": 1867
+        "totalTokens": 1977
       },
-      "differenceVsRawOutput": 2146,
-      "differenceVsInheritedStyle": 3347
+      "differenceVsRawOutput": 2036,
+      "differenceVsInheritedStyle": 3237
     },
     {
       "name": "long-line",
@@ -87,17 +87,17 @@
         "totalTokens": 3005
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 49,
         "textTokens": 287,
         "responseTokens": 317,
-        "followupTokens": 408,
+        "followupTokens": 425,
         "followupCalls": 1,
-        "totalTokens": 1716
+        "totalTokens": 1826
       },
-      "differenceVsRawOutput": 90,
-      "differenceVsInheritedStyle": 1289
+      "differenceVsRawOutput": -20,
+      "differenceVsInheritedStyle": 1179
     },
     {
       "name": "source-like",
@@ -117,17 +117,17 @@
         "totalTokens": 5210
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 49,
         "textTokens": 265,
         "responseTokens": 303,
-        "followupTokens": 263,
+        "followupTokens": 280,
         "followupCalls": 1,
-        "totalTokens": 1557
+        "totalTokens": 1667
       },
-      "differenceVsRawOutput": 2202,
-      "differenceVsInheritedStyle": 3653
+      "differenceVsRawOutput": 2092,
+      "differenceVsInheritedStyle": 3543
     },
     {
       "name": "unicode",
@@ -147,17 +147,17 @@
         "totalTokens": 7211
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 48,
         "textTokens": 358,
         "responseTokens": 407,
-        "followupTokens": 255,
+        "followupTokens": 272,
         "followupCalls": 1,
-        "totalTokens": 1652
+        "totalTokens": 1762
       },
-      "differenceVsRawOutput": 4358,
-      "differenceVsInheritedStyle": 5559
+      "differenceVsRawOutput": 4248,
+      "differenceVsInheritedStyle": 5449
     },
     {
       "name": "small",
@@ -177,17 +177,17 @@
         "totalTokens": 1205
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 396,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 433,
         "requestTokens": 48,
         "textTokens": 6,
         "responseTokens": 35,
         "followupTokens": 0,
         "followupCalls": 0,
-        "totalTokens": 843
+        "totalTokens": 936
       },
-      "differenceVsRawOutput": -837,
-      "differenceVsInheritedStyle": 362
+      "differenceVsRawOutput": -930,
+      "differenceVsInheritedStyle": 269
     },
     {
       "name": "high-entropy",
@@ -207,17 +207,17 @@
         "totalTokens": 22300
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 50,
         "textTokens": 292,
         "responseTokens": 326,
-        "followupTokens": 260,
+        "followupTokens": 277,
         "followupCalls": 1,
-        "totalTokens": 1578
+        "totalTokens": 1688
       },
-      "differenceVsRawOutput": 19521,
-      "differenceVsInheritedStyle": 20722
+      "differenceVsRawOutput": 19411,
+      "differenceVsInheritedStyle": 20612
     },
     {
       "name": "all-original-needed",
@@ -235,17 +235,17 @@
         "totalTokens": 7966
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 50,
         "textTokens": 294,
         "responseTokens": 328,
-        "followupTokens": 16765,
+        "followupTokens": 17445,
         "followupCalls": 40,
-        "totalTokens": 18085
+        "totalTokens": 18858
       },
-      "differenceVsRawOutput": -11320,
-      "differenceVsInheritedStyle": -10119
+      "differenceVsRawOutput": -12093,
+      "differenceVsInheritedStyle": -10892
     },
     {
       "name": "pathological-unknown",
@@ -265,14 +265,14 @@
         "totalTokens": null
       },
       "julius": {
-        "initialInterfaceTokens": 364,
-        "discoveryTokens": 578,
+        "initialInterfaceTokens": 420,
+        "discoveryTokens": 615,
         "requestTokens": 51,
         "textTokens": 259,
         "responseTokens": 289,
-        "followupTokens": 228,
+        "followupTokens": 245,
         "followupCalls": 1,
-        "totalTokens": 1510
+        "totalTokens": 1620
       },
       "differenceVsRawOutput": null,
       "differenceVsInheritedStyle": null

@@ -1813,8 +1813,8 @@ function formatRetractions(rs: Retraction[], apply: boolean): string {
 }
 
 grouped(program.command("install"), GROUP.setup)
-  .description("Install compact global MCP for detected Claude Code/Cursor/Codex configuration files")
-  .option("--hosts <ids>", "comma-separated claude,cursor,codex (default: detected config directories)")
+  .description("Install compact global MCP for detected Claude Code/Cursor/Codex/Grok configuration files")
+  .option("--hosts <ids>", "comma-separated claude,cursor,codex,grok (default: detected config directories)")
   .option("--home <path>", "home directory override", homedir())
   .option("--dry-run", "show planned writes without changing files")
   .option("--migrate-trail <repo>", "copy .trail/learnings and replace verified legacy MCP entries")

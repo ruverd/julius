@@ -18,7 +18,7 @@ export function economyTokens(text: string): number {
   if (count === null) throw new Error('Exact token count unavailable: whitespace or non-whitespace run exceeds 4096 UTF-16 units');
   return count;
 }
-export interface CaptureOptions { budget: number }
+export interface CaptureOptions { budget: number; transport?: 'mcp'; preview?: (handle: string) => string }
 export interface ReadOptions extends CaptureOptions { start?: number; end?: number; search?: string; raw?: boolean }
 export interface EconomyResult { text: string; handle: string | null; bytes: Buffer; omittedBytes: number }
 export interface RunOptions extends CaptureOptions { maxBytes?: number; timeoutMs?: number }
@@ -117,9 +117,9 @@ export class Economy {
     writeFileSync(path + '.tmp', JSON.stringify({ rawTokens, deliveredTokens }), { flag: 'wx', mode: 0o600 });
     renameSync(path + '.tmp', path + '.json');
   }
-  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length): EconomyResult {
+  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length, transport?: 'mcp'): EconomyResult {
     const render = (part: Buffer) => JSON.stringify({ handle, start, end: start + part.length, totalBytes: total,
-      omittedBytes: total - part.length, ...representation(part), recover: `julius read ${handle} --raw` });
+      omittedBytes: total - part.length, ...representation(part), recover: transport === 'mcp' ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' } : `julius read ${handle} --raw` });
     let size = Math.min(bytes.length, budget * 3);
     let part = bytes.subarray(0, size); let text = render(part);
     while ((countPayloadTokens(text) ?? Infinity) > budget && size > 0) { size = Math.floor(size / 2); part = bytes.subarray(0, size); text = render(part); }
@@ -133,7 +133,14 @@ export class Economy {
     const raw = representation(bytes); const rawTokens = countPayloadTokens(raw.content);
     let result: EconomyResult;
     if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= options.budget) result = { text: raw.content, handle: null, bytes, omittedBytes: 0 };
-    else { const handle = this.save(bytes); result = this.render(bytes, handle, options.budget); }
+    else {
+      const handle = this.save(bytes);
+      const selected = options.preview?.(handle);
+      const tokens = selected ? countPayloadTokens(selected) : null;
+      result = selected && tokens !== null && tokens <= options.budget
+        ? { text: selected, handle, bytes: Buffer.from(selected), omittedBytes: bytes.length }
+        : this.render(bytes, handle, options.budget, 0, bytes.length, options.transport);
+    }
     this.record(rawTokens, economyTokens(result.text)); return result;
   }
   async read(handle: string, options: ReadOptions): Promise<EconomyResult> {
@@ -155,7 +162,7 @@ export class Economy {
     const selected = bytes.subarray(start, end);
     const result = options.raw
       ? { text: representation(selected).content, bytes: selected, handle, omittedBytes: bytes.length - selected.length }
-      : this.render(selected, handle, options.budget, start, bytes.length);
+      : this.render(selected, handle, options.budget, start, bytes.length, options.transport);
     this.record(0, countPayloadTokens(result.text)); return result;
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {

@@ -18,8 +18,8 @@ julius install --dry-run
 julius install
 ```
 
-Setup detects Claude Code, Cursor and Codex configuration directories. Use
-`julius install --hosts claude,cursor,codex` to select them explicitly. Restart
+Setup detects Claude Code, Cursor, Codex and Grok configuration directories. Use
+`julius install --hosts claude,cursor,codex,grok` to select them explicitly. Restart
 or reconnect the client's MCP session after setup. The registered command uses
 the installed Node executable and module path; it resolves the repository from
 each MCP process's working directory. Keep that installation in place. If you
@@ -33,6 +33,17 @@ a client chooses Julius instead of its built-in tools.
 
 See [installation and migration](docs/installation.md) for ownership conflicts,
 rollback and copying existing Trail learnings.
+
+## Coding without Julius commands
+
+After setup, continue normal conversation in your coding client. The agent can
+use Julius's experimental change-impact and failure-localization investigations
+automatically through MCP. Julius builds the graph, combines local operations,
+checks source freshness and returns bounded evidence. Recovery also uses MCP;
+you do not need to invoke a CLI or slash command during coding.
+
+Results retain uncertainty and source provenance. Tool selection remains the
+host agent's decision. See [investigations and limitations](docs/investigations.md).
 
 ## Development
 
