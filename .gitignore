@@ -27,7 +27,8 @@ transcripts/
 .cursor/
 
 # julius's local repository settings — not committed.
-/.julius/
+/.julius/economy/
+/.julius/economy-clearing-*/
 
 # Local package build staging.
 /build/

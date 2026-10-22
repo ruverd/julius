@@ -44,3 +44,6 @@ export { ChatSummarizer } from "./ai/summarize.js";
 export type { Summarizer } from "./ai/summarize.js";
 export { ChatCruxSummarizer } from "./ai/crux.js";
 export type { CruxSummarizer, FileCruxInput, NodeCrux, NodeRef } from "./ai/crux.js";
+
+export { Economy, economyTokens, ECONOMY_ENCODING, ECONOMY_MAX_BYTES } from './economy/index.js';
+export type { CaptureOptions, ReadOptions, RunOptions, RunResult, EconomyResult, EconomyStats } from './economy/index.js';

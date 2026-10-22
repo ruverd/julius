@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Julius CLI: local graph navigation and shared repository learnings. */
+import { registerEconomyCommands } from "./economy/cli.js";
 import { spawnSync } from "node:child_process";
 import "dotenv/config";
 import { Command } from "commander";
@@ -252,7 +253,7 @@ const UPKEEP_SKIP = new Set(["version", "upgrade", "_update-check", "_julius-pas
  * cache filler for the hooks, which are not allowed to touch the network.
  */
 program.hook("preAction", (_parent, action) => {
-  if (UPKEEP_SKIP.has(action.name())) return;
+  if (["capture", "read", "run", "stats", "clear"].includes(action.name()) || UPKEEP_SKIP.has(action.name())) return;
   maybeRefreshInBackground();
   const nudge = formatUpdateNudge(currentVersion, readUpdateCache()?.latest);
   if (nudge) console.error(nudge);
@@ -2319,6 +2320,8 @@ function statusCommand(name = "status"): Command {
   for (const c of program.commands) if (summaries[c.name()]) c.summary(summaries[c.name()]!);
   program.addHelpText("after", "\njulius <command> --help for flags");
 }
+
+registerEconomyCommands(program);
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err instanceof Error ? err.message : err);
