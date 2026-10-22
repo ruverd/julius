@@ -229,6 +229,13 @@ export async function deliverInvestigation(root: string, report: InvestigationRe
   const recover = (handle: string) => ({ operation: 'context.read', args: { handle }, instruction: 'Search a path or read byte ranges through julius_call; no user command needed.' });
   const handle = economy.hold(full);
   const rawTokens = (() => { try { return economyTokens(full); } catch { return null; } })();
+  if (rawTokens !== null) {
+    const complete = JSON.stringify({ ...report, evidence: ranked, omittedEvidence: 0, handle, delivery: choice.label, recover: recover(handle) });
+    if (economyTokens(complete) <= budget) {
+      economy.recordDelivery(rawTokens, economyTokens(complete));
+      return complete;
+    }
+  }
   if (choice.literals.length > 0 && pool.length === 0) {
     const text = JSON.stringify({ ...report, evidence: [], omittedEvidence: ranked.length, match: false, handle, delivery: choice.label, next: { start: 0, end: Buffer.byteLength(full) }, recover: recover(handle) });
     if (economyTokens(text) <= budget) { economy.recordDelivery(rawTokens, economyTokens(text)); return text; }
