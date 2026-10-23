@@ -25,6 +25,7 @@ import { readSourceFile } from "../util/source.js";
 import { readJson, writeJsonAtomic } from "../util/state.js";
 import { extractorStamp, pruneSidecars, type ExtractEntry } from "./extract-cache.js";
 import { listSourceStats } from "./source-files.js";
+import type { GraphVerification } from "./provenance.js";
 
 export const FINGERPRINT_PREFIX = "fingerprint";
 const FINGERPRINT_VERSION = 1;
@@ -54,6 +55,8 @@ export interface Fingerprint {
    * — so the query-path freshness probe (which never sees a CLI flag) enumerates the
    * identical whitelisted set and excluded files are never phantom "added" drift. */
   onlyDirs?: string[];
+  /** Binds persisted graph bytes to resolution configuration and this extractor. */
+  verification?: GraphVerification;
 }
 
 /** What moved since the last build. Empty in all three arrays = nothing to do. */
@@ -78,6 +81,10 @@ export function readFingerprint(outDir: string): Fingerprint | null {
   const f = readJson<Fingerprint>(fingerprintPath(outDir));
   if (!f || f.version !== FINGERPRINT_VERSION || typeof f.files !== "object" || !f.files) return null;
   if (f.extractor !== stamp()) return null; // different extractor — re-extract, don't trust these prints
+  const verification = f.verification;
+  if (verification !== undefined && (!verification || typeof verification !== 'object'
+    || typeof verification.graphHash !== 'string' || !/^[a-f0-9]{64}$/.test(verification.graphHash)
+    || typeof verification.configurationHash !== 'string' || !/^[a-f0-9]{64}$/.test(verification.configurationHash))) return null;
   return f;
 }
 
@@ -88,12 +95,14 @@ export function writeFingerprint(
   outDir: string,
   entries: Record<string, ExtractEntry>,
   onlyDirs?: string[],
+  verification?: GraphVerification,
 ): boolean {
   const files: Record<string, Print> = {};
   for (const [rel, e] of Object.entries(entries)) files[rel] = [e.size, e.mtimeMs, e.hash];
   try {
     const record: Fingerprint = { version: FINGERPRINT_VERSION, extractor: stamp(), files };
     if (onlyDirs && onlyDirs.length > 0) record.onlyDirs = onlyDirs;
+    if (verification) record.verification = verification;
     writeJsonAtomic(fingerprintPath(outDir), record, true);
     pruneSidecars(join(outDir, CACHE_DIR), FINGERPRINT_PREFIX);
     return true;

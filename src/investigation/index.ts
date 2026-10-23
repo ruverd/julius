@@ -14,6 +14,7 @@ import { walkDir } from '../ingest/fs.js';
 import { readBuildConfig, readFollowNestedRepos, readFollowSubmodules, readIncludeDirs } from '../util/state.js';
 import { Economy, economyTokens } from '../economy/index.js';
 import type { DeliveryChoice } from '../economy/delivery.js';
+import { graphConfigurationHash, isGraphConfigurationFile, type GraphVerification } from '../graph/provenance.js';
 
 export interface InvestigationArgs {
   recipe: 'change-impact' | 'failure-localization';
@@ -22,6 +23,7 @@ export interface InvestigationArgs {
   depth?: number;
 }
 interface Snapshot { id: string; sources: Map<string, string>; hashes: Record<string, string>; onlyDirs?: string[] }
+type IndexSnapshot = Snapshot & { configurationHash: string };
 export interface Evidence {
   id: string; path: string; span: string; kind: string; name: string;
   role: 'seed' | 'dependent' | 'match'; depth: number;
@@ -42,6 +44,7 @@ const MAX_VISITS = 10000;
 const MAX_EVIDENCE = 500;
 const MAX_CACHE_BYTES = 8 * 1024 * 1024;
 const cache = new Map<string, string>();
+const verifiedBuilds = new Map<string, { snapshot: string; verification: GraphVerification }>();
 let cacheBytes = 0;
 const queues = new Map<string, Promise<void>>();
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -60,7 +63,7 @@ function decode(bytes: Buffer): string | null {
   if (bytes[0] === 0xfe && bytes[1] === 0xff) return null;
   return bytes[0] === 0xff && bytes[1] === 0xfe ? bytes.subarray(2).toString('utf16le') : bytes.toString('utf8');
 }
-function snapshot(root: string, out: string): Snapshot {
+function snapshot(root: string, out: string): IndexSnapshot {
   const onlyDirs = readFingerprint(out)?.onlyDirs;
   const repoFiles = walkDir(root);
   const sharedWalk = !readIncludeDirs(root)?.size && !readFollowSubmodules(root) && !readFollowNestedRepos(root);
@@ -77,17 +80,25 @@ function snapshot(root: string, out: string): Snapshot {
   }
   // Configuration can affect resolution without changing a matched source file.
   const config: Array<[string, string]> = [];
-  for (const file of repoFiles.filter(p => /(?:^|[/\\])(?:package(?:-lock)?\.json|tsconfig[^/\\]*\.json|jsconfig\.json|go\.(?:mod|sum)|Cargo\.(?:toml|lock)|\.gitignore)$/.test(p)).sort()) {
+  for (const file of repoFiles.filter(isGraphConfigurationFile).sort()) {
     const raw = safeRead(root, file); bytes += raw.length;
     if (bytes > MAX_SOURCE_BYTES) throw new Error('Investigation snapshot exceeds byte limit');
     config.push([relative(root, file), sha(raw.toString('base64'))]);
   }
-  return { id: sha(JSON.stringify({ hashes, config, onlyDirs, buildConfig: readBuildConfig(root) })), sources, hashes, onlyDirs };
+  const buildConfig = readBuildConfig(root);
+  return { id: sha(JSON.stringify({ hashes, config, onlyDirs, buildConfig })), sources, hashes, onlyDirs,
+    configurationHash: graphConfigurationHash(config, onlyDirs, buildConfig) };
 }
-function graphMatches(snapshot: Snapshot, out: string): boolean {
+function loadVerifiedGraph(snapshot: IndexSnapshot, out: string, built?: GraphVerification): { graph: GraphV1; hash: string } | null {
   const fp = readFingerprint(out);
-  return !!fp && Object.keys(fp.files).length === snapshot.sources.size &&
-    Object.entries(snapshot.hashes).every(([path, hash]) => fp.files[path]?.[2] === hash);
+  const verification = built ?? fp?.verification;
+  if (!fp || !verification || verification.configurationHash !== snapshot.configurationHash
+    || Object.keys(fp.files).length !== snapshot.sources.size
+    || !Object.entries(snapshot.hashes).every(([path, hash]) => fp.files[path]?.[2] === hash)) return null;
+  const graph = readGraph(wiringPath(out));
+  if (!graph) return null;
+  const hash = sha(JSON.stringify(graph));
+  return hash === verification.graphHash ? { graph, hash } : null;
 }
 function validateArgs(args: InvestigationArgs): void {
   if (!['change-impact', 'failure-localization'].includes(args.recipe)) throw new Error('Unknown investigation recipe');
@@ -175,23 +186,28 @@ async function execute(root: string, args: InvestigationArgs, dir?: string): Pro
   root = realpathSync(root); const out = contextDirFor(root, dir);
   if (readWorkspace(root, dir)) throw new Error('Investigations require one repository; use the existing federated graph tools for workspace roots');
   let before = snapshot(root, out);
-  let graph = readGraph(wiringPath(out));
   const contextKey = `${root}\0${resolve(out)}\0`;
-  // Full snapshot equality, not mtime, gates reuse. A changed configuration also rebuilds.
-  const knownSnapshot = [...cache.keys()].some(k => k.startsWith(`${contextKey}${before.id}\0`));
-  if (!graph || !graphMatches(before, out) || !knownSnapshot) {
+  const known = verifiedBuilds.get(contextKey);
+  let verified = loadVerifiedGraph(before, out, known?.snapshot === before.id ? known.verification : undefined);
+  // Full bytes and build provenance gate reuse independently of report caching.
+  if (!verified) {
     const disabled = process.env.JULIUS_NO_REFRESH;
     if (disabled && disabled !== '0' && disabled !== 'false') throw new Error('Investigation requires verified indexing but automatic refresh is disabled; use direct source tools');
-    await buildGraph(root, { contextDir: dir, graphOnly: true, onlyDirs: before.onlyDirs });
-    graph = readGraph(wiringPath(out));
+    const built = await buildGraph(root, { contextDir: dir, graphOnly: true, onlyDirs: before.onlyDirs });
     const afterBuild = snapshot(root, out);
     if (before.id !== afterBuild.id) throw new Error('Repository changed during investigation indexing; retry the investigation');
     before = afterBuild;
+    verified = loadVerifiedGraph(before, out, built.verification);
+    if (verified && built.verification) {
+      verifiedBuilds.delete(contextKey);
+      if (verifiedBuilds.size >= 32) verifiedBuilds.delete(verifiedBuilds.keys().next().value!);
+      verifiedBuilds.set(contextKey, { snapshot: before.id, verification: built.verification });
+    }
   }
-  if (!graph || !graphMatches(before, out)) throw new Error('Cannot verify graph against current source; use direct inspection');
-  const key = `${contextKey}${before.id}\0${sha(JSON.stringify(graph))}\0${JSON.stringify(args)}`;
+  if (!verified) throw new Error('Cannot verify graph against current source; use direct inspection');
+  const key = `${contextKey}${before.id}\0${verified.hash}\0${JSON.stringify(args)}`;
   const saved = cache.get(key);
-  const report: InvestigationReport = saved ? { ...JSON.parse(saved), reused: true } : investigateGraph(graph, before, args);
+  const report: InvestigationReport = saved ? { ...JSON.parse(saved), reused: true } : investigateGraph(verified.graph, before, args);
   if (snapshot(root, out).id !== before.id) throw new Error('Repository changed during investigation; result discarded, retry');
   if (!saved) {
     const text = JSON.stringify(report); const size = Buffer.byteLength(text);

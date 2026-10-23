@@ -27,6 +27,7 @@ import { readSourceFile } from "../util/source.js";
 import { readFollowNestedRepos, readFollowSubmodules, readIncludeDirs } from "../util/state.js";
 import {
   emptyExtractCache,
+  extractorStamp,
   readExtractCache,
   writeExtractCache,
   type ExtractEntry,
@@ -36,7 +37,8 @@ import { seedGraph, type SeedResult } from "./seed.js";
 import { filterByOnlyDirs, listSourceStats } from "./source-files.js";
 import { resolveEdges, type GoModule } from "./resolve.js";
 import { enrichGraph, type EnrichStats } from "./enrich.js";
-import { readGraph, writeGraph, wiringPath } from "./write.js";
+import { graphForStorage, readGraph, writeGraph, wiringPath } from "./write.js";
+import { readGraphConfigurationHash, type GraphVerification } from "./provenance.js";
 import { writeCards, writeIndex, writeCovers, type CardStats } from "./cards.js";
 import { writeAskIndex } from "../ask/index-file.js";
 import { discoverScopes, scopeOf } from "./scopes.js";
@@ -152,6 +154,8 @@ export interface GraphBuildOptions {
 }
 
 export interface GraphBuildResult {
+  /** Provenance of this completed build, including builds that cannot be reused across processes. */
+  verification?: GraphVerification;
   contextDir: string;
   graphPath: string;
   /** Per-file wiring cards written (Tier-2 passive surface). */
@@ -214,6 +218,9 @@ export async function buildGraph(
     followSubmodules: readFollowSubmodules(root),
     followNestedRepos: readFollowNestedRepos(root),
   });
+  const configurationFiles = !readIncludeDirs(root)?.size && !readFollowSubmodules(root) && !readFollowNestedRepos(root)
+    ? walked : walkDir(root);
+  const configurationBefore = readGraphConfigurationHash(root, opts.onlyDirs, configurationFiles);
   const onlyDirs = opts.onlyDirs && opts.onlyDirs.length > 0 ? new Set(opts.onlyDirs) : undefined;
   const repoFiles = filterByOnlyDirs(walked, root, onlyDirs);
   const files = listSourceStats(root, outDir, repoFiles);
@@ -417,7 +424,14 @@ export async function buildGraph(
   // these source bytes." Nothing about the projections below — which is why it is
   // safe to write here, and why `graphOnly` builds (the query path, which stops
   // right after this line) are still recorded as fresh.
-  writeFingerprint(outDir, entries, opts.onlyDirs);
+  const configurationAfter = readGraphConfigurationHash(root, opts.onlyDirs, configurationFiles);
+  const verification = configurationBefore !== null && configurationBefore === configurationAfter
+    ? { graphHash: contentHash(JSON.stringify(graphForStorage(graph))), configurationHash: configurationBefore }
+    : undefined;
+  // LSP depends on external compiler state. A stand-in may become native after
+  // installation repair. Neither should bypass a fresh structural build later.
+  const reusable = !opts.lsp && fellBack.size === 0 && extractorStamp() !== null;
+  writeFingerprint(outDir, entries, opts.onlyDirs, reusable ? verification : undefined);
 
   // Tier-2 passive surface: project the nodes into per-file markdown cards, and
   // refresh the INDEX roster. Pure projection — no LLM, no network.
@@ -451,6 +465,7 @@ export async function buildGraph(
   for (const e of edges) byRelation[e.relation] = (byRelation[e.relation] ?? 0) + 1;
 
   return {
+    verification,
     contextDir: outDir,
     graphPath,
     cards: cardStats.written,

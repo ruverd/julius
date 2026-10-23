@@ -5,6 +5,15 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+## 0.24.2
+
+### Fixed
+
+- Load model factories on the first AI request, keeping provider SDKs out of structural CLI and MCP startup.
+- Reuse verified persisted indexes on the first impact investigation instead of rebuilding because the report cache is empty.
+- Bind reusable indexes to graph contents, resolution configuration, extractor identity, source hashes, and directory scope.
+- Retain conservative verification for legacy indexes, parser fallbacks, compiler enrichment, and source or configuration changes.
+
 ## 0.24.1
 
 ### Fixed

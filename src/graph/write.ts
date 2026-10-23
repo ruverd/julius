@@ -33,12 +33,16 @@ export function readGraph(path: string): GraphV1 | null {
   }
 }
 
-export function writeGraph(graph: GraphV1, outDir: string): string {
-  const sorted: GraphV1 = {
+export function graphForStorage(graph: GraphV1): GraphV1 {
+  return {
     ...graph,
     nodes: [...graph.nodes].sort((a, b) => a.id.localeCompare(b.id)).map(stripBodyText),
     edges: [...graph.edges].sort(edgeOrder),
   };
+}
+
+export function writeGraph(graph: GraphV1, outDir: string): string {
+  const sorted = graphForStorage(graph);
   const path = wiringPath(outDir);
   mkdirSync(dirname(path), { recursive: true });
   // Atomic write (temp + rename): the crux pass now checkpoints wiring.json
