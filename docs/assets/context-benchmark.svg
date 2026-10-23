@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="960" height="436" viewBox="0 0 960 436" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="846" viewBox="0 0 960 846" role="img" aria-labelledby="title description">
   <title id="title">49.3% fewer protocol tokens in the recorded offline comparison</title>
-  <desc id="description">Historical Julius revision 625693a046ebc011d2c29ec09e0a03385a1b2a46, not the current release. Pinned upstream: 463,332 tokens. Julius selective/complete policy: 235,134 tokens. 10 synthetic task types, 90 executions per arm. Counts include initialization, discovery, invocation, and recovery. Provider usage, cost, and coding accuracy were not measured.</desc>
-  <rect width="960" height="436" rx="12" fill="#0d0d0d"/>
+  <desc id="description">Recorded Julius revision 625693a046ebc011d2c29ec09e0a03385a1b2a46, prepared for 0.24.1. Pinned upstream: 463,332 tokens. Julius selective/complete policy: 235,134 tokens. 10 synthetic task types, 90 executions per arm. Both arms passed 90 evidence checks. Counts include initialization, discovery, invocation, and recovery. Each task bar compares Julius in white with its upstream baseline in gray; scales differ across tasks. Python no-hint recovery uses 2.5% more tokens. Provider usage, cost, and coding accuracy were not measured.</desc>
+  <rect width="960" height="846" rx="12" fill="#0d0d0d"/>
   <g font-family="Arial, Helvetica, sans-serif">
     <text x="40" y="54" fill="#f5f5f5" font-size="29" font-weight="700">49.3% fewer protocol tokens</text>
-    <text x="40" y="87" fill="#b5b5b5" font-size="16">Historical run · 10 synthetic task types · 90 executions per arm · lower is better</text>
+    <text x="40" y="87" fill="#b5b5b5" font-size="16">10 synthetic task types · 90 executions per arm · all evidence checks passed</text>
     <g fill="#a0a0a0" font-size="14">
     <line x1="235" y1="133" x2="235" y2="298" stroke="#252525"/>
     <text x="235" y="324" text-anchor="middle">0</text>
@@ -25,7 +25,73 @@
     <text x="40" y="270" fill="#f5f5f5" font-size="19">Julius</text>
     <rect x="235" y="241" width="291.57" height="44" rx="3" fill="#f5f5f5"/>
     <text x="538.5699999999999" y="269" fill="#f5f5f5" font-size="17">235,134</text>
-    <text x="40" y="378" fill="#c7c7c7" font-size="15">Julius 625693a · offline cl100k_base counts over complete JSON-RPC NDJSON traffic.</text>
-    <text x="40" y="405" fill="#a0a0a0" font-size="14">Synthetic evidence recovery. Provider usage, cost, and coding accuracy unmeasured.</text>
+    <g fill="#b5b5b5" font-size="14">
+      <text x="40" y="370">Each task · nine executions · white = Julius, gray = upstream</text>
+      <text x="665" y="390" text-anchor="end">Upstream</text>
+      <text x="785" y="390" text-anchor="end">Julius</text>
+      <text x="920" y="390" text-anchor="end">Fewer tokens</text>
+      <text x="40" y="416" fill="#e0e0e0" font-size="15">Read a small result</text>
+    <rect x="330" y="406" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="406" width="125.50" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="416" text-anchor="end">10,758</text>
+    <text x="785" y="416" text-anchor="end">6,429</text>
+    <text x="920" y="416" text-anchor="end">40.2%</text>
+    <text x="40" y="451" fill="#e0e0e0" font-size="15">Retrieve one required fact</text>
+    <rect x="330" y="441" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="441" width="22.02" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="451" text-anchor="end">78,903</text>
+    <text x="785" y="451" text-anchor="end">8,274</text>
+    <text x="920" y="451" text-anchor="end">89.5%</text>
+    <text x="40" y="486" fill="#e0e0e0" font-size="15">Request complete output</text>
+    <rect x="330" y="476" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="476" width="169.77" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="486" text-anchor="end">78,903</text>
+    <text x="785" y="486" text-anchor="end">63,789</text>
+    <text x="920" y="486" text-anchor="end">19.2%</text>
+    <text x="40" y="521" fill="#e0e0e0" font-size="15">Trace callers</text>
+    <rect x="330" y="511" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="511" width="173.04" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="521" text-anchor="end">15,186</text>
+    <text x="785" y="521" text-anchor="end">12,513</text>
+    <text x="920" y="521" text-anchor="end">17.6%</text>
+    <text x="40" y="556" fill="#e0e0e0" font-size="15">Recover after a missing focus</text>
+    <rect x="330" y="546" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="546" width="47.84" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="556" text-anchor="end">78,903</text>
+    <text x="785" y="556" text-anchor="end">17,976</text>
+    <text x="920" y="556" text-anchor="end">77.2%</text>
+    <text x="40" y="591" fill="#e0e0e0" font-size="15">Resolve an ambiguous focus</text>
+    <rect x="330" y="581" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="581" width="34.86" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="591" text-anchor="end">78,903</text>
+    <text x="785" y="591" text-anchor="end">13,098</text>
+    <text x="920" y="591" text-anchor="end">83.4%</text>
+    <text x="40" y="626" fill="#e0e0e0" font-size="15">Recover all output without a hint</text>
+    <rect x="330" y="616" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="616" width="208.37" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="626" text-anchor="end">78,903</text>
+    <text x="785" y="626" text-anchor="end">78,291</text>
+    <text x="920" y="626" text-anchor="end">0.8%</text>
+    <text x="40" y="661" fill="#e0e0e0" font-size="15">Refresh after a source edit</text>
+    <rect x="330" y="651" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="651" width="173.78" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="661" text-anchor="end">15,447</text>
+    <text x="785" y="661" text-anchor="end">12,783</text>
+    <text x="920" y="661" text-anchor="end">17.2%</text>
+    <text x="40" y="696" fill="#e0e0e0" font-size="15">Compose a change-impact report</text>
+    <rect x="330" y="686" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="686" width="180.63" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="696" text-anchor="end">15,186</text>
+    <text x="785" y="696" text-anchor="end">13,062</text>
+    <text x="920" y="696" text-anchor="end">14.0%</text>
+    <text x="40" y="731" fill="#e0e0e0" font-size="15">Query in a warm session</text>
+    <rect x="330" y="721" width="210" height="12" rx="2" fill="#767676"/>
+    <rect x="330" y="721" width="153.02" height="12" rx="2" fill="#f5f5f5"/>
+    <text x="665" y="731" text-anchor="end">12,240</text>
+    <text x="785" y="731" text-anchor="end">8,919</text>
+    <text x="920" y="731" text-anchor="end">27.1%</text>
+    </g>
+    <text x="40" y="777" fill="#c7c7c7" font-size="15">Python no-hint recovery: 2.5% more tokens. Per-task bars use separate baseline scales.</text>
+    <text x="40" y="803" fill="#a0a0a0" font-size="14">Julius 625693a · offline cl100k_base · provider cost, speed, and coding accuracy unmeasured.</text>
   </g>
 </svg>

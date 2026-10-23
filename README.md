@@ -25,6 +25,11 @@ Structural indexing and context recovery run locally, without a model key.
 After MCP setup, keep asking normal coding questions. The agent discovers and
 calls Julius through two tools.
 
+<!-- benchmark:summary:start -->
+**49.3% fewer protocol tokens** in a [recorded offline MCP benchmark](#benchmarks).
+10 task types, three languages, 90 executions per variant. Every declared evidence check passed.
+<!-- benchmark:summary:end -->
+
 ## Install
 
 Requires **Node.js 20+** and npm.
@@ -44,7 +49,7 @@ julius --version
 
 Restart or reconnect the client's MCP session after updating. Run `julius install`
 again if the Node executable or installed package path changes. To select an
-exact version, use `npm install -g @ruverd/julius@0.24.0`.
+exact version, use `npm install -g @ruverd/julius@0.24.1`.
 
 ### Install from source
 
@@ -54,7 +59,7 @@ cd julius
 npm ci
 npm run build
 npm pack --pack-destination .
-npm install -g ./ruverd-julius-0.24.0.tgz
+npm install -g ./ruverd-julius-0.24.1.tgz
 julius install --dry-run
 julius install
 ```
@@ -104,44 +109,61 @@ breakage. See [investigations and limitations](docs/investigations.md).
 
 ## Benchmarks
 
-**49.3% fewer protocol tokens** in the recorded offline comparison with the
-[pinned upstream executable](PROVENANCE.md). This result describes a specific
-synthetic task mix, not a prediction of your bill.
+<!-- benchmark:results:start -->
+**49.3% fewer protocol tokens**, with all declared evidence checks passing in both variants.
+Julius uses **228,198 fewer tokens** across the recorded task mix.
 
-The measured source commit is `625693a046ebc011d2c29ec09e0a03385a1b2a46`, prepared for
-`0.24.1`. The [report](docs/strategy/recovery-impact-comparison.json) records
-source, compiled-output and lockfile hashes; subsequent documentation updates
-preserve the measured source tree.
+| Metric | Pinned upstream | Julius | Change |
+| --- | ---: | ---: | ---: |
+| Total protocol tokens | 463,332 | 235,134 | **49.3% fewer** |
+| Mean protocol tokens per execution | 5,148 | 2,613 | 49.3% fewer |
+| Executions passing evidence checks | 90/90 | 90/90 | All passed |
 
-![Offline MCP comparison: pinned upstream uses 463,332 tokens; Julius uses 235,134, a 49.3% reduction. Local cl100k_base protocol counts, not provider usage.](docs/assets/context-benchmark.svg)
+![Offline MCP benchmark: 463,332 upstream protocol tokens versus 235,134 for Julius. All ten task results shown below.](docs/assets/context-benchmark.svg)
 
-The experiment runs ten synthetic evidence tasks in TypeScript, Python, and Go,
-with three repetitions per task and language. Each compared arm has 90 executions.
-Counts include MCP initialization, discovery, invocation, and every recovery call.
-The Julius arm follows the recorded selective/complete policy, including complete
-range recovery after a preview.
+**What ran:** ten synthetic evidence tasks in TypeScript, Python, and Go, with
+three repetitions per task and language. Counts include MCP initialization,
+schema discovery, requests, responses, and every recovery call. Julius follows
+the recorded selective/complete policy. Both variants face the same evidence checks.
 
-Complete recovery avoids repeated pages. Composed impact reports group every
-identity while retaining detailed evidence locally:
+<details>
+<summary>All ten tasks: protocol tokens across nine executions each</summary>
 
-| Task, summed across nine executions | Pinned upstream | Julius |
-| --- | ---: | ---: |
-| Retrieve one required fact | 78,903 | 8,274 |
-| Request complete output explicitly | 78,903 | 63,789 |
-| Recover all output without a hint | 78,903 | 78,291 |
-| Investigate impact with a composed report | 15,186 | 13,062 |
-| **All ten task types** | **463,332** | **235,134** |
+| Task | Pinned upstream | Julius | Fewer tokens |
+| --- | ---: | ---: | ---: |
+| Read a small result | 10,758 | 6,429 | 40.2% |
+| Retrieve one required fact | 78,903 | 8,274 | 89.5% |
+| Request complete output | 78,903 | 63,789 | 19.2% |
+| Trace callers | 15,186 | 12,513 | 17.6% |
+| Recover after a missing focus | 78,903 | 17,976 | 77.2% |
+| Resolve an ambiguous focus | 78,903 | 13,098 | 83.4% |
+| Recover all output without a hint | 78,903 | 78,291 | 0.8% |
+| Refresh after a source edit | 15,447 | 12,783 | 17.2% |
+| Compose a change-impact report | 15,186 | 13,062 | 14.0% |
+| Query in a warm session | 12,240 | 8,919 | 27.1% |
+| **Total** | **463,332** | **235,134** | **49.3%** |
 
-These are offline `cl100k_base` counts over JSON-RPC NDJSON traffic. No model runs,
-provider billing, or coding-task accuracy were measured. Aggregate savings do not
-hold for every language: Python's no-hint recovery still costs more than upstream.
-Local timing is uncontrolled; the checks verify synthetic evidence recovery,
-not the correctness or speed of a code change.
+</details>
 
-Read the [method, all task results, limitations, and reproduction steps](docs/strategy/recovery-impact-comparison.md)
-or inspect the [recorded JSON](docs/strategy/recovery-impact-comparison.json).
+**Where the gain shrinks:** recovering all output without a hint saves only
+0.8% across languages. Python uses **2.5% more** tokens in that task.
+Complete-byte recovery verifies the captured object's digest. Composed impact
+checks verify required caller identities. These checks do not measure coding accuracy.
+
+**Measurement scope:** offline `cl100k_base` counts of JSON-RPC NDJSON traffic.
+Provider usage, dollar cost, agent speed, and real issue resolution remain unmeasured.
+The scripted policy does not establish which tools a model chooses autonomously.
+
+Measured Julius source: [`625693a`](https://github.com/ruverd/julius/commit/625693a046ebc011d2c29ec09e0a03385a1b2a46),
+prepared for `0.24.1`, against the [pinned upstream executable](PROVENANCE.md).
+Read the [method and reproduction steps](docs/strategy/recovery-impact-comparison.md),
+[raw results](docs/strategy/recovery-impact-comparison.json), or
+[protocol traces](docs/strategy/recovery-impact-comparison.traces.json.gz).
 The [earlier comparison](docs/strategy/performance-comparison.md) remains available.
-Regenerate this chart with `node scripts/render-readme-benchmark.mjs`.
+
+Regenerate the summary, tables, and chart with `node scripts/render-readme-benchmark.mjs`.
+Verify them with `node scripts/render-readme-benchmark.mjs --check`.
+<!-- benchmark:results:end -->
 
 ## Local navigation
 
