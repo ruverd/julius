@@ -49,7 +49,7 @@ julius --version
 
 Restart or reconnect the client's MCP session after updating. Run `julius install`
 again if the Node executable or installed package path changes. To select an
-exact version, use `npm install -g @ruverd/julius@0.24.2`.
+exact version, use `npm install -g @ruverd/julius@0.24.3`.
 
 ### Install from source
 
@@ -59,7 +59,7 @@ cd julius
 npm ci
 npm run build
 npm pack --pack-destination .
-npm install -g ./ruverd-julius-0.24.2.tgz
+npm install -g ./ruverd-julius-0.24.3.tgz
 julius install --dry-run
 julius install
 ```

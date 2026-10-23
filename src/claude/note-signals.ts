@@ -326,7 +326,7 @@ export function noteSignals(jsonl: string, repo: string): NoteSignal[] {
 }
 
 const SAVE = '`julius note --title "<the fact, not the task>"`';
-const CLOSE = 'Sections: ## Decided, ## Tried and ruled out, ## Watch out. A summary, never a transcript, nothing secret. Then finish as trail\'s output asks.';
+const CLOSE = 'Sections: ## Decided, ## Tried and ruled out, ## Watch out. A summary, never a transcript, nothing secret. Then finish as julius\'s output asks, if it asks anything.';
 
 /** What the agent is told: the sign first, since Claude Code folds long hook output to its first lines. */
 export function noteAsk(s: NoteSignal): string {
