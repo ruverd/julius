@@ -14,7 +14,6 @@ import { resolveConfig, type EngineConfig, type ResolvedConfig } from "./ai/prov
 import { ChatSynthesizer, type Synthesizer } from "./ai/synthesize.js";
 import { ChatSummarizer, type Summarizer } from "./ai/summarize.js";
 import { ChatCruxSummarizer, type CruxSummarizer } from "./ai/crux.js";
-import { createChatModel } from "./ai/llm/factory.js";
 import type { ChatModel } from "./ai/llm/types.js";
 import { buildContext, CODE_EXTENSIONS, type BuildProgress, type BuildResult } from "./context/build.js";
 import { checkContext, type CheckResult } from "./context/check.js";
@@ -130,13 +129,23 @@ export class Julius {
           "for your provider) to build or summarize the graph.",
       );
     }
-    this._chatModel = createChatModel({
+    const config = {
       provider: this.cfg.provider,
       apiKey: this.cfg.apiKey,
       model: this.cfg.model,
       baseUrl: this.cfg.baseUrl,
       headers: this.cfg.headers,
-    });
+    };
+    let model: Promise<ChatModel> | undefined;
+    this._chatModel = {
+      label: `${config.provider}:${config.model}`,
+      create: async (request) => {
+        model ??= import("./ai/llm/factory.js")
+          .then(({ createChatModel }) => createChatModel(config))
+          .catch(error => { model = undefined; throw error; });
+        return (await model).create(request);
+      },
+    };
     return this._chatModel;
   }
 

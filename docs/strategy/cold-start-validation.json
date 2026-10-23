@@ -1,0 +1,1274 @@
+{
+  "version": 1,
+  "harnessSha256": "c0bbcd733509fc066ed1ee697fba41c69d568ab8948b40a66266f1e2bfaf69c3",
+  "engineSha256": {
+    "before": "52b22096c05fc67fbf37fe51590cfaa9ced1aa6214827e702504112efd8b6458",
+    "candidate": "dd92ff48db2260071da36dd645967828e6a136847576bdd3152cc80eef49b4b5"
+  },
+  "fixtureSha256": "906684979932a5240fb9b22be396001d07fbf8435d40c797b756bd8ec200cd06",
+  "files": 101,
+  "functions": 1001,
+  "node": "v22.23.2",
+  "providerUsage": null,
+  "prebuilt": true,
+  "repetitions": 3,
+  "inputs": {
+    "before": {
+      "version": "0.24.1",
+      "lockSha256": "b591012eaae7573b62d8a7c09764f27f03698196a9e3f0c7d3028d40f8cc966e",
+      "sourceSha256": "8113e784690dac2abed7a8e420282fdf69f48d683f2d8a7d11be913ac8833005",
+      "distSha256": "63b4f25c4c04ce3e71cadc4dc2e9594e8bd590fc66f137aa1c43c27a8f2df7cd"
+    },
+    "candidate": {
+      "version": "0.24.2",
+      "lockSha256": "1779415bf4a0dba0f99e170b00f614526353ebb1e5a6f1b90ba7e5d9beb9162b",
+      "sourceSha256": "05a37d541267ece6f8baf5ec3a0ef0cae60bf807667d355b8539afc7d376cd24",
+      "distSha256": "22453591b9bef8e062918d5282b4be9ff94b91a4efd626599e7f0a912808d125"
+    }
+  },
+  "scope": "Single-process investigation profile, synthetic TypeScript sources. Optional prebuilt indexes are created in separate processes before profiling. Arm order alternates across repetitions. One first request, ten identical warm requests, two sequential source additions per fresh worker. Native require durations are recorded per phase. V8 sampling profile; native frames can include blocking waits, not CPU-cycle measurements or exact phase attribution. Not a statistically controlled speed comparison. Both arms retain the inherited index engine. No model calls.",
+  "results": [
+    {
+      "arm": "before",
+      "repetition": 0,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 124.783208,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 2.3377499999999998
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.3112080000000077
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.920792000000006,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.828708000000006,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.829208000000023,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.760749999999973,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.565832999999998,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.395999999999958,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.49520899999999,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 25.240165999999988,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 24.82537499999995,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 26.68937500000004,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 107.68958300000003,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 140.05108299999995,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 294.293
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 89.335
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 79.248
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 28.21
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 28.124
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 10.25
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 10.084
+        },
+        {
+          "frame": "node:path:1371 relative",
+          "ms": 9
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 8.916
+        },
+        {
+          "frame": "dist/graph/write.js:35 <anonymous>",
+          "ms": 6.041
+        },
+        {
+          "frame": "dist/investigation/index.js:196 execute",
+          "ms": 6.041
+        },
+        {
+          "frame": "dist/ask/index-file.js:73 writeAskIndex",
+          "ms": 5.542
+        },
+        {
+          "frame": "<native>:0 rename",
+          "ms": 5.374
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 4.709
+        },
+        {
+          "frame": "dist/investigation/index.js:107 investigateGraph",
+          "ms": 4.542
+        }
+      ]
+    },
+    {
+      "arm": "candidate",
+      "repetition": 0,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 46.02941700000001,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.657792,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.37016600000001,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.934083000000015,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.091667,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.924916999999994,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.896834000000013,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.722375,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.83325000000002,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.04054199999996,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.975375000000042,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 104.38908300000003,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 2.896500000000003
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.5053340000000048
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 85.05225000000002,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 278.748
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 43.25
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 36.293
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 23.917
+        },
+        {
+          "frame": "<native>:0 readdir",
+          "ms": 12.251
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 11.167
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 10.291
+        },
+        {
+          "frame": "dist/investigation/index.js:83 loadVerifiedGraph",
+          "ms": 9
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 8.542
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 7.458
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 7.041
+        },
+        {
+          "frame": "node:fs:433 readFileSync",
+          "ms": 6.042
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 4.958
+        },
+        {
+          "frame": "scripts/experiments/index-profile.mjs:52 measured",
+          "ms": 4.542
+        },
+        {
+          "frame": "dist/investigation/index.js:208 execute",
+          "ms": 4.5
+        }
+      ]
+    },
+    {
+      "arm": "candidate",
+      "repetition": 1,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 46.661458,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 32.52229199999999,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.088750000000005,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.098375000000004,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.611250000000013,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.33737500000001,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.039125000000013,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.690124999999966,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.32883300000003,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.753667000000007,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.02325000000002,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 103.32916699999998,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 2.021333000000027
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.1170829999999796
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 86.58749999999998,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 289.626
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 41.334
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 31.834
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 17.875
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 11.541
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 11.208
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 11.208
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 10.25
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 8.75
+        },
+        {
+          "frame": "node:path:93 normalizeString",
+          "ms": 8.625
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 7.459
+        },
+        {
+          "frame": "<native>:0 stat",
+          "ms": 7.126
+        },
+        {
+          "frame": "<native>:0 update",
+          "ms": 6.042
+        },
+        {
+          "frame": "dist/graph/write.js:35 <anonymous>",
+          "ms": 6.041
+        },
+        {
+          "frame": "node:path:1371 relative",
+          "ms": 5.958
+        }
+      ]
+    },
+    {
+      "arm": "before",
+      "repetition": 1,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 119.440416,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 3.2333749999999952
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.619208999999998
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 31.811458000000016,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.023957999999993,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.825750000000028,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.676375000000007,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.547374999999988,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.392458000000033,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.609916000000055,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.745916000000022,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.458624999999984,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 27.890832999999986,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 84.61224999999996,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 84.42116700000008,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 300.712
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 59.209
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 31.498
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 20.374
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 19.5
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 10.917
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 9.623
+        },
+        {
+          "frame": "dist/investigation/index.js:196 execute",
+          "ms": 9.042
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 9.042
+        },
+        {
+          "frame": "dist/investigation/index.js:46 snapshot",
+          "ms": 8.999
+        },
+        {
+          "frame": "node:child_process:566 normalizeSpawnArguments",
+          "ms": 7.668
+        },
+        {
+          "frame": "<native>:0 update",
+          "ms": 7.584
+        },
+        {
+          "frame": "<external>/experiments/index-profile.mjs:52 measured",
+          "ms": 7.417
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 6.665
+        },
+        {
+          "frame": "node:path:93 normalizeString",
+          "ms": 6.082
+        }
+      ]
+    },
+    {
+      "arm": "before",
+      "repetition": 2,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 113.506291,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 2.4079579999999936
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.2433750000000003
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 31.104833000000013,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.546459,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.189708000000024,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.596542,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.486833999999988,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.224541999999985,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.335582999999986,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.584000000000003,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.247625000000028,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.375042000000008,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 86.62175000000002,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 86.71720800000003,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 306.082
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 55.334
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 40.834
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 17.792
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 16.333
+        },
+        {
+          "frame": "dist/investigation/index.js:196 execute",
+          "ms": 15.042
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 11
+        },
+        {
+          "frame": "<native>:0 stat",
+          "ms": 10.501
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 7.375
+        },
+        {
+          "frame": "dist/util/state.js:64 writeJsonAtomic",
+          "ms": 6.083
+        },
+        {
+          "frame": "dist/graph/write.js:32 writeGraph",
+          "ms": 6.042
+        },
+        {
+          "frame": "dist/graph/write.js:35 <anonymous>",
+          "ms": 6.041
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 5.708
+        },
+        {
+          "frame": "node:path:93 normalizeString",
+          "ms": 4.75
+        },
+        {
+          "frame": "<native>:0 writeFileUtf8",
+          "ms": 4.708
+        }
+      ]
+    },
+    {
+      "arm": "candidate",
+      "repetition": 2,
+      "phases": [
+        {
+          "phase": "first",
+          "elapsedMs": 46.40145799999999,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.670666999999995,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.713791999999984,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.142708000000027,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 29.130875000000003,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.570291999999995,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.583458000000007,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 30.37204200000002,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.394042000000013,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.206083000000035,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "warm",
+          "elapsedMs": 28.734958000000006,
+          "indexWrites": 0,
+          "gitSpawns": 2,
+          "nativeLoads": [],
+          "reused": true,
+          "evidence": 500,
+          "evidenceSha256": "36b034dbcda53e0278505bc9404e379b6c38f68b7256a11dd322954069d1fd7c"
+        },
+        {
+          "phase": "after-edit",
+          "elapsedMs": 106.34770800000001,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [
+            {
+              "module": "tree-sitter-typescript",
+              "elapsedMs": 3.58720900000003
+            },
+            {
+              "module": "tree-sitter",
+              "elapsedMs": 1.5587920000000395
+            }
+          ],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "ae99311949d604bccf6049834b54584c3455fb42c1b64533ea31c9d54bc48b59"
+        },
+        {
+          "phase": "after-second-edit",
+          "elapsedMs": 87.28525000000002,
+          "indexWrites": 1,
+          "gitSpawns": 4,
+          "nativeLoads": [],
+          "reused": false,
+          "evidence": 500,
+          "evidenceSha256": "271840fb4d418682793db14ec2de0f5308953e4df4fb076949107f432e018d50"
+        }
+      ],
+      "sampledTimeMs": [
+        {
+          "frame": "<native>:0 spawn",
+          "ms": 292.957
+        },
+        {
+          "frame": "<native>:0 readFileUtf8",
+          "ms": 40.167
+        },
+        {
+          "frame": "<native>:0 open",
+          "ms": 31.624
+        },
+        {
+          "frame": "node:inspector:118 post",
+          "ms": 12.791
+        },
+        {
+          "frame": "<native>:0 lstat",
+          "ms": 11.917
+        },
+        {
+          "frame": "<native>:0 close",
+          "ms": 10.541
+        },
+        {
+          "frame": "dist/graph/write.js:24 readGraph",
+          "ms": 10.458
+        },
+        {
+          "frame": "dist/investigation/index.js:83 loadVerifiedGraph",
+          "ms": 10
+        },
+        {
+          "frame": "<native>:0 stat",
+          "ms": 9.083
+        },
+        {
+          "frame": "node:fs:2715 realpathSync",
+          "ms": 7.541
+        },
+        {
+          "frame": "node:path:93 normalizeString",
+          "ms": 7.5
+        },
+        {
+          "frame": "node:path:1371 relative",
+          "ms": 7.25
+        },
+        {
+          "frame": "<native>:0 (garbage collector)",
+          "ms": 6.501
+        },
+        {
+          "frame": "dist/graph/write.js:35 <anonymous>",
+          "ms": 6
+        },
+        {
+          "frame": "<native>:0 update",
+          "ms": 5.917
+        }
+      ]
+    }
+  ]
+}
