@@ -1,6 +1,6 @@
 {
   "name": "@ruverd/julius",
-  "version": "0.24.2",
+  "version": "0.24.3",
   "description": "Build a repo's context graph as a folder of linked markdown files: a local, regenerable cache that every query keeps in sync with your code.",
   "keywords": [
     "ai",

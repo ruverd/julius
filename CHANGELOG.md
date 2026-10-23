@@ -5,6 +5,12 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+## 0.24.3
+
+### Fixed
+
+- The Stop hook's learning prompt now says "finish as julius's output asks" instead of naming the upstream project.
+
 ## 0.24.2
 
 ### Fixed
