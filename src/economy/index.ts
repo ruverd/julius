@@ -20,7 +20,7 @@ export function economyTokens(text: string): number {
   return count;
 }
 export interface CaptureOptions { budget: number; transport?: 'mcp'; preview?: (handle: string) => string }
-export interface ReadOptions extends CaptureOptions { start?: number; end?: number; search?: string; raw?: boolean }
+export interface ReadOptions extends Omit<CaptureOptions, 'budget'> { budget: number | null; start?: number; end?: number; search?: string; raw?: boolean }
 export interface EconomyResult { text: string; handle: string | null; bytes: Buffer; omittedBytes: number }
 export interface RunOptions extends CaptureOptions { maxBytes?: number; timeoutMs?: number }
 export interface RunResult { text: string; status: number | null; signal: NodeJS.Signals | null; stdoutHandle: string; stderrHandle: string; complete: boolean; limit: 'bytes' | 'timeout' | null }
@@ -155,7 +155,7 @@ export class Economy {
     this.record(rawTokens, economyTokens(result.text)); return result;
   }
   async read(handle: string, options: ReadOptions): Promise<EconomyResult> {
-    budgetCheck(options.budget);
+    if (options.budget !== null) budgetCheck(options.budget);
     if (!/^sha256:[a-f0-9]{64}$/.test(handle)) throw new Error('Invalid economy handle');
     this.initialize();
     let bytes: Buffer;
@@ -171,9 +171,13 @@ export class Economy {
       start += found;
     }
     const selected = bytes.subarray(start, end);
+    const shown = representation(selected);
     const result = options.raw
-      ? { text: representation(selected).content, bytes: selected, handle, omittedBytes: bytes.length - selected.length }
-      : this.render(selected, handle, options.budget, start, bytes.length, options.transport);
+      ? { text: shown.content, bytes: selected, handle, omittedBytes: bytes.length - selected.length }
+      : options.budget === null
+        ? { text: JSON.stringify({ delivery: 'complete', handle, start, end, totalBytes: bytes.length, omittedBytes: bytes.length - selected.length, format: shown.format }) + '\n' + shown.content,
+          bytes: selected, handle, omittedBytes: bytes.length - selected.length }
+        : this.render(selected, handle, options.budget, start, bytes.length, options.transport);
     this.record(0, countPayloadTokens(result.text)); return result;
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {

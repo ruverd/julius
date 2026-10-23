@@ -4,8 +4,7 @@
  * Kept out of cli.ts (argument wiring only) and out of grep.ts (pure core,
  * unit-testable against hand-built fixture graphs without touching a real
  * repo root) — same split as traverse.ts/traverse-cli.ts. `formatGrepResult`
- * is exported so `julius_find_all` in `src/mcp/tools.ts` renders the identical
- * report, rather than re-implementing it.
+ * is exported so CLI and MCP share matching, ranking and coverage formatting.
  */
 import { resolve } from "node:path";
 import { contextDirFor } from "../context/node-file.js";
@@ -24,13 +23,17 @@ export interface GrepCliOptions {
   globalDir?: string;
 }
 
-function groupHeader(g: GrepGroup): string {
-  if (g.symbol) return `${g.symbol.name} · ${g.symbol.kind} · ${g.symbol.path}:${g.symbol.span} · ${g.inDegree} in-edges`;
-  return `${g.path} (module level) · ${g.inDegree} in-edges`;
+function groupHeader(g: GrepGroup, compact = false): string {
+  if (g.symbol) {
+    const span = compact ? g.symbol.span.replace(/^L(\d+)-L\1$/, 'L$1') : g.symbol.span;
+    if (compact) return `${g.symbol.name} ${g.symbol.kind} ${g.symbol.path}:${span} ${g.inDegree}`;
+    return `${g.symbol.name} · ${g.symbol.kind} · ${g.symbol.path}:${span} · ${g.inDegree} in-edges`;
+  }
+  return compact ? `${g.path} (module level) ${g.inDegree}` : `${g.path} (module level) · ${g.inDegree} in-edges`;
 }
 
-function formatGroup(g: GrepGroup): string {
-  const lines = [groupHeader(g)];
+function formatGroup(g: GrepGroup, compact = false): string {
+  const lines = [groupHeader(g, compact)];
   for (const h of g.hits) lines.push(`  L${h.line}: ${h.text}`);
   return lines.join("\n");
 }
@@ -53,13 +56,14 @@ function truncationNote(result: GrepResult): string | null {
 
 /** Full human report: header, blank line, then one block per group (header +
  * indented hit lines), each block separated by a blank line. */
-export function formatGrepResult(result: GrepResult): string {
+export function formatGrepResult(result: GrepResult, options: { compact?: boolean } = {}): string {
   // The truncation note rides directly under the header, not at the bottom:
   // "never silent" has to survive a `head -N` too (same reason the savings
   // line is a header — see withSavings).
   const note = truncationNote(result);
   const head = note ? `${formatGrepHeader(result)}\n${note}` : formatGrepHeader(result);
-  const blocks = [head, "", ...result.groups.map((g) => formatGroup(g) + "\n")];
+  const columns = options.compact ? ['Symbol kind location incomingEdges', ''] : [];
+  const blocks = [head, "", ...columns, ...result.groups.map((g) => formatGroup(g, options.compact) + "\n")];
   const out = blocks.join("\n").replace(/\n+$/, "\n");
   return withSavings(out, result.saved);
 }

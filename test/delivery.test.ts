@@ -300,3 +300,30 @@ test('a complete-fit investigation report keeps evidence without the literal', a
     assert.equal(delivered.match, undefined);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('complete context recovery returns only the requested bytes and honors explicit budgets', async () => {
+  const root = repo();
+  try {
+    const content = 'ação🙂\r\n"quoted"\\path '.repeat(500);
+    const initial = await callCompact(root, 'julius_call', { operation: 'context.capture', args: { content }, budget: 400 });
+    assert.equal(initial.isError, false, initial.text);
+    const preview = JSON.parse(initial.text);
+    const recovered = await callCompact(root, 'julius_call', { operation: 'context.read', args: { handle: preview.handle, start: preview.end }, delivery: 'complete' });
+    assert.equal(recovered.isError, false, recovered.text);
+    const split = recovered.text.indexOf('\n');
+    const header = JSON.parse(recovered.text.slice(0, split));
+    assert.equal(header.start, preview.end);
+    assert.equal(header.end, Buffer.byteLength(content));
+    assert.equal(header.handle, preview.handle);
+    assert.deepEqual(Buffer.concat([Buffer.from(preview.content), Buffer.from(recovered.text.slice(split + 1))]), Buffer.from(content));
+    const capped = await callCompact(root, 'julius_call', { operation: 'context.read', args: { handle: preview.handle, start: preview.end }, delivery: 'complete', budget: 400 });
+    assert.equal(capped.isError, false, capped.text);
+    assert.ok(economyTokens(capped.text) <= 400);
+    assert.ok(JSON.parse(capped.text).end < header.end);
+    const ranged = await callCompact(root, 'julius_call', { operation: 'context.read', args: { handle: preview.handle, start: 2, end: 7 }, delivery: 'complete' });
+    const rangeSplit = ranged.text.indexOf('\n');
+    const rangeHeader = JSON.parse(ranged.text.slice(0, rangeSplit));
+    assert.equal(rangeHeader.format, 'base64');
+    assert.deepEqual(Buffer.from(ranged.text.slice(rangeSplit + 1), 'base64'), Buffer.from(content).subarray(2, 7));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

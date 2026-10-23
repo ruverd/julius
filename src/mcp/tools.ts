@@ -184,7 +184,7 @@ async function callWorkspaceTool(
         ignoreCase: typeof args.ignore_case === 'boolean' ? args.ignore_case : undefined,
         fixed: typeof args.fixed === 'boolean' ? args.fixed : undefined,
       });
-      const text = result.totalHits === 0 ? zeroHitNote(result) : formatGrepResult(result);
+      const text = result.totalHits === 0 ? zeroHitNote(result) : formatGrepResult(result, { compact: true });
       return { text: coverage ? `${text}\n${coverage}` : text, isError: false };
     }
     case 'julius_repo_map': {
@@ -316,7 +316,7 @@ async function callSingleTool(
           in: typeof args.in === 'string' && args.in ? args.in : undefined,
         });
         if (result.totalHits === 0) return { text: zeroHitNote(result, ignoredCode(root)), isError: false };
-        return { text: formatGrepResult(result), isError: false };
+        return { text: formatGrepResult(result, { compact: true }), isError: false };
       }
       case 'julius_repo_map': {
         const w = loadGraphCached(contextDirFor(root, dirOverride));
