@@ -1,0 +1,6102 @@
+{
+  "version": 1,
+  "cpu": "Apple M4 Pro",
+  "node": "v22.23.2",
+  "sources": [
+    {
+      "path": "src/ai/crux.ts",
+      "sha256": "2887e89607872e918b3c5f340870c9cd6ce9ddcecdd6c651cae663ce54ec5bda"
+    },
+    {
+      "path": "src/ai/failure.ts",
+      "sha256": "5fdfb3f88d90bf5b448d5497e6bc90097171210ea9a02c37842f336c402067b3"
+    },
+    {
+      "path": "src/ai/llm/anthropic.ts",
+      "sha256": "147a8df9a61433cc1f5207c898041f77ed37a313db6cb877b7e97ba7b122508c"
+    },
+    {
+      "path": "src/ai/llm/factory.ts",
+      "sha256": "0639b41a50831db67bcbdb33acff71a99a5c1665c52c8c10dfc0e7ff2a8dad29"
+    },
+    {
+      "path": "src/ai/llm/litellm.ts",
+      "sha256": "896af2ea8ea51217f4a358473ca23a86e00cd7887426395ba3e622f4532a3cc2"
+    },
+    {
+      "path": "src/ai/llm/openai.ts",
+      "sha256": "79dabdf015cca032c758438a44f7d2720091ddf9c5b7543843ef87cf437785ad"
+    },
+    {
+      "path": "src/ai/llm/orcarouter.ts",
+      "sha256": "e7c0b58a6925d677166cf62668c7f50096e61eaa4e0f99dccc7ee6e372f0e565"
+    },
+    {
+      "path": "src/ai/llm/recover-tool.ts",
+      "sha256": "4b7cd04d9c8ee5f3cdb1228db4ece1b1d155492a238b36df0d3805b903187ee3"
+    },
+    {
+      "path": "src/ai/llm/types.ts",
+      "sha256": "1355318e783377313a767f7b9a95528819255b579381b2e51f3532fb94bf072c"
+    },
+    {
+      "path": "src/ai/providers.ts",
+      "sha256": "e2370229e6c390c90b65d2e0f1e0e0efd56a49c1c4870b701a30e0359b3c5ead"
+    },
+    {
+      "path": "src/ai/summarize.ts",
+      "sha256": "8dbec8d421f079ec67c81701d28ed1eb648b64e074b338538d03b9063941cffd"
+    },
+    {
+      "path": "src/ai/synthesize.ts",
+      "sha256": "916b6d9b670e4d20c15d91ab263756b14c44ba217ef6dcb72f74e1825a298f5f"
+    },
+    {
+      "path": "src/app/checkout.ts",
+      "sha256": "474a897254f494a3dcb0b667ebf4a3a7dc314da017b30fff325f1ddabe6cb09c"
+    },
+    {
+      "path": "src/app/events.ts",
+      "sha256": "2be4f7ddfb8657392590e4af66405e8f3553fc39f7934911b28baca88800389b"
+    },
+    {
+      "path": "src/app/identity.ts",
+      "sha256": "8b237454653006dfa3dce96f53df2ebd83452f7e01e2fc14b7e808f16e802d9a"
+    },
+    {
+      "path": "src/app/main.ts",
+      "sha256": "cc719b859a174dd70310c2274a10468a980a6f32e39de041435b84fc8e872077"
+    },
+    {
+      "path": "src/app/pages.ts",
+      "sha256": "6f42fb5d9869e975e2084b91486ebbde7acd8f777c98e3939bda21afee1a56ed"
+    },
+    {
+      "path": "src/app/queue.ts",
+      "sha256": "b5397f06eef1a3578c7d3c8cd19cbcae469b504f4f84872d63f485dae9d880d8"
+    },
+    {
+      "path": "src/app/review-process.ts",
+      "sha256": "0a9300bb1fdc6b97aa188ebaa504bc4c5f8151b5fc0d2830c01aa1694786d41c"
+    },
+    {
+      "path": "src/app/review-worker.ts",
+      "sha256": "eecdd2d4997f1376137adfda9d33253012bd643c861459a7f1e185859ab99e36"
+    },
+    {
+      "path": "src/app/review.ts",
+      "sha256": "651a7864b1543cfd908938d6b22551cddd84e6874009feb5f5e47a9011d7da48"
+    },
+    {
+      "path": "src/app/server.ts",
+      "sha256": "4a49e7d5d5e4f4082806cf10987c553eca73ebeaf5b15847ee9be8b557637048"
+    },
+    {
+      "path": "src/ask/ask.ts",
+      "sha256": "1caab254e65b87b4fda3d2858511914e5c76c08aed8e26475d111630d615b79e"
+    },
+    {
+      "path": "src/ask/file-rank.ts",
+      "sha256": "0b4816bcd69e129d976b1ceada2228c9ea7c842d2682a34092fd52341f32e346"
+    },
+    {
+      "path": "src/ask/file-selection.ts",
+      "sha256": "aeac9270effb1a44d20999a0a81ed6211a09bc3e2fe17ec50d0bf6e2cad75a09"
+    },
+    {
+      "path": "src/ask/fuse.ts",
+      "sha256": "da8ddb1147a2ce7f88b6f6ca4431b56e981c5cb9ebd426bc6b29bb9c8422b1df"
+    },
+    {
+      "path": "src/ask/graphrank.ts",
+      "sha256": "848edf69cbed053a59e60e999d0322120b912916630ce6f8221ca598d8a93c0f"
+    },
+    {
+      "path": "src/ask/index-file.ts",
+      "sha256": "fce1fb0900a8df6d42d24aa913a373d1376f4fba1f6d1d78af0d50da76ee7291"
+    },
+    {
+      "path": "src/bin/julius.ts",
+      "sha256": "068064a6a84218818d5845274bb526a6fa06e490567799fa48a7b4c9a936af8a"
+    },
+    {
+      "path": "src/blast/blast-cli.ts",
+      "sha256": "76afcb321a4664ea5dbfbbde576f46c4fa6ae36768bef1a20d822bfe8536e71d"
+    },
+    {
+      "path": "src/blast/blast.ts",
+      "sha256": "b9a8b78b08b1ceb010ea23ddb909670b3c639fa5e9315b716cd935136e6a8323"
+    },
+    {
+      "path": "src/blast/diff.ts",
+      "sha256": "18ddd8de7791f7836b88c370b6879ae9eb8908228e742f8b52a8cf4e6f0a056f"
+    },
+    {
+      "path": "src/blast/evidence.ts",
+      "sha256": "f43a6df9c2668360ff6352f5d78571c656eeaa0d8d00597fe8cb380ff69abe69"
+    },
+    {
+      "path": "src/blast/modules.ts",
+      "sha256": "ef8d158572b44111372add036e5a30e6783e8cf4ebb729216608a27941dfe692"
+    },
+    {
+      "path": "src/blast/name.ts",
+      "sha256": "8fd2716bd04ea781053287a40a2b90f967194c418bdda3520de9a9f33b094165"
+    },
+    {
+      "path": "src/blast/owners.ts",
+      "sha256": "e1d15de8ef92bdbed89c9e3b9af365828767fbd32e3417115abc81a5483a8ab3"
+    },
+    {
+      "path": "src/blast/render.ts",
+      "sha256": "8f446a2f95c5192924e0479b218fc48bf76ae29d11bc962c2af340b5a60b8dc7"
+    },
+    {
+      "path": "src/blast/viz.ts",
+      "sha256": "855364934fb91c30dde8e944ff11f6f4b3460490c99b7d2b9c89d7ff44281c71"
+    },
+    {
+      "path": "src/brand.ts",
+      "sha256": "cb1eb9ba31370364e25d0257a5d3947a74f7ef221702a66936778a9e7439d2ac"
+    },
+    {
+      "path": "src/check/learning-edits.ts",
+      "sha256": "a9f0ca7f40832f17988c85859850266670809ff6d121410612138bf69731d6e4"
+    },
+    {
+      "path": "src/check/local-check.ts",
+      "sha256": "708664cb094c8fb86b5563ee2f7a71a8552e0156998a93807d3946c4717df786"
+    },
+    {
+      "path": "src/check/types.ts",
+      "sha256": "5a1b2455db10bbadc8c4747d4add8eff986cab1c402cf2a7b12a100526254a05"
+    },
+    {
+      "path": "src/claude/build-progress.ts",
+      "sha256": "8de439cf1f684c791254063ae3bcd72b0c58a88f73c67f39f21e12aae1feee7d"
+    },
+    {
+      "path": "src/claude/format.ts",
+      "sha256": "7b7091bdbf092140c8f94cacd5f5827cf696d93c48d7a5e3d60b72f904158b36"
+    },
+    {
+      "path": "src/claude/hook-layers.ts",
+      "sha256": "8c5fcb85f6d3a2718a5e12a909e40b1683088ce4a45b421034fbb6ac92f67ca8"
+    },
+    {
+      "path": "src/claude/hooks.ts",
+      "sha256": "b69b1614a7926e7f1f4212e0fb2cd1ef7a30843f0ab20bb1a3cb8af20c74e23b"
+    },
+    {
+      "path": "src/claude/init.ts",
+      "sha256": "e3e5e086c8bfbc788305a8b4afaaea047344481541712bdf0cdfaf38b4131dfc"
+    },
+    {
+      "path": "src/claude/note-signals.ts",
+      "sha256": "74c891f899782891712c8348b07d4099ef9000d5b08c4a07aec4ef9125facfb4"
+    },
+    {
+      "path": "src/claude/paths.ts",
+      "sha256": "c4a88ee2639d96b2647e955e61ee17c1558216aa9722f53c76c50c68cfd21d64"
+    },
+    {
+      "path": "src/claude/session-metrics.ts",
+      "sha256": "3a385c388ade499cbe5219115b3460cc604fe16d574a2946567d878424258969"
+    },
+    {
+      "path": "src/claude/settings-merge.ts",
+      "sha256": "a55b6efa5c2f3cc21b4648e9af67beaf71730d8d9226eb324289299de3481b0b"
+    },
+    {
+      "path": "src/claude/shim-template.ts",
+      "sha256": "02a71b6384d335b511dc32b32ca927fad847396e4581b3a2dad5bf9b5b3c5ad2"
+    },
+    {
+      "path": "src/claude/skill-template.ts",
+      "sha256": "cadd230736053bcf6b222521f067be14c31b709cc6ee907369c2a6a96f467744"
+    },
+    {
+      "path": "src/claude/state.ts",
+      "sha256": "f59096595e7dcc646f8a775b00868403c632d6873943af7105af0326c828503d"
+    },
+    {
+      "path": "src/claude/stats.ts",
+      "sha256": "4b762984a328c7ad6321d55e9d67637b9e492ddd4bdcacc9b9e6f70d6924830d"
+    },
+    {
+      "path": "src/claude/statusline.ts",
+      "sha256": "df1436089fa2284ccc676859245973115afd4e81cc1ff17df3097928cb5932d6"
+    },
+    {
+      "path": "src/claude/sync-run.ts",
+      "sha256": "b756c9bb50cf567ccebf981f7020dd77ee5eda9cb91d47bfa382669b81f0226e"
+    },
+    {
+      "path": "src/claude/tally.ts",
+      "sha256": "7bb7a7759aed9d0c6779b877271ec1df8a3899d14891d01060178e2182efd1ff"
+    },
+    {
+      "path": "src/cli-epilogue.ts",
+      "sha256": "b48cfc9d3d4c06a74bec93068d832d393bc3edbfd35cb2cda966847e54240189"
+    },
+    {
+      "path": "src/cli-meta.ts",
+      "sha256": "b3d82e5c9702e7c84559914fc59079e98ad9e01fc22ae0ece7c771394aacb8f4"
+    },
+    {
+      "path": "src/cli-picker.ts",
+      "sha256": "356d79fb69e8408cdcc60a6c23e31a6988e301ad517ac2c6399e298131f268b6"
+    },
+    {
+      "path": "src/cli.ts",
+      "sha256": "bbff7d148575fd15852588575cf0388b3dd2c60d7fbd059b16dadcd3168334cb"
+    },
+    {
+      "path": "src/cloud/diff.ts",
+      "sha256": "58cb1cc7398dca35b25a4f0b2798d94c7f5a520bb6ab69c0418062576289238c"
+    },
+    {
+      "path": "src/cloud/nudge.ts",
+      "sha256": "42079f50eaca0499f737547031f5edef1ee22d43c6605db45b24c288588edfc0"
+    },
+    {
+      "path": "src/cloud/workspace-sync.ts",
+      "sha256": "4d6c54fb00378c90fa5db0ebdaee4ddf54817dae4c63c5a56cb88fa0e6ad37a3"
+    },
+    {
+      "path": "src/cloud/workspace.ts",
+      "sha256": "d662061f55b8143abd5c834f919d59a4afd1d2313f5c029d3a27f8b2952b06fd"
+    },
+    {
+      "path": "src/context/build.ts",
+      "sha256": "68b30d6e8d3ad837d0de7a079da48f40b1a2709cb6dad4b4414939e8d45d1ed4"
+    },
+    {
+      "path": "src/context/check.ts",
+      "sha256": "fdf2e3a0818078e45601b874dc1e1d97c51e9cd61c174a0407e4934552c8e3ae"
+    },
+    {
+      "path": "src/context/map-dir.ts",
+      "sha256": "67797edb288e46120ac1f83f024e79769329d7bd43da3714323277a9834c8c3a"
+    },
+    {
+      "path": "src/context/node-file.ts",
+      "sha256": "c8dc88dc8eb184d15fcf63de4a87385f3eb44d547d44922d652197c3c151f6e3"
+    },
+    {
+      "path": "src/context/price.ts",
+      "sha256": "e164855324218a98d12eea38525a467729fdea3691e2c8bb1f4047be72328e1d"
+    },
+    {
+      "path": "src/context/savings.ts",
+      "sha256": "e8e02b3aca2efdb8dbbea7255439806cb2efb914b23c771cbcdb135d86d1bda5"
+    },
+    {
+      "path": "src/economy/cli.ts",
+      "sha256": "5c03bcef9f9d0f9f0220fe5a397a94d7fcac16abd7064d72e07babcf4f5dcbe7"
+    },
+    {
+      "path": "src/economy/delivery.ts",
+      "sha256": "4612f238e62ceb440c719f2ef8e205da87568e4ec38be9f9aa6dc629bdd1256d"
+    },
+    {
+      "path": "src/economy/index.ts",
+      "sha256": "9d45d2e2957c86c296f9a4ad0bbeaa17ccf0d04102636b823ab27b2a110861e9"
+    },
+    {
+      "path": "src/engine.ts",
+      "sha256": "f6231a98cd9961a0beda2e9335ff8836dc31f24ea72c60ed0b3252544aa8fc46"
+    },
+    {
+      "path": "src/evaluation/index.ts",
+      "sha256": "704511f2087ffee0534518ae5855944722bd6f61704cd1c4a3baaf9744282c71"
+    },
+    {
+      "path": "src/graph/bindings.ts",
+      "sha256": "80b166f0ff20bb8d402c532c242a170da1682cd64d5d526f988b91123a133be3"
+    },
+    {
+      "path": "src/graph/build.ts",
+      "sha256": "0b1b957baa5eda208e88bdf70ebb74f8c6893ce9b7fde0dc23ce98cc4639e354"
+    },
+    {
+      "path": "src/graph/cards.ts",
+      "sha256": "b7bb2cd7cff50292e71a59b86b42e22ff527f4c7df5a2f5bdb9452430698c479"
+    },
+    {
+      "path": "src/graph/check.ts",
+      "sha256": "2b065a9910725f5f103bb8fb7689a5158841498bdc2ef3832264dd948bb584b3"
+    },
+    {
+      "path": "src/graph/container.ts",
+      "sha256": "730e610761b36943e6c187f8949718253090f6df22f34e4c14712a020f15aff2"
+    },
+    {
+      "path": "src/graph/enrich.ts",
+      "sha256": "e88062d7ae5b65661bbe9f21e22d221dce147f530d1de80ea7279e974a8d1945"
+    },
+    {
+      "path": "src/graph/extract-cache.ts",
+      "sha256": "153cada502ca361bf7818ec47136b189ff829474e6c094162ed0bdce992d2305"
+    },
+    {
+      "path": "src/graph/extract.ts",
+      "sha256": "f4f9fe0b4829500f12e5191ee8bca02f71e2fa8e1bc285e36b65807f5d9f8668"
+    },
+    {
+      "path": "src/graph/fingerprint.ts",
+      "sha256": "04c2c900446a7e5575fb017b0fe9a20072903803b61ad71e492ee859f814d549"
+    },
+    {
+      "path": "src/graph/generic.ts",
+      "sha256": "85e39d1c904ed3a98216910dbe624be965a592964f98c5468947a794ebbab449"
+    },
+    {
+      "path": "src/graph/invariants.ts",
+      "sha256": "e380c29c2417c2c4eaa46e84bc25099889c22b925b82cbcb86fbd17866a976d1"
+    },
+    {
+      "path": "src/graph/load.ts",
+      "sha256": "dc449ef1c56721f96999ad2a5bf9d820ae3ca5b37a24a3d3d06aee81116c694e"
+    },
+    {
+      "path": "src/graph/lsp/client.ts",
+      "sha256": "c1e7cd1003a3eeb802cbcf7dfd388190836afb736fb42839079e8b5c2171cbee"
+    },
+    {
+      "path": "src/graph/lsp/enrich.ts",
+      "sha256": "bd708f1cfe17f5076519ff899cf0e1924a9d3200e93a1cad82bbae3d1b62f2a0"
+    },
+    {
+      "path": "src/graph/lsp/registry.ts",
+      "sha256": "7566557812e72a69f73a1d23608b21a540e403ff7c988dd06bbf076ac5ade226"
+    },
+    {
+      "path": "src/graph/map.ts",
+      "sha256": "793c460aec9fb5c514573705d39cdae9e81ea628ca73b0622ef19d8b4a692c81"
+    },
+    {
+      "path": "src/graph/native.ts",
+      "sha256": "3caa67cd456676ec5b7cd358b31a4359fc475a3ccd7b32e0f86c3f8e532e0d4f"
+    },
+    {
+      "path": "src/graph/provenance.ts",
+      "sha256": "16e610812bbdb0355923ba97c9a68f82bed5443c71615cd9431a241d12e4d945"
+    },
+    {
+      "path": "src/graph/refresh.ts",
+      "sha256": "30342ea99fd132baf1b7563f5e971031627eb87ef6d394c3fd53a0b7ce16a92a"
+    },
+    {
+      "path": "src/graph/relations.ts",
+      "sha256": "e62bc9934057bf232f86edcf942e71b0a2f4c44b57ffd78ddb935b85ab75aca8"
+    },
+    {
+      "path": "src/graph/resolve.ts",
+      "sha256": "8be805ac03134d40712d3fc7156efcbefb34404186cff93220fa17fac0bc0ff7"
+    },
+    {
+      "path": "src/graph/root.ts",
+      "sha256": "b679b06058678031948dcd51b404b281b499bda309ec7f41bac918405489a57f"
+    },
+    {
+      "path": "src/graph/scopes.ts",
+      "sha256": "9c293665cb91472f2ae7d4550f7fea9c2cbd0dca47d533ae7707177eeaa6d756"
+    },
+    {
+      "path": "src/graph/seed.ts",
+      "sha256": "f8a26819d1e5bb0b21a0dfea9d12b37b51600d4eaf54c80509819468f272b65a"
+    },
+    {
+      "path": "src/graph/source-files.ts",
+      "sha256": "39285ce1ec81ea3bb26c60fcdeb0ea6af9973b40fb784f0bedf4ebe79a5e968b"
+    },
+    {
+      "path": "src/graph/traverse-cli.ts",
+      "sha256": "8fb6fbe97daa32592f485cbef808a71d57051b9ae3a07696896280958353f646"
+    },
+    {
+      "path": "src/graph/traverse.ts",
+      "sha256": "c8d19d5f89e6ef26455b81988ab5ba3f9d47a185978ef3fbde55bd33e9a1dd07"
+    },
+    {
+      "path": "src/graph/types.ts",
+      "sha256": "4c948614a7a43b24b70efb121ee3ae9f75a3ae1d8f853299d32bac69c6b498f3"
+    },
+    {
+      "path": "src/graph/workspace-cli.ts",
+      "sha256": "0cdbd1fe3fbb129d2952b1619885ef6589695f17838a5a0a1d86fb8eb612211d"
+    },
+    {
+      "path": "src/graph/workspace.ts",
+      "sha256": "3d05c86a8014a845c64904b45aeacc3586811db427ca8dc552d9dcdf1bbfecd4"
+    },
+    {
+      "path": "src/graph/write.ts",
+      "sha256": "53695c0486967f977eb6ab99cea34e666639521871f3ee8cddd1d445000b45ac"
+    },
+    {
+      "path": "src/hosts/antigravity.ts",
+      "sha256": "cb95be84f19aade808eef8f0893c4712506eb2bf6bf879615479984298cbacad"
+    },
+    {
+      "path": "src/hosts/claude-global.ts",
+      "sha256": "66ca4aea3e547043e3daa3a45110708d870195dddbfeb77ce6670a323daa05bc"
+    },
+    {
+      "path": "src/hosts/codex-hooks.ts",
+      "sha256": "a35d81a20bb096b01c30b8db75991f99ed4101422a4afc10edd494bd65b80d7e"
+    },
+    {
+      "path": "src/hosts/config-write.ts",
+      "sha256": "964ae751bd6037f8e8393fc250e693dd52108d9f3c51dc61b6d0c7ad6939cc08"
+    },
+    {
+      "path": "src/hosts/cursor-hooks.ts",
+      "sha256": "ed4dfd82f5a11ae7581152a335faae68cb458c8960a82f3a66adf4ebd46ee8dc"
+    },
+    {
+      "path": "src/hosts/init.ts",
+      "sha256": "ded5dc689b07343de2cc844f30f0bd3558937c93eecb40e73e181da802911872"
+    },
+    {
+      "path": "src/hosts/install.ts",
+      "sha256": "5b4bdad28d6890cd84553fb20ee311e0a1fa5094d0c90d4dfceeedfaac634f95"
+    },
+    {
+      "path": "src/hosts/instructions.ts",
+      "sha256": "52043f84c4f093c0a4dd7308f39daa2b48c933a690c96125115ba28a91dac2bf"
+    },
+    {
+      "path": "src/hosts/investigation-instructions.ts",
+      "sha256": "9b5433b1fe2a36e9a99075ce379e77805a5aa2649ed82c847f46a2b7b7d7b1e5"
+    },
+    {
+      "path": "src/hosts/mcp-config.ts",
+      "sha256": "38ef03448e547dc58ff03ddc29a5e5a48556d5b16b1c7088c735c99a5797e4cc"
+    },
+    {
+      "path": "src/hosts/plan.ts",
+      "sha256": "580e4eeb47fb8e0b48f9290adf7fb89e4beb70aa7ff94fc0d6f54c63e4372e9c"
+    },
+    {
+      "path": "src/hosts/registry.ts",
+      "sha256": "ac200cbca5cb158e3383ae087576ea9857826373e7899d8193a22dd2d38a72bb"
+    },
+    {
+      "path": "src/hosts/retract.ts",
+      "sha256": "6a744ed7d0b868256fba19011af8403241a8b9ffa255562090739cdd6f6d5d64"
+    },
+    {
+      "path": "src/hosts/sections.ts",
+      "sha256": "1e85f2ff0dd6ac311bccff1466be1543ec9eae9b9e0ecfd3771e9bf62ea7a58d"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "ab9a315b0fa7f8b64509fd23dc80f482b09aca6ffa6a1bdbdb03ac26f349607b"
+    },
+    {
+      "path": "src/ingest/fs.ts",
+      "sha256": "8343aeffa536b4bda2f06095e001d27644193c0175cef4bea24e5814dd88c932"
+    },
+    {
+      "path": "src/init-guard.ts",
+      "sha256": "f7c0127ce1dbee6d2d0974d961e46e6b341a9ab7e0dc69bdd37bfc5abb1a3c3d"
+    },
+    {
+      "path": "src/investigation/index.ts",
+      "sha256": "d3eccb14ccc42ef012c4af9634f94e0c79a09037e25c351a498406f4ba9c2d3b"
+    },
+    {
+      "path": "src/mcp/compact.ts",
+      "sha256": "d724718d84caeea8a6e28a177d0cf94334355a4e156139e6aab7300732bfb75a"
+    },
+    {
+      "path": "src/mcp/instructions.ts",
+      "sha256": "e1fef5be9c8fb51932256fac2d131b67d3f5280a9e53dad4d64febde9e62fa7a"
+    },
+    {
+      "path": "src/mcp/server.ts",
+      "sha256": "7f4d6c2d220442d31458ea03c19f6bf083f6914dbee6f5d5297f71a82cf7e091"
+    },
+    {
+      "path": "src/mcp/tool-names.ts",
+      "sha256": "4164b39562141dd085dbf76ac8ed0a256e50305c0e33ad12e5e4d81d7aa88f4c"
+    },
+    {
+      "path": "src/mcp/tools.ts",
+      "sha256": "08d70741563cafd7979d81d3f86cc987c032159e142552597d3937c0c8b9a7cc"
+    },
+    {
+      "path": "src/notes/ask-notes.ts",
+      "sha256": "52e022e58bf72c261a8310911376bc5ceaa18abec592902d29bb4aa13e9e3536"
+    },
+    {
+      "path": "src/notes/branches.ts",
+      "sha256": "9e94bfb4d6b1b7668b772e28f779fa24d746e093780eb041c72e1e79bcd9c885"
+    },
+    {
+      "path": "src/notes/cold-start.ts",
+      "sha256": "3cd0b1b1fd55081bff0aa212d76d8563b00068edb4edf91206b309d41eabb53a"
+    },
+    {
+      "path": "src/notes/edit-overlap.ts",
+      "sha256": "14d85ff3283141d15762260b4436ba07d3085f00f2d1fe9ac994fec8a90cadb4"
+    },
+    {
+      "path": "src/notes/git-facts.ts",
+      "sha256": "63bb8b6bdec6562e6d5a97c5ce524113afab8aa87b72095a6774f837b13f22d7"
+    },
+    {
+      "path": "src/notes/home.ts",
+      "sha256": "8e48aa0fb3ee03a76ab7c216ed01662494f7441dccb198ceb65fd66b74cf7349"
+    },
+    {
+      "path": "src/notes/learning-fields.ts",
+      "sha256": "2dd8ca2c29797397ddef5b1c09851100c6196b3ac946d8983b48c1bfc7ca5886"
+    },
+    {
+      "path": "src/notes/note-gate.ts",
+      "sha256": "cea054020c17ef732588ff859d0b681265d4921ce0833f5b56953ad0ff0c6ca8"
+    },
+    {
+      "path": "src/notes/notes.ts",
+      "sha256": "a7e00a2121e155c58dfcc62267ef09c89f34dd834cffbe11accfcb342cecb461"
+    },
+    {
+      "path": "src/notes/pr-reviews.ts",
+      "sha256": "1015cea91ecb711c117b848756c3ec4c614c16ed1e7e73eb6c289dcc55c7a360"
+    },
+    {
+      "path": "src/notes/repo-julius.ts",
+      "sha256": "75a67d75145d3c3fbfe97c0c49ac599f8e85aeca7ba101a243ab00ccb4d5df7e"
+    },
+    {
+      "path": "src/notes/session-cost.ts",
+      "sha256": "355bcf961594fb084841530a4582572365ea78ca0e65e2a5606ab3a6c01358b9"
+    },
+    {
+      "path": "src/search/grep-cli.ts",
+      "sha256": "a9fbd7e3fc49cc11e376ccee17da64ec8bf16a60ff42a1847e72eeac1d5fec66"
+    },
+    {
+      "path": "src/search/grep.ts",
+      "sha256": "bf37e96da6fe272dcb6b97051ab8d3983733818c39b52cbde3b1200a88c4c717"
+    },
+    {
+      "path": "src/search/ignored-code.ts",
+      "sha256": "072e025be528a63669991b35ecf2978a5da764735fd65ec2728caebe1a7b75f4"
+    },
+    {
+      "path": "src/skills/skills.ts",
+      "sha256": "2186a6c61eb0aad1572811d08b71ee16321488053d5b26f0bdda1e3c11f06fd7"
+    },
+    {
+      "path": "src/telemetry/contract.ts",
+      "sha256": "4c2a697bfaf2c616f36796d8cba75b2b3516e2ed5a47a95ad407be47c6569215"
+    },
+    {
+      "path": "src/telemetry/flush.ts",
+      "sha256": "a5b2a4e39d0147f5eec36bd01894c368a5ada3763f3b39e3d0e7b79925622ada"
+    },
+    {
+      "path": "src/telemetry/gate.ts",
+      "sha256": "7767aed1a89594a82a00480e77ac6fa09a7dcd780534c9c82066112375f77e76"
+    },
+    {
+      "path": "src/telemetry/identity.ts",
+      "sha256": "e9067cf99856d8117d4a14dc533f60e97cd3fd3c477ad11a7288c848021c48db"
+    },
+    {
+      "path": "src/telemetry/index.ts",
+      "sha256": "9bc8a75e302c8bd42ae3317a07fde753c1929735c81153bcc5063289682728da"
+    },
+    {
+      "path": "src/telemetry/key.ts",
+      "sha256": "d9b25228046e6b9a92ca8597af01cdda645f9e9022e116f9ed92c8b285537acf"
+    },
+    {
+      "path": "src/telemetry/notice.ts",
+      "sha256": "73e7d63596f36cb559408f94cf04909699aa3faf9951c9341e6011abf8285600"
+    },
+    {
+      "path": "src/telemetry/queue.ts",
+      "sha256": "3360a515894532a5e3b67c8de2fe68acea75fa1a2f6173cd856a329b6a3ba80c"
+    },
+    {
+      "path": "src/telemetry/send.ts",
+      "sha256": "9d70ed28d7f49707c81f129d850007c3de8949bcb17445d00522261a16a8010c"
+    },
+    {
+      "path": "src/telemetry/sessions.ts",
+      "sha256": "d8d64c34110c85d8b690d82f67457c3bd45a962e29c431ee9dd56e37967a494e"
+    },
+    {
+      "path": "src/telemetry/track.ts",
+      "sha256": "1f8baa6d0e82f9a94f45fb163e078381b34add7e6eecdd22aa89911f1bebd33b"
+    },
+    {
+      "path": "src/upkeep-run.ts",
+      "sha256": "d18bb7f598f518c4d1114bbd59090ae17c163ef4d27369b514d0b5dc21f162e8"
+    },
+    {
+      "path": "src/upkeep.ts",
+      "sha256": "1d590fecf2b70e4f36eaa3c57748f566f331006af1c60fb04570087833b842e9"
+    },
+    {
+      "path": "src/util/browser.ts",
+      "sha256": "43b787596f3558eda99400c9d04203c287bc8de505c0cc572d4ff1343f6bc1a0"
+    },
+    {
+      "path": "src/util/front-matter.ts",
+      "sha256": "337d282f0471d3ec9c7422e8dbb8d5429d00b730c50bec9c38e6c2038974104f"
+    },
+    {
+      "path": "src/util/id.ts",
+      "sha256": "5fabc8ddcc3abc907ce69f04ad2ebe51933262cf44aa2dfd40589f71f1926e8a"
+    },
+    {
+      "path": "src/util/paths.ts",
+      "sha256": "26cb508afceb6c903bf29adc97d03f0306208516ec514125b7dbb5d935a615ad"
+    },
+    {
+      "path": "src/util/source.ts",
+      "sha256": "378d6253d521c60f7afe7dd500ce125ef599ab3f5d72988d46c6e8881ac66e0f"
+    },
+    {
+      "path": "src/util/spinner.ts",
+      "sha256": "450b12a26fcdfa2a96acebfb337d95b5c99ff4cc18d5a7f4dbacd59bbd608fd8"
+    },
+    {
+      "path": "src/util/state.ts",
+      "sha256": "86e4ec8f2f089deb15e53b66867a836cbc668989560dec2a3f8f5ae0c1737a50"
+    },
+    {
+      "path": "src/viz/assemble.ts",
+      "sha256": "4bf0a9ae4ce603ad8d2a67130859a006bce0d37f52c1be4430c6960c02cd49ce"
+    },
+    {
+      "path": "src/viz/export.ts",
+      "sha256": "66fa1674c05ab9915291e4b79383ee9edeb7e8233e03c0e0f9f30e424685caae"
+    },
+    {
+      "path": "src/viz/serve.ts",
+      "sha256": "f4e2ac4c56376b05dab05b47249c619e3d238b572797f35b934704b04065862c"
+    }
+  ],
+  "sourceSha256": "5a6c4287fa1d2c3511ba03c66b83186c91e748916472f8f4cff1944f45e2bbde",
+  "harnessSha256": "9104df898b2e21882741ab4cd48a4879ff7f4ee03eee26e9ff1235ba16ed2293",
+  "queriesSha256": "25eb406745339a6d82a69941c2a62cd649a47fc44492b33a657c5025d0263863",
+  "compiled": {
+    "uncached": "274b6a5e3b3415977d407a0b6f9d79e22e3e74dd33e40b5295a6ed9084d959a3",
+    "cached": "a4ac35f633ac14ebc9d503cd66df67ec10372844a9e9bd83b61e4c40a8d9566f"
+  },
+  "scenarios": 230,
+  "repetitions": 5,
+  "scope": "Offline lexical cache comparison on tracked Julius sources. Baseline reconstructs only pre-cache map creation from current compiled ask. Full-result equality in 230 scenarios. Warm timings exclude MCP/startup. Cold query timing starts after imports in fresh processes, OS caches uncontrolled. Retained heap after queries and forced GC. One corpus; no agent speed or provider usage claim.",
+  "providerUsage": null,
+  "summary": {
+    "uncached": {
+      "medianMs": 15.001875,
+      "p95Ms": 28.645167,
+      "coldMedianMs": 106.48825,
+      "retainedHeapDelta": 11865720
+    },
+    "cached": {
+      "medianMs": 10.890167,
+      "p95Ms": 22.13575,
+      "coldMedianMs": 81.265709,
+      "retainedHeapDelta": 17018352
+    }
+  },
+  "rows": [
+    {
+      "query": "Economy read handle search byte range",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          20.228041,
+          19.574959,
+          18.85875,
+          19.371708,
+          18.932042
+        ],
+        "cached": [
+          18.357458,
+          16.927042,
+          14.515792,
+          14.31775,
+          14.116042
+        ]
+      }
+    },
+    {
+      "query": "Economy read handle search byte range",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.180625,
+          8.906625,
+          7.480666,
+          7.854042,
+          10.852
+        ],
+        "cached": [
+          4.413375,
+          3.430083,
+          4.661875,
+          4.137833,
+          3.751834
+        ]
+      }
+    },
+    {
+      "query": "Economy read handle search byte range",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.320042,
+          2.519708,
+          1.896875,
+          1.900959,
+          2.219209
+        ],
+        "cached": [
+          2.533375,
+          1.757833,
+          1.85075,
+          1.809417,
+          1.3645
+        ]
+      }
+    },
+    {
+      "query": "Economy read handle search byte range",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          18.7915,
+          17.955083,
+          17.756834,
+          32.221667,
+          19.105791
+        ],
+        "cached": [
+          15.308208,
+          15.0955,
+          16.120709,
+          16.766625,
+          17.533334
+        ]
+      }
+    },
+    {
+      "query": "Economy read handle search byte range",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          35.176209,
+          19.958208,
+          19.2535,
+          20.300458,
+          21.316791
+        ],
+        "cached": [
+          15.544084,
+          15.10375,
+          15.986459,
+          14.861125,
+          14.88425
+        ]
+      }
+    },
+    {
+      "query": "An earlier tool reply cut off the evidence I need. Where can I fetch the missing part and ensure nobody changed it?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.274875,
+          18.712208,
+          18.568125,
+          17.692,
+          18.386917
+        ],
+        "cached": [
+          13.130125,
+          14.091,
+          13.26075,
+          13.713167,
+          14.258875
+        ]
+      }
+    },
+    {
+      "query": "An earlier tool reply cut off the evidence I need. Where can I fetch the missing part and ensure nobody changed it?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.645625,
+          8.825709,
+          8.955208,
+          9.026125,
+          8.688875
+        ],
+        "cached": [
+          6.366041,
+          6.12575,
+          4.355584,
+          6.287334,
+          5.861959
+        ]
+      }
+    },
+    {
+      "query": "An earlier tool reply cut off the evidence I need. Where can I fetch the missing part and ensure nobody changed it?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.187416,
+          1.105084,
+          1.117708,
+          1.05675,
+          1.023667
+        ],
+        "cached": [
+          2.464375,
+          1.081792,
+          1.111292,
+          0.852917,
+          1.237917
+        ]
+      }
+    },
+    {
+      "query": "An earlier tool reply cut off the evidence I need. Where can I fetch the missing part and ensure nobody changed it?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.723708,
+          18.727,
+          19.002541,
+          20.698125,
+          19.370041
+        ],
+        "cached": [
+          14.466458,
+          13.458208,
+          13.478542,
+          15.746917,
+          16.256833
+        ]
+      }
+    },
+    {
+      "query": "An earlier tool reply cut off the evidence I need. Where can I fetch the missing part and ensure nobody changed it?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          20.128042,
+          21.926208,
+          19.926292,
+          20.994583,
+          21.088667
+        ],
+        "cached": [
+          16.227875,
+          15.981625,
+          20.501583,
+          18.677,
+          15.556958
+        ]
+      }
+    },
+    {
+      "query": "Uma resposta anterior cortou a evidência necessária. Onde recupero o trecho omitido e verifico que ninguém alterou seu conteúdo?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          7.014875,
+          6.99525,
+          8.080334,
+          7.577333,
+          7.675125
+        ],
+        "cached": [
+          4.401041,
+          3.403583,
+          4.320583,
+          3.534,
+          4.618417
+        ]
+      }
+    },
+    {
+      "query": "Uma resposta anterior cortou a evidência necessária. Onde recupero o trecho omitido e verifico que ninguém alterou seu conteúdo?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.812583,
+          7.623167,
+          7.92425,
+          8.237833,
+          7.460125
+        ],
+        "cached": [
+          6.095209,
+          3.410917,
+          5.027541,
+          4.557291,
+          3.561875
+        ]
+      }
+    },
+    {
+      "query": "Uma resposta anterior cortou a evidência necessária. Onde recupero o trecho omitido e verifico que ninguém alterou seu conteúdo?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.806958,
+          0.773167,
+          0.629208,
+          0.548458,
+          0.730833
+        ],
+        "cached": [
+          0.875042,
+          0.666333,
+          0.561583,
+          0.512666,
+          0.775708
+        ]
+      }
+    },
+    {
+      "query": "Uma resposta anterior cortou a evidência necessária. Onde recupero o trecho omitido e verifico que ninguém alterou seu conteúdo?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          7.032042,
+          6.963667,
+          7.991334,
+          7.122416,
+          7.491458
+        ],
+        "cached": [
+          4.312375,
+          3.325709,
+          4.121125,
+          3.183292,
+          4.066
+        ]
+      }
+    },
+    {
+      "query": "Uma resposta anterior cortou a evidência necessária. Onde recupero o trecho omitido e verifico que ninguém alterou seu conteúdo?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          7.423125,
+          7.852458,
+          8.021042,
+          6.890125,
+          7.939292
+        ],
+        "cached": [
+          5.121917,
+          6.758042,
+          4.336167,
+          3.120791,
+          3.241167
+        ]
+      }
+    },
+    {
+      "query": "Economy present selective complete budget",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          14.518334,
+          14.217042,
+          14.701875,
+          13.758708,
+          14.496917
+        ],
+        "cached": [
+          9.740167,
+          9.629375,
+          10.614667,
+          9.320459,
+          10.055209
+        ]
+      }
+    },
+    {
+      "query": "Economy present selective complete budget",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          6.768291,
+          6.312833,
+          6.543291,
+          6.088,
+          8.254916
+        ],
+        "cached": [
+          2.525416,
+          3.18875,
+          2.550833,
+          3.335958,
+          2.552375
+        ]
+      }
+    },
+    {
+      "query": "Economy present selective complete budget",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.797625,
+          1.271042,
+          1.266417,
+          1.158208,
+          1.047334
+        ],
+        "cached": [
+          1.459542,
+          1.365958,
+          1.793875,
+          1.133209,
+          0.983292
+        ]
+      }
+    },
+    {
+      "query": "Economy present selective complete budget",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.786833,
+          14.73975,
+          15.448291,
+          16.847833,
+          15.33125
+        ],
+        "cached": [
+          15.931875,
+          26.416042,
+          10.956709,
+          10.160625,
+          10.418292
+        ]
+      }
+    },
+    {
+      "query": "Economy present selective complete budget",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          15.048083,
+          14.9205,
+          13.637667,
+          15.147583,
+          13.191
+        ],
+        "cached": [
+          10.252,
+          10.321459,
+          10.909333,
+          10.5175,
+          10.442666
+        ]
+      }
+    },
+    {
+      "query": "Where do we decide how much of a huge tool response reaches the assistant while retaining everything else for later?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.429417,
+          16.97175,
+          17.750333,
+          16.846584,
+          23.041125
+        ],
+        "cached": [
+          12.485541,
+          13.324,
+          13.501916,
+          11.964,
+          14.1565
+        ]
+      }
+    },
+    {
+      "query": "Where do we decide how much of a huge tool response reaches the assistant while retaining everything else for later?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.938167,
+          7.929875,
+          9.439792,
+          8.704584,
+          7.835125
+        ],
+        "cached": [
+          5.094916,
+          3.990375,
+          5.315666,
+          3.962417,
+          4.622834
+        ]
+      }
+    },
+    {
+      "query": "Where do we decide how much of a huge tool response reaches the assistant while retaining everything else for later?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.167125,
+          1.160083,
+          1.027792,
+          1.118875,
+          1.15575
+        ],
+        "cached": [
+          0.9875,
+          1.523334,
+          0.844792,
+          0.7905,
+          1.353375
+        ]
+      }
+    },
+    {
+      "query": "Where do we decide how much of a huge tool response reaches the assistant while retaining everything else for later?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.248834,
+          16.408291,
+          17.735042,
+          18.783833,
+          18.381708
+        ],
+        "cached": [
+          13.622458,
+          13.281542,
+          13.9335,
+          14.258625,
+          14.087167
+        ]
+      }
+    },
+    {
+      "query": "Where do we decide how much of a huge tool response reaches the assistant while retaining everything else for later?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          19.453,
+          19.424375,
+          25.283292,
+          20.02225,
+          20.091541
+        ],
+        "cached": [
+          15.406459,
+          15.785458,
+          16.863916,
+          16.119625,
+          15.331167
+        ]
+      }
+    },
+    {
+      "query": "Onde decidimos quanto de uma resposta enorme chega ao assistente, preservando o restante para consultar depois?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          14.071333,
+          13.134875,
+          15.001875,
+          14.862875,
+          14.612958
+        ],
+        "cached": [
+          10.285666,
+          10.11575,
+          12.286459,
+          10.866333,
+          9.925417
+        ]
+      }
+    },
+    {
+      "query": "Onde decidimos quanto de uma resposta enorme chega ao assistente, preservando o restante para consultar depois?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          6.904583,
+          6.645083,
+          7.60675,
+          6.851292,
+          7.113875
+        ],
+        "cached": [
+          3.807416,
+          2.931791,
+          3.066166,
+          3.215208,
+          3.714958
+        ]
+      }
+    },
+    {
+      "query": "Onde decidimos quanto de uma resposta enorme chega ao assistente, preservando o restante para consultar depois?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.695417,
+          0.567875,
+          0.552125,
+          0.536709,
+          1.041458
+        ],
+        "cached": [
+          0.582,
+          0.518667,
+          0.476542,
+          0.489417,
+          0.71375
+        ]
+      }
+    },
+    {
+      "query": "Onde decidimos quanto de uma resposta enorme chega ao assistente, preservando o restante para consultar depois?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          14.422584,
+          14.043875,
+          18.74175,
+          14.585084,
+          14.919459
+        ],
+        "cached": [
+          10.975292,
+          10.962291,
+          11.162708,
+          11.3615,
+          9.929917
+        ]
+      }
+    },
+    {
+      "query": "Onde decidimos quanto de uma resposta enorme chega ao assistente, preservando o restante para consultar depois?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          14.658291,
+          25.896458,
+          16.13575,
+          14.013042,
+          14.491791
+        ],
+        "cached": [
+          9.839875,
+          8.988833,
+          10.074208,
+          9.628833,
+          10.244375
+        ]
+      }
+    },
+    {
+      "query": "selectDelivery complete focus budget precedence",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          14.6205,
+          13.770042,
+          14.542875,
+          13.736958,
+          14.220459
+        ],
+        "cached": [
+          10.093542,
+          11.216042,
+          10.476,
+          10.016708,
+          9.480084
+        ]
+      }
+    },
+    {
+      "query": "selectDelivery complete focus budget precedence",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          6.625583,
+          6.508625,
+          10.737417,
+          6.665792,
+          6.642042
+        ],
+        "cached": [
+          3.257625,
+          3.206458,
+          3.229417,
+          2.412375,
+          2.6905
+        ]
+      }
+    },
+    {
+      "query": "selectDelivery complete focus budget precedence",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.533042,
+          1.137292,
+          1.494667,
+          1.267333,
+          1.583917
+        ],
+        "cached": [
+          1.445459,
+          1.104083,
+          1.397458,
+          1.061209,
+          1.123083
+        ]
+      }
+    },
+    {
+      "query": "selectDelivery complete focus budget precedence",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          14.463667,
+          14.67325,
+          13.486917,
+          16.147,
+          14.703333
+        ],
+        "cached": [
+          11.111125,
+          11.294959,
+          10.632917,
+          10.578417,
+          10.448291
+        ]
+      }
+    },
+    {
+      "query": "selectDelivery complete focus budget precedence",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          15.050667,
+          14.516208,
+          13.945583,
+          14.871542,
+          14.53175
+        ],
+        "cached": [
+          10.534125,
+          9.284959,
+          11.13025,
+          11.41175,
+          11.27975
+        ]
+      }
+    },
+    {
+      "query": "A caller asks for everything but also sets a size limit. Which rule decides whether that limit still applies?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          21.744209,
+          26.418042,
+          22.202541,
+          20.434375,
+          20.689375
+        ],
+        "cached": [
+          16.883625,
+          16.221291,
+          17.37575,
+          16.21325,
+          17.029875
+        ]
+      }
+    },
+    {
+      "query": "A caller asks for everything but also sets a size limit. Which rule decides whether that limit still applies?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          13.795917,
+          11.739541,
+          11.284666,
+          11.984458,
+          11.137625
+        ],
+        "cached": [
+          8.300459,
+          8.107667,
+          7.780083,
+          7.779166,
+          7.779666
+        ]
+      }
+    },
+    {
+      "query": "A caller asks for everything but also sets a size limit. Which rule decides whether that limit still applies?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          5.554875,
+          5.439208,
+          5.388833,
+          5.022792,
+          5.193125
+        ],
+        "cached": [
+          4.747125,
+          5.410583,
+          5.509333,
+          5.886083,
+          8.660083
+        ]
+      }
+    },
+    {
+      "query": "A caller asks for everything but also sets a size limit. Which rule decides whether that limit still applies?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          20.668042,
+          19.939,
+          20.941,
+          20.919,
+          20.58625
+        ],
+        "cached": [
+          17.908834,
+          16.643375,
+          16.346125,
+          17.073292,
+          17.206958
+        ]
+      }
+    },
+    {
+      "query": "A caller asks for everything but also sets a size limit. Which rule decides whether that limit still applies?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          23.518958,
+          22.389459,
+          23.226667,
+          26.647375,
+          23.433875
+        ],
+        "cached": [
+          18.495167,
+          17.586416,
+          20.725666,
+          19.705083,
+          19.431208
+        ]
+      }
+    },
+    {
+      "query": "Alguém pede conteúdo completo e também informa limite de tamanho. Qual regra determina se esse limite continua valendo?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          14.351958,
+          15.017,
+          13.983625,
+          16.420083,
+          15.178084
+        ],
+        "cached": [
+          10.044542,
+          10.371625,
+          10.093208,
+          11.455417,
+          12.4245
+        ]
+      }
+    },
+    {
+      "query": "Alguém pede conteúdo completo e também informa limite de tamanho. Qual regra determina se esse limite continua valendo?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.442125,
+          7.931625,
+          8.035875,
+          6.795084,
+          8.121625
+        ],
+        "cached": [
+          4.1025,
+          3.488667,
+          4.157208,
+          3.599792,
+          7.105542
+        ]
+      }
+    },
+    {
+      "query": "Alguém pede conteúdo completo e também informa limite de tamanho. Qual regra determina se esse limite continua valendo?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.903167,
+          0.774709,
+          0.904833,
+          0.719125,
+          0.774958
+        ],
+        "cached": [
+          0.563917,
+          0.536417,
+          0.6835,
+          0.564875,
+          0.508334
+        ]
+      }
+    },
+    {
+      "query": "Alguém pede conteúdo completo e também informa limite de tamanho. Qual regra determina se esse limite continua valendo?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          14.642084,
+          15.437541,
+          15.88275,
+          21.343334,
+          16.426
+        ],
+        "cached": [
+          10.950625,
+          10.179708,
+          11.898333,
+          13.887541,
+          12.302084
+        ]
+      }
+    },
+    {
+      "query": "Alguém pede conteúdo completo e também informa limite de tamanho. Qual regra determina se esse limite continua valendo?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          14.354167,
+          14.219792,
+          13.588458,
+          13.041291,
+          13.963459
+        ],
+        "cached": [
+          10.724458,
+          10.284375,
+          11.004167,
+          10.92775,
+          10.830791
+        ]
+      }
+    },
+    {
+      "query": "probeDrift ensureFreshGraph changed added removed lock",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          27.086916,
+          20.531459,
+          20.138458,
+          18.737334,
+          19.776791
+        ],
+        "cached": [
+          16.173917,
+          17.131709,
+          15.152667,
+          16.508167,
+          14.973666
+        ]
+      }
+    },
+    {
+      "query": "probeDrift ensureFreshGraph changed added removed lock",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.594917,
+          9.726333,
+          8.211291,
+          9.170167,
+          8.08125
+        ],
+        "cached": [
+          5.610375,
+          5.099166,
+          5.108458,
+          7.8245,
+          5.410916
+        ]
+      }
+    },
+    {
+      "query": "probeDrift ensureFreshGraph changed added removed lock",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.13825,
+          1.083125,
+          0.9175,
+          1.077584,
+          0.99425
+        ],
+        "cached": [
+          0.999292,
+          1.445416,
+          0.832833,
+          0.779208,
+          0.828709
+        ]
+      }
+    },
+    {
+      "query": "probeDrift ensureFreshGraph changed added removed lock",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.267208,
+          21.848167,
+          25.037208,
+          28.645167,
+          20.896209
+        ],
+        "cached": [
+          18.264625,
+          18.788917,
+          16.21975,
+          17.490666,
+          18.000417
+        ]
+      }
+    },
+    {
+      "query": "probeDrift ensureFreshGraph changed added removed lock",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          21.247917,
+          20.264,
+          22.14125,
+          21.133292,
+          22.743333
+        ],
+        "cached": [
+          19.89575,
+          19.138875,
+          18.347208,
+          19.8025,
+          17.281625
+        ]
+      }
+    },
+    {
+      "query": "A developer edited a source after indexing. Find both the stale-data detector and the automatic repair that avoids duplicate concurrent work.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          19.085709,
+          17.848167,
+          18.914,
+          18.891125,
+          18.041458
+        ],
+        "cached": [
+          14.793916,
+          14.354667,
+          15.257417,
+          16.625084,
+          15.007333
+        ]
+      }
+    },
+    {
+      "query": "A developer edited a source after indexing. Find both the stale-data detector and the automatic repair that avoids duplicate concurrent work.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          11.263709,
+          9.52725,
+          9.710917,
+          8.760125,
+          8.90225
+        ],
+        "cached": [
+          6.221458,
+          5.7875,
+          5.196583,
+          5.341209,
+          5.866458
+        ]
+      }
+    },
+    {
+      "query": "A developer edited a source after indexing. Find both the stale-data detector and the automatic repair that avoids duplicate concurrent work.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.808292,
+          1.006042,
+          1.021291,
+          1.411833,
+          0.958708
+        ],
+        "cached": [
+          0.936167,
+          0.86875,
+          0.950166,
+          0.826959,
+          0.848125
+        ]
+      }
+    },
+    {
+      "query": "A developer edited a source after indexing. Find both the stale-data detector and the automatic repair that avoids duplicate concurrent work.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.191167,
+          19.49275,
+          18.119667,
+          18.3715,
+          17.962708
+        ],
+        "cached": [
+          15.450125,
+          14.251292,
+          14.155208,
+          14.156375,
+          13.599125
+        ]
+      }
+    },
+    {
+      "query": "A developer edited a source after indexing. Find both the stale-data detector and the automatic repair that avoids duplicate concurrent work.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          22.322458,
+          20.356541,
+          28.235708,
+          23.032167,
+          20.963959
+        ],
+        "cached": [
+          17.740167,
+          17.340333,
+          19.21625,
+          18.843916,
+          18.869833
+        ]
+      }
+    },
+    {
+      "query": "Código mudou depois da indexação. Encontre tanto a detecção de dados desatualizados quanto a atualização automática que evita trabalho concorrente duplicado.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          15.394417,
+          15.831334,
+          15.419291,
+          13.874416,
+          15.443666
+        ],
+        "cached": [
+          10.9925,
+          11.133125,
+          10.897083,
+          10.915291,
+          10.138042
+        ]
+      }
+    },
+    {
+      "query": "Código mudou depois da indexação. Encontre tanto a detecção de dados desatualizados quanto a atualização automática que evita trabalho concorrente duplicado.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.287167,
+          7.765166,
+          7.9195,
+          7.835417,
+          8.351958
+        ],
+        "cached": [
+          4.594375,
+          4.339541,
+          3.842208,
+          4.403666,
+          4.286333
+        ]
+      }
+    },
+    {
+      "query": "Código mudou depois da indexação. Encontre tanto a detecção de dados desatualizados quanto a atualização automática que evita trabalho concorrente duplicado.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.753833,
+          0.822375,
+          0.741333,
+          1.114834,
+          0.689583
+        ],
+        "cached": [
+          0.669125,
+          0.571875,
+          0.674166,
+          0.609666,
+          0.59275
+        ]
+      }
+    },
+    {
+      "query": "Código mudou depois da indexação. Encontre tanto a detecção de dados desatualizados quanto a atualização automática que evita trabalho concorrente duplicado.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          14.769,
+          21.34975,
+          16.14125,
+          14.51375,
+          15.143791
+        ],
+        "cached": [
+          11.96575,
+          10.712542,
+          11.981875,
+          11.060167,
+          11.26775
+        ]
+      }
+    },
+    {
+      "query": "Código mudou depois da indexação. Encontre tanto a detecção de dados desatualizados quanto a atualização automática que evita trabalho concorrente duplicado.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          14.076417,
+          14.730791,
+          13.927375,
+          14.837542,
+          14.580375
+        ],
+        "cached": [
+          10.48025,
+          10.402209,
+          10.150541,
+          10.425458,
+          11.135458
+        ]
+      }
+    },
+    {
+      "query": "federateAsk workspace child reciprocal rank fusion",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          17.069792,
+          14.741125,
+          16.310542,
+          15.960209,
+          18.026417
+        ],
+        "cached": [
+          12.506625,
+          12.518917,
+          12.685625,
+          12.617791,
+          11.683417
+        ]
+      }
+    },
+    {
+      "query": "federateAsk workspace child reciprocal rank fusion",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.462291,
+          7.4665,
+          7.633542,
+          7.38925,
+          7.760875
+        ],
+        "cached": [
+          4.395292,
+          3.46125,
+          4.057583,
+          3.709416,
+          4.155333
+        ]
+      }
+    },
+    {
+      "query": "federateAsk workspace child reciprocal rank fusion",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.166584,
+          0.996,
+          1.2895,
+          0.781208,
+          0.7485
+        ],
+        "cached": [
+          1.052542,
+          1.036541,
+          0.73875,
+          0.681167,
+          0.619917
+        ]
+      }
+    },
+    {
+      "query": "federateAsk workspace child reciprocal rank fusion",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          16.632042,
+          16.835,
+          15.997041,
+          16.298917,
+          15.951334
+        ],
+        "cached": [
+          12.146541,
+          13.062875,
+          13.593125,
+          12.365208,
+          12.092458
+        ]
+      }
+    },
+    {
+      "query": "federateAsk workspace child reciprocal rank fusion",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          17.212625,
+          15.959375,
+          16.548416,
+          23.713209,
+          17.111
+        ],
+        "cached": [
+          13.058625,
+          13.456167,
+          12.959833,
+          14.10075,
+          13.390416
+        ]
+      }
+    },
+    {
+      "query": "Backend and frontend live in separate repositories. Where can one question retrieve evidence from both without the larger project crowding out the smaller one?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          19.210542,
+          19.391666,
+          20.061958,
+          19.736875,
+          19.377917
+        ],
+        "cached": [
+          15.48325,
+          15.450709,
+          15.72125,
+          15.764084,
+          15.54925
+        ]
+      }
+    },
+    {
+      "query": "Backend and frontend live in separate repositories. Where can one question retrieve evidence from both without the larger project crowding out the smaller one?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          10.381958,
+          9.528959,
+          9.571583,
+          9.556375,
+          9.557292
+        ],
+        "cached": [
+          5.76675,
+          5.682709,
+          5.930708,
+          6.009084,
+          5.981209
+        ]
+      }
+    },
+    {
+      "query": "Backend and frontend live in separate repositories. Where can one question retrieve evidence from both without the larger project crowding out the smaller one?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.172083,
+          0.936667,
+          1.431,
+          1.035958,
+          0.932708
+        ],
+        "cached": [
+          0.961334,
+          0.854166,
+          0.992125,
+          0.918167,
+          0.87625
+        ]
+      }
+    },
+    {
+      "query": "Backend and frontend live in separate repositories. Where can one question retrieve evidence from both without the larger project crowding out the smaller one?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          23.875166,
+          26.550166,
+          21.973916,
+          33.474459,
+          34.508834
+        ],
+        "cached": [
+          16.062208,
+          15.305542,
+          17.367667,
+          20.672917,
+          18.341875
+        ]
+      }
+    },
+    {
+      "query": "Backend and frontend live in separate repositories. Where can one question retrieve evidence from both without the larger project crowding out the smaller one?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          27.606625,
+          22.400875,
+          23.431584,
+          22.818875,
+          21.2065
+        ],
+        "cached": [
+          20.589875,
+          18.848667,
+          18.799916,
+          19.728958,
+          19.852542
+        ]
+      }
+    },
+    {
+      "query": "Backend e frontend ficam em repositórios separados. Onde uma pergunta busca evidências nos dois sem o projeto maior esconder o menor?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          14.200292,
+          16.011583,
+          22.190916,
+          18.780209,
+          16.151666
+        ],
+        "cached": [
+          11.126542,
+          11.227125,
+          11.198292,
+          20.019917,
+          11.139458
+        ]
+      }
+    },
+    {
+      "query": "Backend e frontend ficam em repositórios separados. Onde uma pergunta busca evidências nos dois sem o projeto maior esconder o menor?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.34,
+          7.993333,
+          8.037291,
+          8.210375,
+          8.137959
+        ],
+        "cached": [
+          3.723333,
+          3.985041,
+          4.221334,
+          3.6835,
+          4.241084
+        ]
+      }
+    },
+    {
+      "query": "Backend e frontend ficam em repositórios separados. Onde uma pergunta busca evidências nos dois sem o projeto maior esconder o menor?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.780875,
+          0.699666,
+          0.581791,
+          0.773708,
+          0.668459
+        ],
+        "cached": [
+          0.689417,
+          0.621959,
+          0.948791,
+          0.660834,
+          0.575666
+        ]
+      }
+    },
+    {
+      "query": "Backend e frontend ficam em repositórios separados. Onde uma pergunta busca evidências nos dois sem o projeto maior esconder o menor?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          15.621208,
+          14.564959,
+          15.409666,
+          15.347292,
+          14.657167
+        ],
+        "cached": [
+          11.126709,
+          10.755958,
+          10.982042,
+          11.368875,
+          11.28
+        ]
+      }
+    },
+    {
+      "query": "Backend e frontend ficam em repositórios separados. Onde uma pergunta busca evidências nos dois sem o projeto maior esconder o menor?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          15.198125,
+          14.257542,
+          20.665041,
+          16.297042,
+          14.46
+        ],
+        "cached": [
+          11.578084,
+          11.098667,
+          12.681709,
+          10.890167,
+          11.653792
+        ]
+      }
+    },
+    {
+      "query": "impactOfMany seeds maxDepth direction",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          15.904458,
+          15.644542,
+          15.57125,
+          15.22725,
+          14.402375
+        ],
+        "cached": [
+          11.319791,
+          11.328375,
+          12.391709,
+          13.295458,
+          12.437875
+        ]
+      }
+    },
+    {
+      "query": "impactOfMany seeds maxDepth direction",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          6.743625,
+          7.122667,
+          6.54625,
+          6.582667,
+          7.161083
+        ],
+        "cached": [
+          3.768375,
+          2.997667,
+          3.755458,
+          3.253583,
+          2.993792
+        ]
+      }
+    },
+    {
+      "query": "impactOfMany seeds maxDepth direction",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.238375,
+          0.947625,
+          0.859291,
+          0.993417,
+          0.955208
+        ],
+        "cached": [
+          1.062292,
+          0.917042,
+          1.262875,
+          0.826208,
+          0.91
+        ]
+      }
+    },
+    {
+      "query": "impactOfMany seeds maxDepth direction",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          20.934291,
+          16.056709,
+          15.031583,
+          14.960292,
+          15.499208
+        ],
+        "cached": [
+          12.818292,
+          12.057875,
+          12.66375,
+          11.698833,
+          11.663333
+        ]
+      }
+    },
+    {
+      "query": "impactOfMany seeds maxDepth direction",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          14.668583,
+          16.599208,
+          16.789542,
+          15.361834,
+          15.961791
+        ],
+        "cached": [
+          12.117125,
+          12.224417,
+          12.421,
+          13.201375,
+          13.126833
+        ]
+      }
+    },
+    {
+      "query": "Before modifying several routines, where do we find indirect dependents multiple hops away and avoid visiting the same routine repeatedly?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.575,
+          17.147209,
+          16.31875,
+          22.884208,
+          18.275125
+        ],
+        "cached": [
+          13.522375,
+          13.558834,
+          14.132083,
+          13.501375,
+          14.270292
+        ]
+      }
+    },
+    {
+      "query": "Before modifying several routines, where do we find indirect dependents multiple hops away and avoid visiting the same routine repeatedly?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.893875,
+          8.537708,
+          9.033042,
+          7.950875,
+          8.728417
+        ],
+        "cached": [
+          4.373167,
+          4.336,
+          4.905167,
+          4.79225,
+          4.885625
+        ]
+      }
+    },
+    {
+      "query": "Before modifying several routines, where do we find indirect dependents multiple hops away and avoid visiting the same routine repeatedly?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.075166,
+          0.985208,
+          0.922792,
+          0.885666,
+          1.19325
+        ],
+        "cached": [
+          1.343,
+          0.958375,
+          0.94575,
+          0.811875,
+          0.695083
+        ]
+      }
+    },
+    {
+      "query": "Before modifying several routines, where do we find indirect dependents multiple hops away and avoid visiting the same routine repeatedly?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          22.926125,
+          18.889375,
+          17.529625,
+          17.230459,
+          17.850209
+        ],
+        "cached": [
+          13.601625,
+          15.262958,
+          14.477708,
+          13.519042,
+          14.307958
+        ]
+      }
+    },
+    {
+      "query": "Before modifying several routines, where do we find indirect dependents multiple hops away and avoid visiting the same routine repeatedly?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          18.8795,
+          24.665667,
+          20.296,
+          19.336875,
+          19.779834
+        ],
+        "cached": [
+          15.442833,
+          15.025792,
+          16.67525,
+          15.13725,
+          15.247834
+        ]
+      }
+    },
+    {
+      "query": "Antes de alterar várias rotinas, onde encontramos dependentes indiretos por vários níveis sem visitar repetidamente a mesma rotina?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          13.546292,
+          13.490292,
+          13.820291,
+          18.81975,
+          17.85525
+        ],
+        "cached": [
+          11.490958,
+          10.367792,
+          10.664541,
+          27.014084,
+          10.196292
+        ]
+      }
+    },
+    {
+      "query": "Antes de alterar várias rotinas, onde encontramos dependentes indiretos por vários níveis sem visitar repetidamente a mesma rotina?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.73625,
+          7.663,
+          8.112792,
+          8.974708,
+          12.379667
+        ],
+        "cached": [
+          4.24975,
+          3.809584,
+          4.229833,
+          5.029541,
+          6.033208
+        ]
+      }
+    },
+    {
+      "query": "Antes de alterar várias rotinas, onde encontramos dependentes indiretos por vários níveis sem visitar repetidamente a mesma rotina?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.670917,
+          0.841583,
+          0.909833,
+          0.698041,
+          1.313458
+        ],
+        "cached": [
+          0.886,
+          0.827417,
+          0.743125,
+          0.651333,
+          1.251166
+        ]
+      }
+    },
+    {
+      "query": "Antes de alterar várias rotinas, onde encontramos dependentes indiretos por vários níveis sem visitar repetidamente a mesma rotina?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          21.6525,
+          26.306792,
+          38.328417,
+          16.692417,
+          16.627416
+        ],
+        "cached": [
+          16.364541,
+          12.756542,
+          18.274542,
+          13.974333,
+          12.29225
+        ]
+      }
+    },
+    {
+      "query": "Antes de alterar várias rotinas, onde encontramos dependentes indiretos por vários níveis sem visitar repetidamente a mesma rotina?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          14.728708,
+          14.479292,
+          14.675833,
+          15.552542,
+          14.276583
+        ],
+        "cached": [
+          10.613833,
+          11.048833,
+          10.150458,
+          9.85825,
+          11.477292
+        ]
+      }
+    },
+    {
+      "query": "resolveSymbol owner qualified method name",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.153916,
+          18.706167,
+          25.5335,
+          19.2635,
+          17.977208
+        ],
+        "cached": [
+          15.553167,
+          14.413334,
+          14.349084,
+          14.656833,
+          13.329042
+        ]
+      }
+    },
+    {
+      "query": "resolveSymbol owner qualified method name",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.466375,
+          8.639333,
+          7.567417,
+          7.540084,
+          8.938625
+        ],
+        "cached": [
+          3.93225,
+          4.361959,
+          4.74075,
+          4.525125,
+          3.769375
+        ]
+      }
+    },
+    {
+      "query": "resolveSymbol owner qualified method name",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.067875,
+          1.21025,
+          1.082333,
+          0.954875,
+          1.1905
+        ],
+        "cached": [
+          0.977708,
+          1.287,
+          1.488,
+          0.915458,
+          0.939
+        ]
+      }
+    },
+    {
+      "query": "resolveSymbol owner qualified method name",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          18.943083,
+          16.61425,
+          18.340375,
+          19.445792,
+          18.783542
+        ],
+        "cached": [
+          14.36875,
+          14.840583,
+          15.464208,
+          16.723708,
+          14.419625
+        ]
+      }
+    },
+    {
+      "query": "resolveSymbol owner qualified method name",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          22.437958,
+          20.194167,
+          21.010958,
+          19.834667,
+          20.774625
+        ],
+        "cached": [
+          17.508583,
+          16.599083,
+          15.959875,
+          15.250583,
+          17.419084
+        ]
+      }
+    },
+    {
+      "query": "Two classes have methods with the same name. Where is the requested definition disambiguated using its containing class?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.995709,
+          21.824708,
+          28.697292,
+          21.414458,
+          20.125042
+        ],
+        "cached": [
+          16.240125,
+          18.244125,
+          15.448041,
+          16.802625,
+          16.036667
+        ]
+      }
+    },
+    {
+      "query": "Two classes have methods with the same name. Where is the requested definition disambiguated using its containing class?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.118292,
+          11.799125,
+          10.2395,
+          9.109792,
+          8.643792
+        ],
+        "cached": [
+          4.875334,
+          5.456583,
+          6.004542,
+          5.420541,
+          5.366833
+        ]
+      }
+    },
+    {
+      "query": "Two classes have methods with the same name. Where is the requested definition disambiguated using its containing class?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.05075,
+          1.038125,
+          0.953625,
+          1.006834,
+          0.856958
+        ],
+        "cached": [
+          1.063625,
+          0.948583,
+          0.81775,
+          1.234875,
+          0.746042
+        ]
+      }
+    },
+    {
+      "query": "Two classes have methods with the same name. Where is the requested definition disambiguated using its containing class?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.754166,
+          20.782292,
+          21.182958,
+          22.838584,
+          26.167833
+        ],
+        "cached": [
+          17.841541,
+          15.797458,
+          16.149167,
+          17.73225,
+          20.45725
+        ]
+      }
+    },
+    {
+      "query": "Two classes have methods with the same name. Where is the requested definition disambiguated using its containing class?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          30.790042,
+          25.749959,
+          28.779375,
+          31.260125,
+          24.485917
+        ],
+        "cached": [
+          22.238792,
+          20.747625,
+          19.472208,
+          23.135,
+          20.709708
+        ]
+      }
+    },
+    {
+      "query": "Duas classes possuem métodos com nome igual. Onde distinguimos a definição desejada usando a classe à qual pertence?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          15.710208,
+          15.198084,
+          18.797333,
+          18.350083,
+          17.210208
+        ],
+        "cached": [
+          10.438083,
+          11.941875,
+          11.880709,
+          9.9705,
+          11.477041
+        ]
+      }
+    },
+    {
+      "query": "Duas classes possuem métodos com nome igual. Onde distinguimos a definição desejada usando a classe à qual pertence?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.86275,
+          7.714958,
+          7.70025,
+          7.871833,
+          10.082166
+        ],
+        "cached": [
+          3.841041,
+          4.032125,
+          4.341375,
+          4.01025,
+          5.502458
+        ]
+      }
+    },
+    {
+      "query": "Duas classes possuem métodos com nome igual. Onde distinguimos a definição desejada usando a classe à qual pertence?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          5.852792,
+          2.032875,
+          1.1825,
+          0.681542,
+          0.88925
+        ],
+        "cached": [
+          1.030291,
+          1.15225,
+          0.605459,
+          0.597667,
+          0.665791
+        ]
+      }
+    },
+    {
+      "query": "Duas classes possuem métodos com nome igual. Onde distinguimos a definição desejada usando a classe à qual pertence?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.61425,
+          17.876458,
+          15.931333,
+          20.250583,
+          17.454459
+        ],
+        "cached": [
+          11.703334,
+          11.256667,
+          13.842834,
+          17.208291,
+          12.834583
+        ]
+      }
+    },
+    {
+      "query": "Duas classes possuem métodos com nome igual. Onde distinguimos a definição desejada usando a classe à qual pertence?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          18.768792,
+          18.510542,
+          17.695833,
+          16.439792,
+          15.45775
+        ],
+        "cached": [
+          16.945334,
+          14.766542,
+          11.727458,
+          11.405167,
+          10.800958
+        ]
+      }
+    },
+    {
+      "query": "upsertSection markers replaced unchanged eol",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          15.385084,
+          16.758,
+          14.704208,
+          15.198084,
+          16.0555
+        ],
+        "cached": [
+          11.258042,
+          11.044125,
+          10.937041,
+          10.476125,
+          10.868875
+        ]
+      }
+    },
+    {
+      "query": "upsertSection markers replaced unchanged eol",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.269333,
+          7.035833,
+          7.92075,
+          6.945791,
+          8.638584
+        ],
+        "cached": [
+          7.007292,
+          5.092625,
+          3.250417,
+          4.401875,
+          3.535541
+        ]
+      }
+    },
+    {
+      "query": "upsertSection markers replaced unchanged eol",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.158375,
+          0.940125,
+          1.05075,
+          1.17475,
+          1.177792
+        ],
+        "cached": [
+          0.860042,
+          0.916917,
+          1.794541,
+          1.324709,
+          0.934334
+        ]
+      }
+    },
+    {
+      "query": "upsertSection markers replaced unchanged eol",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.595625,
+          18.801,
+          19.260667,
+          22.658625,
+          21.712208
+        ],
+        "cached": [
+          11.664125,
+          13.783958,
+          14.432333,
+          14.623333,
+          16.005041
+        ]
+      }
+    },
+    {
+      "query": "upsertSection markers replaced unchanged eol",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          16.80125,
+          15.2335,
+          15.270375,
+          25.229541,
+          16.6805
+        ],
+        "cached": [
+          12.11875,
+          12.076875,
+          12.311209,
+          11.671875,
+          12.350834
+        ]
+      }
+    },
+    {
+      "query": "Installing again must update only our managed instructions and preserve the user's surrounding text and Windows newlines. Where is that handled?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          21.403417,
+          22.99475,
+          23.825375,
+          24.398166,
+          19.206875
+        ],
+        "cached": [
+          16.75875,
+          19.156167,
+          15.991667,
+          17.471458,
+          16.4395
+        ]
+      }
+    },
+    {
+      "query": "Installing again must update only our managed instructions and preserve the user's surrounding text and Windows newlines. Where is that handled?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.973875,
+          10.863209,
+          9.8265,
+          9.615541,
+          10.012541
+        ],
+        "cached": [
+          5.2035,
+          7.163958,
+          6.527333,
+          5.722042,
+          5.338958
+        ]
+      }
+    },
+    {
+      "query": "Installing again must update only our managed instructions and preserve the user's surrounding text and Windows newlines. Where is that handled?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.399875,
+          1.810542,
+          1.291791,
+          1.378375,
+          1.427042
+        ],
+        "cached": [
+          1.044333,
+          1.204375,
+          1.162584,
+          1.332042,
+          1.650709
+        ]
+      }
+    },
+    {
+      "query": "Installing again must update only our managed instructions and preserve the user's surrounding text and Windows newlines. Where is that handled?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          26.028666,
+          19.156875,
+          20.061375,
+          20.55025,
+          20.100792
+        ],
+        "cached": [
+          16.338334,
+          15.132166,
+          15.417417,
+          16.379,
+          16.25925
+        ]
+      }
+    },
+    {
+      "query": "Installing again must update only our managed instructions and preserve the user's surrounding text and Windows newlines. Where is that handled?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          22.454292,
+          23.981375,
+          22.697166,
+          22.944542,
+          22.106458
+        ],
+        "cached": [
+          19.5815,
+          19.022083,
+          19.232541,
+          18.681,
+          19.912916
+        ]
+      }
+    },
+    {
+      "query": "Reinstalar deve atualizar só nossas instruções gerenciadas e preservar texto do usuário e quebras de linha do Windows. Onde isso acontece?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.463875,
+          14.673667,
+          20.519917,
+          15.57475,
+          15.196667
+        ],
+        "cached": [
+          11.618417,
+          11.601625,
+          10.776042,
+          11.228209,
+          10.303541
+        ]
+      }
+    },
+    {
+      "query": "Reinstalar deve atualizar só nossas instruções gerenciadas e preservar texto do usuário e quebras de linha do Windows. Onde isso acontece?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.670292,
+          8.211083,
+          7.813333,
+          8.155375,
+          7.774667
+        ],
+        "cached": [
+          4.521167,
+          4.367292,
+          5.002292,
+          4.467,
+          4.688625
+        ]
+      }
+    },
+    {
+      "query": "Reinstalar deve atualizar só nossas instruções gerenciadas e preservar texto do usuário e quebras de linha do Windows. Onde isso acontece?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.74875,
+          0.625292,
+          0.607292,
+          0.611125,
+          0.615166
+        ],
+        "cached": [
+          0.949958,
+          0.530125,
+          0.5335,
+          0.716875,
+          0.533542
+        ]
+      }
+    },
+    {
+      "query": "Reinstalar deve atualizar só nossas instruções gerenciadas e preservar texto do usuário e quebras de linha do Windows. Onde isso acontece?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          15.771375,
+          15.558792,
+          16.04525,
+          15.115416,
+          15.893542
+        ],
+        "cached": [
+          12.232417,
+          12.723458,
+          11.316917,
+          11.517292,
+          12.108083
+        ]
+      }
+    },
+    {
+      "query": "Reinstalar deve atualizar só nossas instruções gerenciadas e preservar texto do usuário e quebras de linha do Windows. Onde isso acontece?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          15.917834,
+          15.00225,
+          25.784583,
+          20.139458,
+          23.135083
+        ],
+        "cached": [
+          12.005,
+          11.067167,
+          17.258833,
+          15.862375,
+          13.964833
+        ]
+      }
+    },
+    {
+      "query": "canonicalWalkRoot symbolic link loop broken",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.7875,
+          15.988709,
+          16.820833,
+          15.549,
+          14.51225
+        ],
+        "cached": [
+          12.057708,
+          13.027,
+          11.824375,
+          12.540083,
+          11.390916
+        ]
+      }
+    },
+    {
+      "query": "canonicalWalkRoot symbolic link loop broken",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          6.968042,
+          6.530292,
+          7.226,
+          7.464416,
+          7.495084
+        ],
+        "cached": [
+          3.664833,
+          3.297333,
+          3.112041,
+          3.440459,
+          3.708208
+        ]
+      }
+    },
+    {
+      "query": "canonicalWalkRoot symbolic link loop broken",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.115042,
+          1.541834,
+          1.0805,
+          1.229542,
+          1.152292
+        ],
+        "cached": [
+          0.957,
+          0.92975,
+          0.859833,
+          1.207208,
+          0.892667
+        ]
+      }
+    },
+    {
+      "query": "canonicalWalkRoot symbolic link loop broken",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.376334,
+          19.461375,
+          20.8585,
+          17.09875,
+          16.805542
+        ],
+        "cached": [
+          13.076459,
+          16.824125,
+          15.503167,
+          13.656791,
+          12.097541
+        ]
+      }
+    },
+    {
+      "query": "canonicalWalkRoot symbolic link loop broken",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          17.019458,
+          16.613167,
+          16.798416,
+          16.611042,
+          16.218417
+        ],
+        "cached": [
+          13.310333,
+          13.03725,
+          12.677208,
+          11.679916,
+          12.699334
+        ]
+      }
+    },
+    {
+      "query": "The project directory is an alias to a different folder. Where do we follow its real destination and reject a circular or missing target?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.155333,
+          16.717084,
+          16.873,
+          16.893042,
+          17.220459
+        ],
+        "cached": [
+          12.827584,
+          19.060417,
+          13.51975,
+          11.947958,
+          12.561334
+        ]
+      }
+    },
+    {
+      "query": "The project directory is an alias to a different folder. Where do we follow its real destination and reject a circular or missing target?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.575209,
+          8.060791,
+          8.175208,
+          8.184167,
+          8.642
+        ],
+        "cached": [
+          4.290125,
+          4.741458,
+          4.191083,
+          4.573417,
+          4.581792
+        ]
+      }
+    },
+    {
+      "query": "The project directory is an alias to a different folder. Where do we follow its real destination and reject a circular or missing target?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.934167,
+          0.799875,
+          1.194709,
+          0.914583,
+          0.881666
+        ],
+        "cached": [
+          0.773583,
+          0.713083,
+          0.8615,
+          0.81675,
+          0.819917
+        ]
+      }
+    },
+    {
+      "query": "The project directory is an alias to a different folder. Where do we follow its real destination and reject a circular or missing target?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          17.210708,
+          16.562875,
+          17.462917,
+          18.250583,
+          17.863334
+        ],
+        "cached": [
+          14.573542,
+          14.151417,
+          17.214833,
+          14.170625,
+          13.621042
+        ]
+      }
+    },
+    {
+      "query": "The project directory is an alias to a different folder. Where do we follow its real destination and reject a circular or missing target?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          18.45925,
+          19.25525,
+          18.788708,
+          18.669334,
+          18.830583
+        ],
+        "cached": [
+          15.328625,
+          14.1075,
+          14.906917,
+          16.009334,
+          14.813958
+        ]
+      }
+    },
+    {
+      "query": "A pasta do projeto aponta para outro diretório. Onde seguimos o destino real e rejeitamos referência circular ou destino inexistente?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.476833,
+          27.351583,
+          17.073708,
+          25.253042,
+          22.202042
+        ],
+        "cached": [
+          18.629,
+          11.993583,
+          19.145958,
+          18.39025,
+          15.324584
+        ]
+      }
+    },
+    {
+      "query": "A pasta do projeto aponta para outro diretório. Onde seguimos o destino real e rejeitamos referência circular ou destino inexistente?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.107417,
+          8.660916,
+          8.40575,
+          10.226416,
+          13.535875
+        ],
+        "cached": [
+          4.964666,
+          4.801959,
+          5.2545,
+          5.410042,
+          8.209292
+        ]
+      }
+    },
+    {
+      "query": "A pasta do projeto aponta para outro diretório. Onde seguimos o destino real e rejeitamos referência circular ou destino inexistente?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.082917,
+          0.813375,
+          0.671667,
+          0.8155,
+          0.938333
+        ],
+        "cached": [
+          1.679041,
+          0.746458,
+          0.522625,
+          0.790125,
+          1.283209
+        ]
+      }
+    },
+    {
+      "query": "A pasta do projeto aponta para outro diretório. Onde seguimos o destino real e rejeitamos referência circular ou destino inexistente?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          16.204667,
+          16.427125,
+          18.632292,
+          20.069084,
+          23.622416
+        ],
+        "cached": [
+          12.502792,
+          16.528625,
+          14.962,
+          13.52475,
+          13.645125
+        ]
+      }
+    },
+    {
+      "query": "A pasta do projeto aponta para outro diretório. Onde seguimos o destino real e rejeitamos referência circular ou destino inexistente?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          15.828875,
+          16.522667,
+          20.386833,
+          15.787584,
+          16.250334
+        ],
+        "cached": [
+          11.534375,
+          12.860334,
+          15.185583,
+          12.248625,
+          12.091167
+        ]
+      }
+    },
+    {
+      "query": "extractorStamp readExtractCache version extractor identity",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.684958,
+          16.854042,
+          17.402417,
+          17.626833,
+          18.193666
+        ],
+        "cached": [
+          13.67425,
+          13.822417,
+          14.758834,
+          14.242333,
+          14.311708
+        ]
+      }
+    },
+    {
+      "query": "extractorStamp readExtractCache version extractor identity",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.283083,
+          8.524625,
+          8.845625,
+          9.404875,
+          8.770208
+        ],
+        "cached": [
+          5.463792,
+          4.816,
+          5.799916,
+          4.023625,
+          3.756083
+        ]
+      }
+    },
+    {
+      "query": "extractorStamp readExtractCache version extractor identity",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.299375,
+          1.040125,
+          1.036,
+          1.093166,
+          1.513083
+        ],
+        "cached": [
+          1.125875,
+          0.923,
+          1.442708,
+          0.933208,
+          1.047958
+        ]
+      }
+    },
+    {
+      "query": "extractorStamp readExtractCache version extractor identity",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          27.153875,
+          19.084625,
+          17.816042,
+          17.9175,
+          17.451459
+        ],
+        "cached": [
+          15.168167,
+          15.028458,
+          12.880375,
+          12.782042,
+          13.089375
+        ]
+      }
+    },
+    {
+      "query": "extractorStamp readExtractCache version extractor identity",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          19.04125,
+          20.481459,
+          20.699875,
+          19.750875,
+          19.839584
+        ],
+        "cached": [
+          16.800833,
+          16.564666,
+          16.388292,
+          16.663833,
+          15.994667
+        ]
+      }
+    },
+    {
+      "query": "After upgrading the parser, old extracted definitions must not be reused. Find both the parser identity and the guard that rejects incompatible stored results.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          19.487375,
+          30.12775,
+          19.907167,
+          22.868084,
+          20.664792
+        ],
+        "cached": [
+          31.635333,
+          20.683209,
+          19.212708,
+          18.1555,
+          16.346583
+        ]
+      }
+    },
+    {
+      "query": "After upgrading the parser, old extracted definitions must not be reused. Find both the parser identity and the guard that rejects incompatible stored results.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          10.336833,
+          10.293458,
+          10.137709,
+          10.043875,
+          9.786958
+        ],
+        "cached": [
+          6.560875,
+          6.432417,
+          6.323125,
+          5.988583,
+          6.1025
+        ]
+      }
+    },
+    {
+      "query": "After upgrading the parser, old extracted definitions must not be reused. Find both the parser identity and the guard that rejects incompatible stored results.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.081041,
+          1.200583,
+          1.113416,
+          1.027208,
+          0.91725
+        ],
+        "cached": [
+          1.002084,
+          1.566042,
+          1.044333,
+          0.878958,
+          1.422958
+        ]
+      }
+    },
+    {
+      "query": "After upgrading the parser, old extracted definitions must not be reused. Find both the parser identity and the guard that rejects incompatible stored results.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.021125,
+          22.38325,
+          21.804458,
+          22.43325,
+          30.30325
+        ],
+        "cached": [
+          15.058625,
+          16.394291,
+          16.693208,
+          20.989792,
+          18.664125
+        ]
+      }
+    },
+    {
+      "query": "After upgrading the parser, old extracted definitions must not be reused. Find both the parser identity and the guard that rejects incompatible stored results.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          25.558583,
+          27.034542,
+          27.147542,
+          28.205042,
+          32.014083
+        ],
+        "cached": [
+          24.703625,
+          21.397917,
+          22.854625,
+          22.529375,
+          28.053792
+        ]
+      }
+    },
+    {
+      "query": "Após atualizar o analisador, definições extraídas anteriormente não podem ser reaproveitadas. Encontre a identificação do analisador e a proteção que rejeita resultados incompatíveis.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          17.914167,
+          18.77825,
+          20.156084,
+          22.239667,
+          27.890208
+        ],
+        "cached": [
+          15.865209,
+          13.180542,
+          17.852334,
+          13.460792,
+          11.303667
+        ]
+      }
+    },
+    {
+      "query": "Após atualizar o analisador, definições extraídas anteriormente não podem ser reaproveitadas. Encontre a identificação do analisador e a proteção que rejeita resultados incompatíveis.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.386292,
+          9.122958,
+          16.329375,
+          9.803917,
+          9.135959
+        ],
+        "cached": [
+          3.969625,
+          5.09725,
+          4.7855,
+          5.176375,
+          5.454667
+        ]
+      }
+    },
+    {
+      "query": "Após atualizar o analisador, definições extraídas anteriormente não podem ser reaproveitadas. Encontre a identificação do analisador e a proteção que rejeita resultados incompatíveis.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.380166,
+          0.692916,
+          0.634708,
+          0.764167,
+          1.408041
+        ],
+        "cached": [
+          1.228208,
+          0.641333,
+          0.488875,
+          0.458875,
+          1.204209
+        ]
+      }
+    },
+    {
+      "query": "Após atualizar o analisador, definições extraídas anteriormente não podem ser reaproveitadas. Encontre a identificação do analisador e a proteção que rejeita resultados incompatíveis.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          20.63425,
+          17.91075,
+          17.151417,
+          15.482,
+          15.727208
+        ],
+        "cached": [
+          14.118833,
+          14.343375,
+          11.369041,
+          12.409666,
+          11.944625
+        ]
+      }
+    },
+    {
+      "query": "Após atualizar o analisador, definições extraídas anteriormente não podem ser reaproveitadas. Encontre a identificação do analisador e a proteção que rejeita resultados incompatíveis.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          16.227667,
+          16.547167,
+          15.855334,
+          16.543208,
+          19.889625
+        ],
+        "cached": [
+          11.486833,
+          11.472709,
+          14.5595,
+          12.090375,
+          12.791041
+        ]
+      }
+    },
+    {
+      "query": "loadVerifiedGraph execute snapshot configurationHash graphHash investigation",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          21.80125,
+          21.815458,
+          19.67,
+          25.404334,
+          22.354
+        ],
+        "cached": [
+          30.0465,
+          16.727084,
+          18.175875,
+          15.7165,
+          17.379167
+        ]
+      }
+    },
+    {
+      "query": "loadVerifiedGraph execute snapshot configurationHash graphHash investigation",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.702458,
+          9.296542,
+          10.177542,
+          9.622083,
+          10.597666
+        ],
+        "cached": [
+          5.1835,
+          4.751875,
+          4.540333,
+          5.561084,
+          5.395625
+        ]
+      }
+    },
+    {
+      "query": "loadVerifiedGraph execute snapshot configurationHash graphHash investigation",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.763333,
+          1.630167,
+          1.172792,
+          1.106,
+          1.568875
+        ],
+        "cached": [
+          1.366625,
+          0.978916,
+          0.883209,
+          0.888791,
+          1.170666
+        ]
+      }
+    },
+    {
+      "query": "loadVerifiedGraph execute snapshot configurationHash graphHash investigation",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          22.589917,
+          19.472584,
+          28.276209,
+          20.248333,
+          22.862542
+        ],
+        "cached": [
+          16.360833,
+          16.182708,
+          18.58175,
+          17.639833,
+          16.388208
+        ]
+      }
+    },
+    {
+      "query": "loadVerifiedGraph execute snapshot configurationHash graphHash investigation",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          32.820125,
+          39.562834,
+          47.107417,
+          73.124,
+          39.661375
+        ],
+        "cached": [
+          20.073417,
+          83.548458,
+          33.149625,
+          43.534792,
+          31.191167
+        ]
+      }
+    },
+    {
+      "query": "We must not return a dependency report based on different source bytes, settings, or a repository edited while we were working. Find the checks that enforce both conditions.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          35.536875,
+          30.595167,
+          31.706958,
+          39.6915,
+          28.952916
+        ],
+        "cached": [
+          29.81175,
+          26.568792,
+          24.098375,
+          26.71325,
+          27.528959
+        ]
+      }
+    },
+    {
+      "query": "We must not return a dependency report based on different source bytes, settings, or a repository edited while we were working. Find the checks that enforce both conditions.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          15.227875,
+          14.953625,
+          15.030458,
+          20.167542,
+          16.634334
+        ],
+        "cached": [
+          12.1705,
+          9.279375,
+          9.328958,
+          25.853833,
+          14.661459
+        ]
+      }
+    },
+    {
+      "query": "We must not return a dependency report based on different source bytes, settings, or a repository edited while we were working. Find the checks that enforce both conditions.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.733458,
+          2.121792,
+          1.59,
+          1.777333,
+          1.992833
+        ],
+        "cached": [
+          1.990375,
+          1.413833,
+          1.844417,
+          2.051334,
+          1.362458
+        ]
+      }
+    },
+    {
+      "query": "We must not return a dependency report based on different source bytes, settings, or a repository edited while we were working. Find the checks that enforce both conditions.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          34.613875,
+          28.007792,
+          27.443125,
+          30.373125,
+          29.72175
+        ],
+        "cached": [
+          26.392208,
+          24.507125,
+          28.081792,
+          27.0625,
+          26.781
+        ]
+      }
+    },
+    {
+      "query": "We must not return a dependency report based on different source bytes, settings, or a repository edited while we were working. Find the checks that enforce both conditions.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          39.404916,
+          40.595,
+          40.325458,
+          40.033375,
+          37.562541
+        ],
+        "cached": [
+          34.945333,
+          34.329,
+          33.678958,
+          34.78475,
+          33.589625
+        ]
+      }
+    },
+    {
+      "query": "Não podemos devolver análise baseada em código ou configuração diferentes, nem aceitar alterações durante a execução. Encontre verificações que garantem essas duas condições.",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          17.069709,
+          21.366542,
+          15.29025,
+          16.533708,
+          21.665959
+        ],
+        "cached": [
+          11.397834,
+          11.669,
+          10.426041,
+          10.868125,
+          12.209333
+        ]
+      }
+    },
+    {
+      "query": "Não podemos devolver análise baseada em código ou configuração diferentes, nem aceitar alterações durante a execução. Encontre verificações que garantem essas duas condições.",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          14.573083,
+          10.256,
+          9.822667,
+          15.812959,
+          16.208791
+        ],
+        "cached": [
+          4.985667,
+          5.903167,
+          5.253,
+          7.280667,
+          5.820334
+        ]
+      }
+    },
+    {
+      "query": "Não podemos devolver análise baseada em código ou configuração diferentes, nem aceitar alterações durante a execução. Encontre verificações que garantem essas duas condições.",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.019792,
+          0.832208,
+          0.8885,
+          0.656625,
+          0.653167
+        ],
+        "cached": [
+          1.37075,
+          0.716375,
+          0.581083,
+          0.833958,
+          3.090792
+        ]
+      }
+    },
+    {
+      "query": "Não podemos devolver análise baseada em código ou configuração diferentes, nem aceitar alterações durante a execução. Encontre verificações que garantem essas duas condições.",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          21.1185,
+          24.595208,
+          33.555958,
+          18.648166,
+          20.876667
+        ],
+        "cached": [
+          21.403041,
+          16.468125,
+          14.562166,
+          14.87125,
+          15.384125
+        ]
+      }
+    },
+    {
+      "query": "Não podemos devolver análise baseada em código ou configuração diferentes, nem aceitar alterações durante a execução. Encontre verificações que garantem essas duas condições.",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          20.995375,
+          19.208833,
+          17.843417,
+          19.142208,
+          23.009625
+        ],
+        "cached": [
+          16.800584,
+          15.909458,
+          15.570417,
+          14.403166,
+          13.460542
+        ]
+      }
+    },
+    {
+      "query": "repeatOf note decision jaccard touches",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.942125,
+          15.464791,
+          16.586583,
+          16.673791,
+          16.701417
+        ],
+        "cached": [
+          12.301042,
+          12.147583,
+          12.633584,
+          11.984125,
+          10.566875
+        ]
+      }
+    },
+    {
+      "query": "repeatOf note decision jaccard touches",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.408042,
+          6.743334,
+          7.489542,
+          6.924,
+          7.497375
+        ],
+        "cached": [
+          3.928917,
+          3.547542,
+          4.227958,
+          3.77775,
+          4.330916
+        ]
+      }
+    },
+    {
+      "query": "repeatOf note decision jaccard touches",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.045292,
+          0.863458,
+          0.78625,
+          0.660458,
+          0.604292
+        ],
+        "cached": [
+          0.617042,
+          1.294958,
+          0.601833,
+          0.72025,
+          0.5765
+        ]
+      }
+    },
+    {
+      "query": "repeatOf note decision jaccard touches",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          21.25075,
+          31.943709,
+          24.259042,
+          30.502584,
+          20.48425
+        ],
+        "cached": [
+          24.326416,
+          23.521083,
+          14.435416,
+          12.999333,
+          14.974125
+        ]
+      }
+    },
+    {
+      "query": "repeatOf note decision jaccard touches",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          21.35375,
+          16.496583,
+          19.716417,
+          19.007375,
+          17.288208
+        ],
+        "cached": [
+          14.213125,
+          12.779167,
+          13.317,
+          12.903584,
+          12.86025
+        ]
+      }
+    },
+    {
+      "query": "An assistant tries to save advice the team already recorded using slightly different wording. Where is the duplicate detected?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          19.945667,
+          17.452959,
+          18.835459,
+          19.696125,
+          21.846625
+        ],
+        "cached": [
+          13.3195,
+          12.891542,
+          15.359125,
+          14.8415,
+          13.716917
+        ]
+      }
+    },
+    {
+      "query": "An assistant tries to save advice the team already recorded using slightly different wording. Where is the duplicate detected?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.001208,
+          9.319375,
+          14.685333,
+          10.703375,
+          8.593875
+        ],
+        "cached": [
+          4.334667,
+          5.799458,
+          5.252791,
+          5.895834,
+          5.544125
+        ]
+      }
+    },
+    {
+      "query": "An assistant tries to save advice the team already recorded using slightly different wording. Where is the duplicate detected?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.471459,
+          1.016625,
+          1.129791,
+          1.742667,
+          2.363542
+        ],
+        "cached": [
+          1.031958,
+          1.027791,
+          0.868042,
+          0.93025,
+          0.996542
+        ]
+      }
+    },
+    {
+      "query": "An assistant tries to save advice the team already recorded using slightly different wording. Where is the duplicate detected?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.761459,
+          20.586541,
+          21.093833,
+          20.924875,
+          22.401542
+        ],
+        "cached": [
+          14.436459,
+          15.23425,
+          15.000834,
+          19.273083,
+          18.285083
+        ]
+      }
+    },
+    {
+      "query": "An assistant tries to save advice the team already recorded using slightly different wording. Where is the duplicate detected?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          20.253125,
+          22.024042,
+          25.394125,
+          21.327667,
+          21.18875
+        ],
+        "cached": [
+          15.017417,
+          16.872208,
+          17.072667,
+          20.764416,
+          19.447375
+        ]
+      }
+    },
+    {
+      "query": "Assistente tenta guardar conselho que equipe já registrou com palavras diferentes. Onde detectamos essa repetição?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          22.720625,
+          16.187334,
+          23.868958,
+          29.344417,
+          41.200875
+        ],
+        "cached": [
+          22.391458,
+          19.239416,
+          20.945792,
+          32.391667,
+          27.649875
+        ]
+      }
+    },
+    {
+      "query": "Assistente tenta guardar conselho que equipe já registrou com palavras diferentes. Onde detectamos essa repetição?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          10.854875,
+          13.311708,
+          13.190334,
+          9.617,
+          9.803417
+        ],
+        "cached": [
+          4.083375,
+          5.528292,
+          5.905083,
+          5.496709,
+          5.410541
+        ]
+      }
+    },
+    {
+      "query": "Assistente tenta guardar conselho que equipe já registrou com palavras diferentes. Onde detectamos essa repetição?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.17075,
+          0.937541,
+          1.3895,
+          1.03725,
+          1.114417
+        ],
+        "cached": [
+          1.739042,
+          1.471208,
+          2.677166,
+          1.863417,
+          0.734875
+        ]
+      }
+    },
+    {
+      "query": "Assistente tenta guardar conselho que equipe já registrou com palavras diferentes. Onde detectamos essa repetição?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          24.517542,
+          21.824625,
+          19.931583,
+          17.71625,
+          21.22675
+        ],
+        "cached": [
+          13.129375,
+          15.562208,
+          13.368916,
+          14.535958,
+          62.933166
+        ]
+      }
+    },
+    {
+      "query": "Assistente tenta guardar conselho que equipe já registrou com palavras diferentes. Onde detectamos essa repetição?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          18.9135,
+          21.906541,
+          24.332542,
+          16.13325,
+          18.258458
+        ],
+        "cached": [
+          14.25325,
+          13.6755,
+          19.004917,
+          12.823667,
+          12.690791
+        ]
+      }
+    },
+    {
+      "query": "utf8SafeEnd bytes boundary",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          21.51325,
+          18.566666,
+          17.59475,
+          18.323625,
+          19.547584
+        ],
+        "cached": [
+          16.004125,
+          15.075334,
+          13.307541,
+          13.731583,
+          16.661208
+        ]
+      }
+    },
+    {
+      "query": "utf8SafeEnd bytes boundary",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          9.9735,
+          8.605625,
+          9.353167,
+          8.442666,
+          8.966083
+        ],
+        "cached": [
+          3.708917,
+          6.376834,
+          3.236917,
+          4.11225,
+          6.915708
+        ]
+      }
+    },
+    {
+      "query": "utf8SafeEnd bytes boundary",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.355042,
+          1.063208,
+          0.966833,
+          1.115,
+          1.062375
+        ],
+        "cached": [
+          1.511292,
+          1.054667,
+          1.643209,
+          0.957375,
+          0.985333
+        ]
+      }
+    },
+    {
+      "query": "utf8SafeEnd bytes boundary",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          18.071708,
+          18.336375,
+          18.265209,
+          20.378875,
+          22.130917
+        ],
+        "cached": [
+          13.475125,
+          12.728375,
+          14.087875,
+          14.194167,
+          15.177416
+        ]
+      }
+    },
+    {
+      "query": "utf8SafeEnd bytes boundary",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          22.357333,
+          18.373167,
+          18.190834,
+          17.543584,
+          19.339625
+        ],
+        "cached": [
+          15.192584,
+          14.673625,
+          13.295083,
+          12.909292,
+          13.030083
+        ]
+      }
+    },
+    {
+      "query": "A shortened reply must not split an accented letter or emoji in the middle of its byte sequence. Where is the safe cut point found?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          20.122042,
+          28.134125,
+          51.926333,
+          29.203167,
+          39.828541
+        ],
+        "cached": [
+          21.266875,
+          16.168875,
+          21.195375,
+          21.320833,
+          22.76375
+        ]
+      }
+    },
+    {
+      "query": "A shortened reply must not split an accented letter or emoji in the middle of its byte sequence. Where is the safe cut point found?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          15.913084,
+          12.816375,
+          14.007625,
+          15.439959,
+          24.617084
+        ],
+        "cached": [
+          6.915708,
+          7.581333,
+          10.841167,
+          11.018667,
+          13.788083
+        ]
+      }
+    },
+    {
+      "query": "A shortened reply must not split an accented letter or emoji in the middle of its byte sequence. Where is the safe cut point found?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.455125,
+          3.696583,
+          2.118916,
+          3.564,
+          4.163041
+        ],
+        "cached": [
+          1.96975,
+          1.631917,
+          6.831209,
+          3.637,
+          1.391625
+        ]
+      }
+    },
+    {
+      "query": "A shortened reply must not split an accented letter or emoji in the middle of its byte sequence. Where is the safe cut point found?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          40.169334,
+          34.941333,
+          47.521541,
+          33.277709,
+          30.587166
+        ],
+        "cached": [
+          28.334584,
+          21.592292,
+          47.069459,
+          26.175,
+          28.375958
+        ]
+      }
+    },
+    {
+      "query": "A shortened reply must not split an accented letter or emoji in the middle of its byte sequence. Where is the safe cut point found?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          34.348916,
+          34.799875,
+          37.121334,
+          33.25325,
+          36.889292
+        ],
+        "cached": [
+          27.404209,
+          30.743417,
+          24.401667,
+          59.163792,
+          24.9505
+        ]
+      }
+    },
+    {
+      "query": "Resposta encurtada não pode dividir letra acentuada ou emoji no meio da sequência de bytes. Onde encontramos ponto seguro para cortar?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          26.57375,
+          43.873625,
+          21.817709,
+          33.673291,
+          32.858208
+        ],
+        "cached": [
+          23.093333,
+          26.814958,
+          25.037625,
+          44.160334,
+          22.782958
+        ]
+      }
+    },
+    {
+      "query": "Resposta encurtada não pode dividir letra acentuada ou emoji no meio da sequência de bytes. Onde encontramos ponto seguro para cortar?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          11.675792,
+          15.299875,
+          15.0865,
+          16.348833,
+          18.924708
+        ],
+        "cached": [
+          6.779542,
+          8.053166,
+          8.208417,
+          9.978833,
+          10.938833
+        ]
+      }
+    },
+    {
+      "query": "Resposta encurtada não pode dividir letra acentuada ou emoji no meio da sequência de bytes. Onde encontramos ponto seguro para cortar?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          3.305917,
+          1.821959,
+          1.840916,
+          1.553709,
+          2.136875
+        ],
+        "cached": [
+          2.903584,
+          3.7095,
+          1.586208,
+          1.442542,
+          2.034084
+        ]
+      }
+    },
+    {
+      "query": "Resposta encurtada não pode dividir letra acentuada ou emoji no meio da sequência de bytes. Onde encontramos ponto seguro para cortar?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          39.031208,
+          29.67625,
+          25.146834,
+          23.272625,
+          24.591959
+        ],
+        "cached": [
+          21.691833,
+          22.13575,
+          19.530583,
+          18.880667,
+          18.292958
+        ]
+      }
+    },
+    {
+      "query": "Resposta encurtada não pode dividir letra acentuada ou emoji no meio da sequência de bytes. Onde encontramos ponto seguro para cortar?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          24.459583,
+          52.905708,
+          25.108209,
+          25.622833,
+          26.954791
+        ],
+        "cached": [
+          20.794917,
+          19.594833,
+          24.511,
+          22.341709,
+          19.317083
+        ]
+      }
+    },
+    {
+      "query": "savingsLine counterfactual negative chars estimate billing",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          19.874833,
+          19.602166,
+          21.760166,
+          19.755042,
+          20.282083
+        ],
+        "cached": [
+          15.018,
+          14.283292,
+          12.339958,
+          15.096041,
+          14.360875
+        ]
+      }
+    },
+    {
+      "query": "savingsLine counterfactual negative chars estimate billing",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.588292,
+          8.690667,
+          9.149209,
+          8.599541,
+          10.231667
+        ],
+        "cached": [
+          5.095416,
+          4.966,
+          4.9185,
+          5.630458,
+          3.648375
+        ]
+      }
+    },
+    {
+      "query": "savingsLine counterfactual negative chars estimate billing",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.026208,
+          1.064625,
+          1.193459,
+          1.485667,
+          1.900583
+        ],
+        "cached": [
+          1.150625,
+          1.096583,
+          1.516834,
+          1.903416,
+          1.041708
+        ]
+      }
+    },
+    {
+      "query": "savingsLine counterfactual negative chars estimate billing",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          25.468417,
+          21.940459,
+          20.792583,
+          20.83525,
+          18.20225
+        ],
+        "cached": [
+          15.527,
+          16.601375,
+          14.917625,
+          15.787333,
+          14.437625
+        ]
+      }
+    },
+    {
+      "query": "savingsLine counterfactual negative chars estimate billing",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          17.88625,
+          19.475208,
+          18.592208,
+          19.489333,
+          18.627291
+        ],
+        "cached": [
+          15.234583,
+          13.637417,
+          14.433875,
+          13.741958,
+          15.369209
+        ]
+      }
+    },
+    {
+      "query": "Our answer can be larger than reading the original files. Where do we display that loss honestly without presenting it as money saved?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          21.751,
+          24.919958,
+          31.590833,
+          23.187042,
+          22.044833
+        ],
+        "cached": [
+          17.889125,
+          25.889791,
+          19.83625,
+          20.747375,
+          16.566666
+        ]
+      }
+    },
+    {
+      "query": "Our answer can be larger than reading the original files. Where do we display that loss honestly without presenting it as money saved?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          11.665459,
+          11.058875,
+          11.593,
+          11.142292,
+          11.350583
+        ],
+        "cached": [
+          6.942875,
+          8.387208,
+          7.488625,
+          7.659542,
+          7.264334
+        ]
+      }
+    },
+    {
+      "query": "Our answer can be larger than reading the original files. Where do we display that loss honestly without presenting it as money saved?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.864,
+          1.775792,
+          1.177083,
+          1.618417,
+          1.312459
+        ],
+        "cached": [
+          1.38975,
+          1.170833,
+          1.039458,
+          1.888291,
+          1.106667
+        ]
+      }
+    },
+    {
+      "query": "Our answer can be larger than reading the original files. Where do we display that loss honestly without presenting it as money saved?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          21.929958,
+          22.371791,
+          23.47675,
+          22.767083,
+          27.7415
+        ],
+        "cached": [
+          17.793292,
+          18.887875,
+          17.633667,
+          17.192334,
+          18.854959
+        ]
+      }
+    },
+    {
+      "query": "Our answer can be larger than reading the original files. Where do we display that loss honestly without presenting it as money saved?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          26.232584,
+          25.497083,
+          26.381292,
+          26.046083,
+          26.106083
+        ],
+        "cached": [
+          22.546584,
+          22.982708,
+          20.360917,
+          19.465042,
+          22.960583
+        ]
+      }
+    },
+    {
+      "query": "Nossa resposta pode ficar maior que os arquivos originais. Onde mostramos esse prejuízo sem apresentá-lo como economia financeira?",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          16.585625,
+          16.904625,
+          16.587958,
+          17.762459,
+          17.431708
+        ],
+        "cached": [
+          12.327542,
+          12.746542,
+          11.727625,
+          13.099,
+          13.890167
+        ]
+      }
+    },
+    {
+      "query": "Nossa resposta pode ficar maior que os arquivos originais. Onde mostramos esse prejuízo sem apresentá-lo como economia financeira?",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          8.517625,
+          12.654791,
+          10.134542,
+          8.806208,
+          13.0065
+        ],
+        "cached": [
+          5.025375,
+          5.145875,
+          4.123667,
+          5.400583,
+          5.808542
+        ]
+      }
+    },
+    {
+      "query": "Nossa resposta pode ficar maior que os arquivos originais. Onde mostramos esse prejuízo sem apresentá-lo como economia financeira?",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.135667,
+          1.815291,
+          1.271583,
+          1.098958,
+          1.079667
+        ],
+        "cached": [
+          0.972459,
+          2.069042,
+          1.06325,
+          0.881875,
+          0.900167
+        ]
+      }
+    },
+    {
+      "query": "Nossa resposta pode ficar maior que os arquivos originais. Onde mostramos esse prejuízo sem apresentá-lo como economia financeira?",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.584333,
+          18.00675,
+          16.440083,
+          18.271542,
+          18.396792
+        ],
+        "cached": [
+          14.622,
+          13.006375,
+          13.278,
+          12.460667,
+          14.647417
+        ]
+      }
+    },
+    {
+      "query": "Nossa resposta pode ficar maior que os arquivos originais. Onde mostramos esse prejuízo sem apresentá-lo como economia financeira?",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          17.01975,
+          15.922541,
+          16.719375,
+          17.207084,
+          17.712625
+        ],
+        "cached": [
+          11.73575,
+          11.4015,
+          11.697791,
+          11.674166,
+          12.763584
+        ]
+      }
+    },
+    {
+      "query": "zzzzunmatchable",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          6.557958,
+          6.641625,
+          7.094667,
+          5.754375,
+          7.936083
+        ],
+        "cached": [
+          3.447584,
+          2.227959,
+          3.501375,
+          2.53675,
+          3.498833
+        ]
+      }
+    },
+    {
+      "query": "zzzzunmatchable",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          13.416542,
+          7.536125,
+          6.734833,
+          7.323958,
+          7.37675
+        ],
+        "cached": [
+          2.063541,
+          5.569,
+          3.687417,
+          2.644083,
+          3.957167
+        ]
+      }
+    },
+    {
+      "query": "zzzzunmatchable",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          0.874625,
+          1.4105,
+          0.733083,
+          0.710792,
+          2.239584
+        ],
+        "cached": [
+          1.030625,
+          0.739583,
+          0.603916,
+          0.52625,
+          1.10225
+        ]
+      }
+    },
+    {
+      "query": "zzzzunmatchable",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          8.540125,
+          9.404625,
+          7.632667,
+          6.574375,
+          7.482625
+        ],
+        "cached": [
+          2.425375,
+          3.174834,
+          3.251333,
+          1.981666,
+          1.973375
+        ]
+      }
+    },
+    {
+      "query": "zzzzunmatchable",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          6.907584,
+          7.400625,
+          6.558667,
+          5.253375,
+          6.724083
+        ],
+        "cached": [
+          2.324208,
+          2.793208,
+          2.473375,
+          4.451292,
+          4.467625
+        ]
+      }
+    },
+    {
+      "query": "read reads",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          18.832166,
+          18.246167,
+          19.535792,
+          30.809625,
+          21.326416
+        ],
+        "cached": [
+          14.8165,
+          12.76125,
+          13.631541,
+          12.648292,
+          15.153417
+        ]
+      }
+    },
+    {
+      "query": "read reads",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          7.16825,
+          9.723708,
+          8.060209,
+          8.10325,
+          7.728916
+        ],
+        "cached": [
+          4.316083,
+          6.686792,
+          2.687083,
+          4.733958,
+          3.041833
+        ]
+      }
+    },
+    {
+      "query": "read reads",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.712333,
+          1.0235,
+          2.051417,
+          1.203041,
+          1.182
+        ],
+        "cached": [
+          1.595708,
+          1.123209,
+          1.671208,
+          0.961375,
+          1.223125
+        ]
+      }
+    },
+    {
+      "query": "read reads",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          19.356334,
+          19.348583,
+          22.070292,
+          18.288833,
+          20.00075
+        ],
+        "cached": [
+          13.951167,
+          14.692917,
+          17.147291,
+          13.571916,
+          14.944667
+        ]
+      }
+    },
+    {
+      "query": "read reads",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          20.846667,
+          31.61975,
+          18.438333,
+          20.493792,
+          21.401209
+        ],
+        "cached": [
+          13.14125,
+          14.278333,
+          15.582792,
+          16.947583,
+          15.537084
+        ]
+      }
+    },
+    {
+      "query": "who calls ask",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          2.334917,
+          2.891875,
+          1.5885,
+          1.359084,
+          2.654791
+        ],
+        "cached": [
+          2.3205,
+          2.006917,
+          3.104875,
+          1.400458,
+          1.007708
+        ]
+      }
+    },
+    {
+      "query": "who calls ask",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          0.962459,
+          1.402125,
+          0.909833,
+          0.906792,
+          0.993292
+        ],
+        "cached": [
+          1.107083,
+          1.0035,
+          0.917542,
+          0.90325,
+          0.955375
+        ]
+      }
+    },
+    {
+      "query": "who calls ask",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          1.331708,
+          3.667917,
+          2.491833,
+          1.6165,
+          2.833084
+        ],
+        "cached": [
+          1.470916,
+          2.129416,
+          1.274458,
+          1.708583,
+          1.293875
+        ]
+      }
+    },
+    {
+      "query": "who calls ask",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          2.6475,
+          1.582583,
+          1.41575,
+          3.492375,
+          4.200542
+        ],
+        "cached": [
+          1.910542,
+          1.6375,
+          2.058416,
+          2.529667,
+          2.830125
+        ]
+      }
+    },
+    {
+      "query": "who calls ask",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          1.057792,
+          2.164959,
+          1.535041,
+          1.552667,
+          0.942292
+        ],
+        "cached": [
+          0.968542,
+          2.06875,
+          1.133542,
+          2.082042,
+          3.002292
+        ]
+      }
+    },
+    {
+      "query": "what does buildGraph call",
+      "options": {
+        "limit": 8
+      },
+      "timings": {
+        "uncached": [
+          1.768791,
+          0.588042,
+          1.101708,
+          1.047042,
+          0.799042
+        ],
+        "cached": [
+          1.883,
+          0.962583,
+          0.642792,
+          0.466,
+          0.893708
+        ]
+      }
+    },
+    {
+      "query": "what does buildGraph call",
+      "options": {
+        "limit": 8,
+        "graphRank": false
+      },
+      "timings": {
+        "uncached": [
+          0.637208,
+          0.547709,
+          1.2925,
+          0.865541,
+          1.220375
+        ],
+        "cached": [
+          0.689625,
+          0.535959,
+          0.595,
+          1.018667,
+          0.672708
+        ]
+      }
+    },
+    {
+      "query": "what does buildGraph call",
+      "options": {
+        "limit": 8,
+        "in": "src/economy/"
+      },
+      "timings": {
+        "uncached": [
+          2.5535,
+          2.54525,
+          2.250917,
+          1.90125,
+          2.28625
+        ],
+        "cached": [
+          2.104,
+          2.337125,
+          1.918833,
+          2.349792,
+          2.733958
+        ]
+      }
+    },
+    {
+      "query": "what does buildGraph call",
+      "options": {
+        "limit": 8,
+        "source": true
+      },
+      "timings": {
+        "uncached": [
+          1.023,
+          1.249292,
+          1.082708,
+          0.970042,
+          1.101667
+        ],
+        "cached": [
+          1.235,
+          1.782167,
+          1.051833,
+          1.436625,
+          0.995
+        ]
+      }
+    },
+    {
+      "query": "what does buildGraph call",
+      "options": {
+        "limit": 8,
+        "includeRankingMetadata": true
+      },
+      "timings": {
+        "uncached": [
+          0.552125,
+          0.781042,
+          0.492292,
+          0.732,
+          0.560375
+        ],
+        "cached": [
+          0.550666,
+          0.75325,
+          0.445292,
+          0.919834,
+          0.65675
+        ]
+      }
+    }
+  ],
+  "cold": [
+    {
+      "rep": 0,
+      "arm": "uncached",
+      "ms": 136.2575
+    },
+    {
+      "rep": 0,
+      "arm": "cached",
+      "ms": 81.265709
+    },
+    {
+      "rep": 1,
+      "arm": "cached",
+      "ms": 84.455292
+    },
+    {
+      "rep": 1,
+      "arm": "uncached",
+      "ms": 106.48825
+    },
+    {
+      "rep": 2,
+      "arm": "uncached",
+      "ms": 140.941042
+    },
+    {
+      "rep": 2,
+      "arm": "cached",
+      "ms": 89.052375
+    },
+    {
+      "rep": 3,
+      "arm": "cached",
+      "ms": 76.484167
+    },
+    {
+      "rep": 3,
+      "arm": "uncached",
+      "ms": 111.565667
+    },
+    {
+      "rep": 4,
+      "arm": "uncached",
+      "ms": 101.345375
+    },
+    {
+      "rep": 4,
+      "arm": "cached",
+      "ms": 102.946167
+    },
+    {
+      "rep": 5,
+      "arm": "cached",
+      "ms": 77.749834
+    },
+    {
+      "rep": 5,
+      "arm": "uncached",
+      "ms": 101.482417
+    },
+    {
+      "rep": 6,
+      "arm": "uncached",
+      "ms": 82.129375
+    },
+    {
+      "rep": 6,
+      "arm": "cached",
+      "ms": 71.385042
+    }
+  ],
+  "memory": [
+    {
+      "rep": 0,
+      "arm": "uncached",
+      "heapDelta": 11865696
+    },
+    {
+      "rep": 0,
+      "arm": "cached",
+      "heapDelta": 17021048
+    },
+    {
+      "rep": 1,
+      "arm": "cached",
+      "heapDelta": 17018352
+    },
+    {
+      "rep": 1,
+      "arm": "uncached",
+      "heapDelta": 11865152
+    },
+    {
+      "rep": 2,
+      "arm": "uncached",
+      "heapDelta": 11866504
+    },
+    {
+      "rep": 2,
+      "arm": "cached",
+      "heapDelta": 17018072
+    },
+    {
+      "rep": 3,
+      "arm": "cached",
+      "heapDelta": 17017968
+    },
+    {
+      "rep": 3,
+      "arm": "uncached",
+      "heapDelta": 11865168
+    },
+    {
+      "rep": 4,
+      "arm": "uncached",
+      "heapDelta": 11865768
+    },
+    {
+      "rep": 4,
+      "arm": "cached",
+      "heapDelta": 17018288
+    },
+    {
+      "rep": 5,
+      "arm": "cached",
+      "heapDelta": 17018688
+    },
+    {
+      "rep": 5,
+      "arm": "uncached",
+      "heapDelta": 11868936
+    },
+    {
+      "rep": 6,
+      "arm": "uncached",
+      "heapDelta": 11865720
+    },
+    {
+      "rep": 6,
+      "arm": "cached",
+      "heapDelta": 17018352
+    }
+  ]
+}
