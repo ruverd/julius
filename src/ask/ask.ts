@@ -47,7 +47,8 @@ import {
   preparePageRankPartitions,
 } from "./graphrank.js";
 import { readSourceFile } from "../util/source.js";
-import { counts, tokenize, type AskIndex, type AskIndexDoc } from "./index-file.js";
+import { counts, tokenize, type AskIndex } from "./index-file.js";
+import { preparedAskDocs, preparedAskFields } from "./prepared-index.js";
 import { cmd, tag } from "../brand.js";
 import { formatNoteHits, learningSavingsLine, type NoteHit } from "../notes/notes.js";
 
@@ -544,9 +545,9 @@ function lexical(
   // corpus, not the filtered subset — so each read of those three fields below
   // is separately gated on `!inPrefix`, while the per-doc bags (used to build
   // `symbolDocs` right after this) are used unconditionally.
-  let docById: Map<string, AskIndexDoc> | null = null;
+  let docById: ReturnType<typeof preparedAskDocs> | null = null;
   if (corpus.askIndex && graph && corpus.askIndex.docs.length === graph.nodes.length) {
-    const map = new Map(corpus.askIndex.docs.map((d) => [d.id, d]));
+    const map = preparedAskDocs(corpus.askIndex);
     if (graph.nodes.every((n) => map.has(n.id))) docById = map;
   }
   const askIndex = docById ? corpus.askIndex : null;
@@ -561,7 +562,7 @@ function lexical(
   const graphNodes = inPrefix ? (graph?.nodes ?? []).filter((n) => pathUnderPrefix(n.path, inPrefix)) : (graph?.nodes ?? []);
   const symbolDocs = graphNodes.map((n) => {
     const d = docById?.get(n.id);
-    if (d) return { n, name: new Map(d.name), path: new Map(d.path), body: new Map(d.body) };
+    if (d) return { n, ...preparedAskFields(d) };
     return {
       n,
       name: counts(tokenize(n.name)),
