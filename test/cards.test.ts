@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { matter } from "../src/util/front-matter.js";
@@ -39,6 +39,19 @@ test("unchanged cards, index, and covers keep their modification times", () => {
     assert.equal(writeCovers(graph, out), 1);
     assert.equal(second.written, 1);
     for (const path of paths) assert.equal(statSync(path).mtimeMs, mtimes.get(path));
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("index names graph queries as julius_call operations, not standalone MCP tools", () => {
+  const out = mkdtempSync(join(tmpdir(), "julius-index-"));
+  try {
+    writeIndex(out, []);
+    const index = readFileSync(join(out, "INDEX.md"), "utf8");
+    assert.match(index, /operations of the `julius_call` tool/);
+    assert.match(index, /they are not\nstandalone tools/);
+    assert.doesNotMatch(index, /queryable as MCP tools/);
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

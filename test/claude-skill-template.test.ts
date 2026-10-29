@@ -22,3 +22,9 @@ test('skill template is a well-formed SKILL.md', () => {
   assert.match(body, /counterfactual/i, 'body labels graph accounting honestly');
   assert.doesNotMatch(body, /tally summing those numbers/i, 'no promotional tally instruction');
 });
+
+test('skill template names graph queries as julius_call operations, not standalone MCP tools', () => {
+  const body = skillTemplate().split(/\n---\n/)[1] ?? '';
+  assert.match(body, /operations of the\s+`julius_call` tool, not standalone tools/);
+  assert.doesNotMatch(body, /exposed as tools too/);
+});
