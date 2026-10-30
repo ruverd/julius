@@ -148,40 +148,94 @@ export function personalizedPageRankPrepared(
   let seedTotal = 0;
   for (const [id, w] of seeds) if (ids.has(id) && w > 0) seedTotal += w;
   if (seedTotal <= 0) return new Map();
-  const restart = new Map<string, number>();
+  if (ids.size < 256) return sparsePageRank(topology, seeds, seedTotal, alpha, iters);
+  const names = [...ids];
+  const ordinal = new Map(names.map((id, index) => [id, index]));
+  for (const [id, neighbours] of adjacency) {
+    for (const name of [id, ...neighbours]) {
+      if (!ordinal.has(name)) { ordinal.set(name, names.length); names.push(name); }
+    }
+  }
+  const neighbours = names.map(id => (adjacency.get(id) ?? []).map(name => ordinal.get(name)!));
+  const restart: Array<[number, number]> = [];
   for (const [id, w] of seeds)
-    if (ids.has(id) && w > 0) restart.set(id, w / seedTotal);
+    if (ids.has(id) && w > 0) restart.push([ordinal.get(id)!, w / seedTotal]);
 
-  // Power iteration from the restart distribution.
-  let rank = new Map(restart);
+  let rank = new Float64Array(names.length);
+  let next = new Float64Array(names.length);
+  let active = restart.map(([id]) => id);
+  let nextActive: number[] = [];
+  const seen = new Uint8Array(names.length);
+  for (const [id, r] of restart) rank[id] = r;
   for (let i = 0; i < iters; i++) {
-    const next = new Map<string, number>();
-    // Teleport: every step, alpha of the mass returns to the seed set.
-    for (const [id, r] of restart) next.set(id, alpha * r);
-    // Dangling mass (nodes with no walk edges) is pooled and returned to the
-    // seed set ONCE per iteration — same math as redistributing per node, but
-    // O(nodes + seeds) instead of O(dangling × seeds).
+    nextActive.length = 0;
+    seen.fill(0);
+    for (const [id, r] of restart) {
+      next[id] = alpha * r; seen[id] = 1; nextActive.push(id);
+    }
     let dangling = 0;
-    for (const [id, mass] of rank) {
-      const nbrs = adjacency.get(id);
-      if (!nbrs || nbrs.length === 0) {
+    // Preserve Map insertion order: it determines floating-point addition order.
+    for (const id of active) {
+      const mass = rank[id]!;
+      const nbrs = neighbours[id]!;
+      if (nbrs.length === 0) {
         dangling += mass;
         continue;
       }
       const share = ((1 - alpha) * mass) / nbrs.length;
-      for (const nb of nbrs) next.set(nb, (next.get(nb) ?? 0) + share);
+      for (const nb of nbrs) {
+        const prior = seen[nb] ? next[nb]! : 0;
+        if (!seen[nb]) { seen[nb] = 1; nextActive.push(nb); }
+        next[nb] = prior + share;
+      }
     }
     if (dangling > 0) {
       const dm = (1 - alpha) * dangling;
-      for (const [sid, r] of restart) next.set(sid, (next.get(sid) ?? 0) + dm * r);
+      for (const [sid, r] of restart) next[sid] = next[sid]! + dm * r;
     }
-    rank = next;
+    [rank, next] = [next, rank];
+    [active, nextActive] = [nextActive, active];
   }
 
   let max = 0;
-  for (const v of rank.values()) if (v > max) max = v;
+  for (const id of active) if (rank[id]! > max) max = rank[id]!;
   if (max <= 0) return new Map();
   const out = new Map<string, number>();
-  for (const [id, v] of rank) out.set(id, v / max);
+  for (const id of active) out.set(names[id]!, rank[id]! / max);
+  return out;
+}
+
+function sparsePageRank(
+  topology: PageRankTopology,
+  seeds: Map<string, number>,
+  seedTotal: number,
+  alpha: number,
+  iters: number,
+): Map<string, number> {
+  const restart = new Map<string, number>();
+  for (const [id, w] of seeds)
+    if (topology.ids.has(id) && w > 0) restart.set(id, w / seedTotal);
+  let rank = new Map(restart);
+  for (let i = 0; i < iters; i++) {
+    const next = new Map<string, number>();
+    for (const [id, r] of restart) next.set(id, alpha * r);
+    let dangling = 0;
+    for (const [id, mass] of rank) {
+      const neighbours = topology.adjacency.get(id);
+      if (!neighbours?.length) { dangling += mass; continue; }
+      const share = ((1 - alpha) * mass) / neighbours.length;
+      for (const neighbour of neighbours) next.set(neighbour, (next.get(neighbour) ?? 0) + share);
+    }
+    if (dangling > 0) {
+      const dm = (1 - alpha) * dangling;
+      for (const [id, r] of restart) next.set(id, (next.get(id) ?? 0) + dm * r);
+    }
+    rank = next;
+  }
+  let max = 0;
+  for (const value of rank.values()) if (value > max) max = value;
+  if (max <= 0) return new Map();
+  const out = new Map<string, number>();
+  for (const [id, value] of rank) out.set(id, value / max);
   return out;
 }

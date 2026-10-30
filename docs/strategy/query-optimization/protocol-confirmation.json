@@ -1,0 +1,2674 @@
+{
+  "harnessSha256": "76f6eb434a1f072cc63ff323b4ef0ab6ba7f4a0ddac21233271034e81872431e",
+  "scope": "Three alternating session pairs per corpus on the final frozen builds. Actual stdio MCP with automatic freshness checks, discovery, default preview and complete suffix recovery. Unlike the first diagnostic, client tokenization is deferred until after each child exits, outside latency measurement. No model, provider or host agent. Warm excludes first pass; requests and responses retained in compressed traces. Same machine and uncontrolled OS cache/load; small samples remain diagnostic.",
+  "providerUsage": null,
+  "providerCost": null,
+  "agentCorrectness": null,
+  "corpora": [
+    {
+      "id": "julius",
+      "runs": [
+        {
+          "arm": "baseline",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 2015.774958,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 854.0445409999993,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 69.31266699999833,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 50.478791999999885,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 42.35162499999933,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 26.626249999999345,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 54.97558299999946,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 49.14637500000026,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 28.21099999999933,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22860
+        },
+        {
+          "arm": "candidate",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 592.969916,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 221.58237499999996,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 34.01900000000023,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 61.991416000000754,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 60.952917000000525,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 83.04199999999946,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 75.70433400000002,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 100.51362499999959,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 25.517707999999402,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22146
+        },
+        {
+          "arm": "candidate",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 191.93345799999952,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 104.74862500000017,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 25.443875000000844,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 82.04308400000082,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 65.46395800000028,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 31.021167000000787,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 56.63487499999974,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 36.03862499999923,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 43.16199999999844,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22146
+        },
+        {
+          "arm": "baseline",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 332.960833000001,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 104.72737500000221,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 38.59983300000022,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 63.5056250000016,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 51.990208000002895,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 26.192792000001646,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 74.1028750000005,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 68.41591700000208,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 56.7287499999984,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22860
+        },
+        {
+          "arm": "baseline",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 257.64150000000154,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 58.746790999997756,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 35.55033299999923,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 42.849207999999635,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 65.3167919999978,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 23.94770800000333,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 41.62566700000025,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3982
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 409.1293340000011,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3138
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 41.64837499999703,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22860
+        },
+        {
+          "arm": "candidate",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 297.8859999999986,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 74.03525000000081,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 39.802708000002895,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 51.24812500000189,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 56.22075000000041,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 121.89154199999757,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 247
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 208.29591599999912,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3858
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 119.40679100000125,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 3024
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 28.873790999998164,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 247
+            }
+          ],
+          "totalWireTokens": 22146
+        }
+      ]
+    },
+    {
+      "id": "click",
+      "runs": [
+        {
+          "arm": "baseline",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 712.945208000001,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 197.61262500000157,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 179.82462499999747,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 71.85541699999885,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 44.45679200000086,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 65.61699999999837,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 74.93575000000055,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 54.44874999999956,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 40.7230410000011,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4121
+            }
+          ],
+          "totalWireTokens": 32880
+        },
+        {
+          "arm": "candidate",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 164.11041699999987,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 101.075582999998,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 75.20341700000063,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 45.22191699999894,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 37.4385829999992,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 36.86829099999886,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 44.55774999999994,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 31.169959000002564,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 33.86874999999782,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4014
+            }
+          ],
+          "totalWireTokens": 32298
+        },
+        {
+          "arm": "candidate",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 101.8494580000006,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 129.8470419999976,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 50.77275000000009,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 42.49762499999997,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 95.90154199999961,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 161.3279999999977,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 92.95550000000003,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 68.96366699999999,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 73.22329199999876,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4014
+            }
+          ],
+          "totalWireTokens": 32298
+        },
+        {
+          "arm": "baseline",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 150.1238340000018,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 44.207375000001775,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 43.43141699999978,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 28.989042000001064,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 37.40645900000163,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 35.77258299999812,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 35.8234999999986,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 33.55212499999834,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 211.21229200000016,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4121
+            }
+          ],
+          "totalWireTokens": 32880
+        },
+        {
+          "arm": "baseline",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 188.5252079999991,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 105.61970799999835,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 151.43441600000006,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 58.138833000000886,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 52.25079199999891,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 73.3080829999999,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4121
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 38.429667000000336,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2174
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 34.846708000000945,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4412
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 64.35020900000018,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4121
+            }
+          ],
+          "totalWireTokens": 32880
+        },
+        {
+          "arm": "candidate",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 119.6593329999996,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 100.50945800000045,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 46.960666999999376,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 29.922292000002926,
+              "recoveryCalls": 1,
+              "eventStart": 19,
+              "eventEnd": 23,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 40.81275000000096,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 94.45187499999884,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 4014
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 47.6651669999992,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2130
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 41.84612500000003,
+              "recoveryCalls": 1,
+              "eventStart": 35,
+              "eventEnd": 39,
+              "wireTokens": 4369
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 54.70245900000009,
+              "recoveryCalls": 1,
+              "eventStart": 39,
+              "eventEnd": 43,
+              "wireTokens": 4014
+            }
+          ],
+          "totalWireTokens": 32298
+        }
+      ]
+    },
+    {
+      "id": "commander",
+      "runs": [
+        {
+          "arm": "baseline",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 494.0406670000011,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 107.1989590000012,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 22.210125000001426,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 83.22204200000124,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 35.098416000000725,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 15.26295900000332,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 118.26479100000142,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 96.10691699999734,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 28.390874999997322,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20469
+        },
+        {
+          "arm": "candidate",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 347.36183399999936,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 87.88333400000192,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 38.754000000000815,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 40.11512500000026,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 77.7352499999979,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 21.414042000000336,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 65.13795799999934,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 60.922458999997616,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 18.949500000002445,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20217
+        },
+        {
+          "arm": "candidate",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 127.70800000000236,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 212.83433300000252,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 28.94525000000067,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 38.6921250000014,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 65.84325000000172,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 68.5649169999997,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 71.65583299999707,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 30.950333999997383,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 28.081207999999606,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20217
+        },
+        {
+          "arm": "baseline",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 258.90191699999923,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 51.98479100000259,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 49.15562499999942,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 105.54770799999824,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 140.55645899999945,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 29.295208000003186,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 116.88025000000198,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 56.00954199999978,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 22.32766700000502,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20469
+        },
+        {
+          "arm": "baseline",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 150.43300000000454,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 110.94320799999696,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 66.00283300000592,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 66.38066699999763,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 216.83908299999894,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 115.15099999999802,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 225.78179100000125,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3419
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 149.236917000002,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2926
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 23.448875000001863,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20469
+        },
+        {
+          "arm": "candidate",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 120.00979200000438,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 45.537374999999884,
+              "recoveryCalls": 1,
+              "eventStart": 11,
+              "eventEnd": 15,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 36.83070800000132,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 46.43904199999815,
+              "recoveryCalls": 1,
+              "eventStart": 17,
+              "eventEnd": 21,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 80.31808399999863,
+              "recoveryCalls": 1,
+              "eventStart": 21,
+              "eventEnd": 25,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 22.178124999998545,
+              "recoveryCalls": 0,
+              "eventStart": 25,
+              "eventEnd": 27,
+              "wireTokens": 225
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 34.621291999996174,
+              "recoveryCalls": 1,
+              "eventStart": 27,
+              "eventEnd": 31,
+              "wireTokens": 3374
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 69.1608750000014,
+              "recoveryCalls": 1,
+              "eventStart": 31,
+              "eventEnd": 35,
+              "wireTokens": 2887
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 38.25766699999804,
+              "recoveryCalls": 0,
+              "eventStart": 35,
+              "eventEnd": 37,
+              "wireTokens": 225
+            }
+          ],
+          "totalWireTokens": 20217
+        }
+      ]
+    },
+    {
+      "id": "zod",
+      "runs": [
+        {
+          "arm": "baseline",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 976.4839169999977,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 39.151874999995925,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 42.83091699999932,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 72.2060829999973,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 29.679874999994354,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 19.511750000005122,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 53.97954100000061,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 92.61225000000559,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 239.1166250000024,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1384
+            }
+          ],
+          "totalWireTokens": 15360
+        },
+        {
+          "arm": "candidate",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 622.0681670000049,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 67.950708999997,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 62.23295800000051,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 90.29529200000252,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 117.08620799999335,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 81.1437919999953,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 118.557624999994,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 42.357334000000264,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 57.82629199999792,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1368
+            }
+          ],
+          "totalWireTokens": 15129
+        },
+        {
+          "arm": "candidate",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 117.97487499999988,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 26.180208999998285,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 36.64562499999738,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 35.65641699999833,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 63.035666999996465,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 68.43841599999723,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 133.4621249999982,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 31.37879200000316,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 36.34883300000365,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1368
+            }
+          ],
+          "totalWireTokens": 15129
+        },
+        {
+          "arm": "baseline",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 107.31925000000047,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 73.68229200000496,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 56.10795800000051,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 49.338833000001614,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 52.924791000004916,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 50.04108400000405,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 43.64375000000291,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 65.52608300000429,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 103.36641700000473,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1384
+            }
+          ],
+          "totalWireTokens": 15360
+        },
+        {
+          "arm": "baseline",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 114.30208300000231,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 34.5358750000014,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 33.44437499999913,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 30.22266700000182,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 22.608000000000175,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 36.17920800000138,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1384
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 116.22766599999886,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 2014
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 29.299874999996973,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1469
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 22.887249999999767,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1384
+            }
+          ],
+          "totalWireTokens": 15360
+        },
+        {
+          "arm": "candidate",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 94.46745899999951,
+              "recoveryCalls": 1,
+              "eventStart": 7,
+              "eventEnd": 11,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 27.532791999998153,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 27.60691699999734,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 99.65179199999693,
+              "recoveryCalls": 1,
+              "eventStart": 15,
+              "eventEnd": 19,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 38.639791999994486,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 47.39320800000132,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 1368
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 56.030957999995735,
+              "recoveryCalls": 1,
+              "eventStart": 23,
+              "eventEnd": 27,
+              "wireTokens": 1997
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 35.21012499999779,
+              "recoveryCalls": 0,
+              "eventStart": 27,
+              "eventEnd": 29,
+              "wireTokens": 1425
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 34.14579199999571,
+              "recoveryCalls": 0,
+              "eventStart": 29,
+              "eventEnd": 31,
+              "wireTokens": 1368
+            }
+          ],
+          "totalWireTokens": 15129
+        }
+      ]
+    },
+    {
+      "id": "synthetic-large",
+      "runs": [
+        {
+          "arm": "baseline",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 1018.3587090000001,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 186.49583299999358,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 154.24054199999955,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 121.02470799999719,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 120.40962500000023,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 128.74324999999953,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 118.32370799999626,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 132.53454199999396,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 139.59375,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 857
+            }
+          ],
+          "totalWireTokens": 8511
+        },
+        {
+          "arm": "candidate",
+          "round": 0,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 363.88579200000095,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 168.85941699999967,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 104.19987499999843,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 115.57866700000159,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 99.63666699999885,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 93.07212499999878,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 124.9754580000008,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 160.26800000000367,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 128.16670799999702,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 761
+            }
+          ],
+          "totalWireTokens": 7647
+        },
+        {
+          "arm": "candidate",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 286.17433300000266,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 175.7514169999995,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 119.29887500000041,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 109.34549999999581,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 144.66854100000637,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 105.52629200000229,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 155.71045800000138,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 90.45504200000141,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 83.60879199999908,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 761
+            }
+          ],
+          "totalWireTokens": 7647
+        },
+        {
+          "arm": "baseline",
+          "round": 1,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 351.6481669999994,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 172.72933399999602,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 124.68591699999524,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 135.7453330000062,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 240.54204200000095,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 127.7497499999954,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 123.40429099999892,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 125.68274999999994,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 128.90333300000202,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 857
+            }
+          ],
+          "totalWireTokens": 8511
+        },
+        {
+          "arm": "baseline",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 270.00795800000196,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 123.2298329999976,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 144.16612500000338,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 176.21966700000485,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 150.0610830000005,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 157.13516700000037,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 857
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 167.5978329999998,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 868
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 148.59520799999882,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 859
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 151.37225000000035,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 857
+            }
+          ],
+          "totalWireTokens": 8511
+        },
+        {
+          "arm": "candidate",
+          "round": 2,
+          "rows": [
+            {
+              "id": "0/default",
+              "pass": 0,
+              "elapsedMs": 289.6483750000043,
+              "recoveryCalls": 0,
+              "eventStart": 7,
+              "eventEnd": 9,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 0,
+              "elapsedMs": 153.76329100000294,
+              "recoveryCalls": 0,
+              "eventStart": 9,
+              "eventEnd": 11,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 0,
+              "elapsedMs": 135.53800000000047,
+              "recoveryCalls": 0,
+              "eventStart": 11,
+              "eventEnd": 13,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 1,
+              "elapsedMs": 115.35437500000262,
+              "recoveryCalls": 0,
+              "eventStart": 13,
+              "eventEnd": 15,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 1,
+              "elapsedMs": 124.56420900000376,
+              "recoveryCalls": 0,
+              "eventStart": 15,
+              "eventEnd": 17,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 1,
+              "elapsedMs": 164.29183300000295,
+              "recoveryCalls": 0,
+              "eventStart": 17,
+              "eventEnd": 19,
+              "wireTokens": 761
+            },
+            {
+              "id": "0/default",
+              "pass": 2,
+              "elapsedMs": 97.68395800000144,
+              "recoveryCalls": 0,
+              "eventStart": 19,
+              "eventEnd": 21,
+              "wireTokens": 772
+            },
+            {
+              "id": "1/default",
+              "pass": 2,
+              "elapsedMs": 104.01062499999534,
+              "recoveryCalls": 0,
+              "eventStart": 21,
+              "eventEnd": 23,
+              "wireTokens": 763
+            },
+            {
+              "id": "2/default",
+              "pass": 2,
+              "elapsedMs": 110.18329100000119,
+              "recoveryCalls": 0,
+              "eventStart": 23,
+              "eventEnd": 25,
+              "wireTokens": 761
+            }
+          ],
+          "totalWireTokens": 7647
+        }
+      ]
+    }
+  ]
+}
