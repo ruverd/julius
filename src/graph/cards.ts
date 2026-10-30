@@ -225,9 +225,10 @@ export function writeIndex(outDir: string, files: CardFileInfo[]): void {
     // Whoever reads this file has already decided to look at julius, so this is the
     // one place a pointer to the richer surface is welcome rather than noise. Stated
     // as what exists, not as an instruction — see `mcp/instructions.ts` for why.
-    "The same graph is queryable as MCP tools (`julius_find_code`, `julius_find_all`,",
-    "`julius_trace_calls`, `julius_file_api`, `julius_repo_map`) where a host exposes them, and",
-    "as the `julius` CLI everywhere else. Edges — who calls what — live only in the",
+    "The same graph is queryable over MCP, where a host connects the server, as",
+    "operations of the `julius_call` tool (`julius_find_code`, `julius_find_all`,",
+    "`julius_trace_calls`, `julius_file_api`, `julius_repo_map`); they are not",
+    "standalone tools. Everywhere else, use the `julius` CLI. Edges — who calls what — live only in the",
     "graph, not in these files: `julius callers <symbol>` is the only way to read them.",
     "",
   ].map((l) => inBrand(l));

@@ -293,9 +293,10 @@ Use exact range retrieval when a bounded response omits needed information.
   \`julius/INDEX.md\` indexes the nodes), but the tools above are faster and
   exhaustive where it matters, so reach for them first.
 
-When the julius MCP server is connected, these are exposed as tools too:
-\`julius_find_code\`, \`julius_find_all\`, \`julius_file_api\`, \`julius_trace_calls\` (with
-\`direction\` / \`depth\`), \`julius_repo_map\`, \`julius_check_freshness\`. Use whichever surface is
-available; the guidance is identical.
+When the julius MCP server is connected, the same queries are operations of the
+\`julius_call\` tool, not standalone tools: pass \`operation\` as \`julius_find_code\`,
+\`julius_find_all\`, \`julius_file_api\`, \`julius_trace_calls\` (with \`direction\` /
+\`depth\`), \`julius_repo_map\` or \`julius_check_freshness\`, and their input as \`args\`.
+Use whichever surface is available; the guidance is identical.
 `;
 }
