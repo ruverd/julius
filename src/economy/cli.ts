@@ -6,6 +6,7 @@ export function registerEconomyCommands(program: Command): void {
   const options = (command: Command) => command.option('--repo <path>', 'repository root', '.').option('--budget <tokens>', 'complete delivery budget in cl100k_base tokens', '512');
   options(program.command('capture').description('Capture stdin or a file locally with exact recovery'))
     .option('--file <path>', 'read bytes from this file instead of stdin')
+    .option('--compact <format>', 'opt-in output compaction: tap, log or build')
     .action(async (opts) => {
       const parts: Buffer[] = []; let size = 0;
       const stream = opts.file ? createReadStream(opts.file) : process.stdin;
@@ -14,7 +15,7 @@ export function registerEconomyCommands(program: Command): void {
         if (size > ECONOMY_MAX_BYTES) { stream.destroy(); throw new Error(`Input exceeds ${ECONOMY_MAX_BYTES} byte capture limit`); }
         parts.push(bytes);
       }
-      const result = await new Economy(opts.repo).capture(Buffer.concat(parts), { budget: Number(opts.budget) });
+      const result = await new Economy(opts.repo).capture(Buffer.concat(parts), { budget: Number(opts.budget), compact: opts.compact });
       process.stdout.write(result.text);
     });
   options(program.command('read').description('Recover an economy handle; ranges use end-exclusive byte offsets').argument('<handle>'))
@@ -27,10 +28,11 @@ export function registerEconomyCommands(program: Command): void {
       process.stdout.write(opts.raw ? result.bytes : result.text);
     });
   options(program.command('run').description('Execute argv once; use -- before the command and its arguments').argument('<argv...>'))
+    .option('--compact <format>', 'opt-in output compaction: tap, log or build')
     .option('--max-bytes <bytes>', 'combined stdout/stderr capture limit', String(ECONOMY_MAX_BYTES))
     .option('--timeout-ms <ms>', 'execution and pipe timeout', '300000')
     .action(async (argv, opts) => {
-      const result = await new Economy(opts.repo).run(argv, { budget: Number(opts.budget), maxBytes: Number(opts.maxBytes), timeoutMs: Number(opts.timeoutMs) });
+      const result = await new Economy(opts.repo).run(argv, { budget: Number(opts.budget), compact: opts.compact, maxBytes: Number(opts.maxBytes), timeoutMs: Number(opts.timeoutMs) });
       await new Promise<void>((resolve, reject) => process.stdout.write(result.text, error => error ? reject(error) : resolve()));
       if (result.signal) process.kill(process.pid, result.signal);
       else process.exitCode = result.status ?? 1;

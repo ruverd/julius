@@ -4,6 +4,7 @@ import { mkdirSync, lstatSync, readFileSync, writeFileSync, readdirSync, renameS
 import { resolve, join } from 'node:path';
 import { get_encoding } from 'tiktoken';
 import { completeHeader, scanLiterals, growSlice, lineHits, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
+import { compactOutput, parseCompactionFormat, type CompactionFormat } from './compact-output.js';
 
 let encoding: ReturnType<typeof get_encoding> | undefined;
 export const ECONOMY_ENCODING = 'cl100k_base';
@@ -19,8 +20,8 @@ export function economyTokens(text: string): number {
   if (count === null) throw new Error('Exact token count unavailable: whitespace or non-whitespace run exceeds 4096 UTF-16 units');
   return count;
 }
-export interface CaptureOptions { budget: number; transport?: 'mcp'; preview?: (handle: string) => string }
-export interface ReadOptions extends Omit<CaptureOptions, 'budget'> { budget: number | null; start?: number; end?: number; search?: string; raw?: boolean }
+export interface CaptureOptions { budget: number; transport?: 'mcp'; preview?: (handle: string) => string; compact?: CompactionFormat }
+export interface ReadOptions extends Omit<CaptureOptions, 'budget' | 'compact'> { budget: number | null; start?: number; end?: number; search?: string; raw?: boolean }
 export interface EconomyResult { text: string; handle: string | null; bytes: Buffer; omittedBytes: number }
 export interface RunOptions extends CaptureOptions { maxBytes?: number; timeoutMs?: number }
 export interface RunResult { text: string; status: number | null; signal: NodeJS.Signals | null; stdoutHandle: string; stderrHandle: string; complete: boolean; limit: 'bytes' | 'timeout' | null }
@@ -139,6 +140,8 @@ export class Economy {
   }
   async capture(input: string | Uint8Array, options: CaptureOptions): Promise<EconomyResult> {
     budgetCheck(options.budget);
+    const compact = options.compact === undefined ? undefined : parseCompactionFormat(options.compact);
+    if (compact && options.preview) throw new Error('compact and preview cannot be combined');
     const bytes = Buffer.from(input);
     if (bytes.length > ECONOMY_MAX_BYTES) throw new Error(`Capture exceeds ${ECONOMY_MAX_BYTES} byte limit; nothing captured`);
     const raw = representation(bytes); const rawTokens = countPayloadTokens(raw.content);
@@ -146,7 +149,13 @@ export class Economy {
     if (raw.format === 'utf8' && rawTokens !== null && rawTokens <= options.budget) result = { text: raw.content, handle: null, bytes, omittedBytes: 0 };
     else {
       const handle = this.save(bytes);
-      const selected = options.preview?.(handle);
+      let selected = options.preview?.(handle);
+      if (compact && raw.format === 'utf8') {
+        const reduced = compactOutput(raw.content, compact);
+        if (reduced.changed) selected = JSON.stringify({ delivery: 'compacted', compaction: compact, handle,
+          totalBytes: bytes.length, omittedDetail: true, format: 'utf8', content: reduced.text,
+          recover: options.transport === 'mcp' ? { operation: 'context.read', args: { handle } } : `julius read ${handle} --raw` });
+      }
       const tokens = selected ? countPayloadTokens(selected) : null;
       result = selected && tokens !== null && tokens <= options.budget
         ? { text: selected, handle, bytes: Buffer.from(selected), omittedBytes: bytes.length }
@@ -182,6 +191,7 @@ export class Economy {
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {
     budgetCheck(options.budget);
+    const compact = options.compact === undefined ? undefined : parseCompactionFormat(options.compact);
     if (!Array.isArray(argv) || !argv.length || argv.some(arg => typeof arg !== 'string' || arg.includes('\0')) || !argv[0]) throw new Error('Command requires a nonempty argv without NUL bytes');
     const maxBytes = options.maxBytes ?? ECONOMY_MAX_BYTES;
     const timeoutMs = options.timeoutMs ?? 300000;
@@ -219,6 +229,17 @@ export class Economy {
     let text = render();
     while ((countPayloadTokens(text) ?? Infinity) > options.budget && previewSize > 0) { previewSize = Math.floor(previewSize / 2); text = render(); }
     if (economyTokens(text) > options.budget) throw new Error('Command envelope exceeds budget; captured objects remain available');
+    if (compact && captured.limit === null) {
+      const stdout = out.format === 'utf8' ? compactOutput(out.content, compact) : { text: out.content, changed: false };
+      const stderr = err.format === 'utf8' ? compactOutput(err.content, compact) : { text: err.content, changed: false };
+      if (stdout.changed || stderr.changed) {
+        const candidate = JSON.stringify({ status: captured.status, signal: captured.signal, complete: true, limit: null,
+          stdoutHandle, stderrHandle, stdout: `${out.format}: ${stdout.text}`, stderr: `${err.format}: ${stderr.text}`,
+          compaction: compact, omittedDetail: true, recover: 'julius read <handle> --raw; handles recover captured bytes only' });
+        const tokens = countPayloadTokens(candidate);
+        if (tokens !== null && tokens < economyTokens(text)) text = candidate;
+      }
+    }
     const outCount = countPayloadTokens(out.content); const errCount = countPayloadTokens(err.content);
     this.record(outCount === null || errCount === null ? null : outCount + errCount, economyTokens(text));
     return { text, status: captured.status, signal: captured.signal, stdoutHandle, stderrHandle, complete: captured.limit === null, limit: captured.limit };
