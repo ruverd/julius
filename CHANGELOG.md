@@ -5,6 +5,19 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+## 0.24.4
+
+### Fixed
+
+- Describe graph queries as `julius_call` operations in the skill and repo index, so hosts no longer look up `julius_find_code` and its siblings as standalone MCP tools.
+- Invalidate graph and index caches when a replacement keeps file metadata but changes the indexed source.
+
+### Changed
+
+- Reuse prepared lexical field maps for later queries on the same loader.
+- Keep exact PageRank scores and encounter order, and omit a description that repeats the symbol text.
+- Upgrade `@anthropic-ai/sdk` to 1.3.0, `vscode-jsonrpc` to 10, `dotenv` to 18.0.9, and `vscode-languageserver-protocol` to 3.18.5.
+
 ## 0.24.3
 
 ### Fixed
