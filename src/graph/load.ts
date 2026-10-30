@@ -1,23 +1,18 @@
 /**
- * mtime-keyed in-process cache over the two readers `ask()` calls on every
+ * File-identity-keyed in-process cache over the two readers `ask()` calls on every
  * query: the wiring graph (`readGraph`) and the ask sidecar (`readAskIndex`).
  * `julius ask` re-parses these from disk on every invocation; in a long-lived
  * process — the MCP server, or `julius ask` invoked repeatedly in one process —
  * that means re-parsing the same ~tens-of-MB JSON on every tool call.
  *
- * Keyed by `(path, mtimeMs, size)` from `statSync`, so a rebuild (`julius
- * build`) is picked up on the very next call with no polling and no TTL: the
- * stat is cheap relative to the parse it guards, and a changed mtime or size
- * invalidates the entry. A missing file returns null and is never cached — the
+ * Keyed by path, device, inode, ctime, mtime and size. Atomic replacement and
+ * in-place writes invalidate it even if size and mtime are preserved. A missing
+ * file returns null and is never cached — the
  * next call re-stats, so a file created after a prior miss is picked up
  * immediately (no negative caching).
  *
- * **Cache invalidation assumption:** This strategy assumes filesystem mtime
- * resolution is finer than build cadence. This is safe because `julius build`
- * rewrites the entire output file atomically, so same-size rewrites within a
- * single mtime tick (which would serve stale data) are infeasible in practice.
- * On APFS (macOS) mtime is nanosecond-granular and a build takes milliseconds,
- * so invalidation is immediate and reliable.
+ * A miss verifies identity again after parsing; concurrent replacement retries
+ * once, then returns null rather than caching data under the wrong identity.
  *
  * Dependency-free by design: this module imports only `node:fs`, `./write.js`,
  * and `../ask/index-file.js`, so it can be imported from both `ask.ts` and
@@ -28,11 +23,15 @@ import { readGraph, wiringPath } from "./write.js";
 import { readAskIndex, askIndexPath, type AskIndex } from "../ask/index-file.js";
 import type { GraphV1 } from "./types.js";
 
-interface CacheEntry<T> {
+interface FileIdentity {
   mtimeMs: number;
+  ctimeMs: number;
+  ino: number;
+  dev: number;
   size: number;
-  value: T | null;
 }
+
+interface CacheEntry<T> extends FileIdentity { value: T | null }
 
 const graphCache = new Map<string, CacheEntry<GraphV1>>();
 const askIndexCache = new Map<string, CacheEntry<AskIndex>>();
@@ -47,13 +46,17 @@ export function __resetParseCounts(): void {
   __parseCount.askIndex = 0;
 }
 
-function statOf(path: string): { mtimeMs: number; size: number } | null {
+function statOf(path: string): FileIdentity | null {
   try {
     const s = statSync(path);
-    return { mtimeMs: s.mtimeMs, size: s.size };
+    return { mtimeMs: s.mtimeMs, ctimeMs: s.ctimeMs, ino: s.ino, dev: s.dev, size: s.size };
   } catch {
     return null;
   }
+}
+
+function sameFile(a: FileIdentity, b: FileIdentity): boolean {
+  return a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && a.ino === b.ino && a.dev === b.dev && a.size === b.size;
 }
 
 function loadCached<T>(
@@ -71,17 +74,27 @@ function loadCached<T>(
     return null;
   }
   const cached = cache.get(path);
-  if (cached && cached.mtimeMs === st.mtimeMs && cached.size === st.size) {
+  if (cached && sameFile(cached, st)) {
     return cached.value;
   }
-  onParse();
-  const value = parse();
-  cache.set(path, { mtimeMs: st.mtimeMs, size: st.size, value });
-  return value;
+  let before = st;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    onParse();
+    const value = parse();
+    const after = statOf(path);
+    if (!after) break;
+    if (sameFile(before, after)) {
+      cache.set(path, { ...after, value });
+      return value;
+    }
+    before = after;
+  }
+  cache.delete(path);
+  return null;
 }
 
 /** Cached `readGraph(wiringPath(outDir))` — same null-on-missing/unparseable
- * semantics, re-reads only when the wiring file's `(mtimeMs, size)` changed.
+ * semantics, re-reads when the wiring file's identity changes.
  * Returns a shared cached reference; callers must not mutate the returned graph. */
 export function loadGraphCached(outDir: string): GraphV1 | null {
   const path = wiringPath(outDir);
@@ -90,7 +103,7 @@ export function loadGraphCached(outDir: string): GraphV1 | null {
   });
 }
 
-/** Cached `readAskIndex(outDir)` — same semantics, keyed on the sidecar file.
+/** Cached `readAskIndex(outDir)` — same semantics, keyed on the sidecar identity.
  * Returns a shared cached reference; callers must not mutate the returned index. */
 export function loadAskIndexCached(outDir: string): AskIndex | null {
   const path = askIndexPath(outDir);

@@ -1,0 +1,52 @@
+{
+  "build": "npm run build passed",
+  "tests": {
+    "baseline_regressions": {
+      "tests": 4,
+      "pass": 1,
+      "fail": 3,
+      "skipped": 0,
+      "sha256": "d11648287a3cb583ab0a4813a514e4bd253928e91c34b944766e25b1a94743dd"
+    },
+    "default_suite": {
+      "tests": 1579,
+      "pass": 1577,
+      "fail": 1,
+      "skipped": 1,
+      "sha256": "1b2fa5f8f86d0db92fe0ae6fbbc3c0442d1b2f683a50dcf516e96de5ba7f8c02"
+    },
+    "bounded_suite": {
+      "tests": 1579,
+      "pass": 1578,
+      "fail": 0,
+      "skipped": 1,
+      "sha256": "b85970d851803c4d1e5225edbe4a153d036fd8ca7c2db243e04e518bc38ff43e"
+    },
+    "upkeep_isolated": {
+      "tests": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "sha256": "0068fcd08da0ab9e1d0b4b565e9f142d5c55bcec7a41017b26fa5e1336dfe042"
+    }
+  },
+  "bounded_runner": "Original scripts/run-tests.mjs with its spawnSync invocation receiving --test-concurrency=4; same file inventory, isolated home and git-signing protections.",
+  "measured_production_sources_match_working_tree": {
+    "src/ask/ask.ts": "8e6ae772022b279cc07556c83ee9c0f44f0a83b10566d92d4850ecf5155ba7b7",
+    "src/ask/graphrank.ts": "ac85bdd670212f956de9da85b67ae6b81329a3bf95bb382e2805fe10a7877ae0",
+    "src/graph/load.ts": "232ab43b7fe557bafbd4240726ea748c3382bcc18e439f3ce0e87b325a1ee400"
+  },
+  "providerUsage": null,
+  "providerCost": null,
+  "learningCheck": {
+    "exitCode": 1,
+    "diffCapBytes": 400000,
+    "files": 22,
+    "findings": 20,
+    "paths": [
+      "docs/strategy/agent-ab-haiku-v2.json",
+      "docs/strategy/agent-ab-haiku.json"
+    ],
+    "limitation": "Branch-wide heuristic check truncated the diff; new untracked experiment/test artifacts are excluded."
+  }
+}

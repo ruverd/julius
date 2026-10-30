@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "date": "2026-10-30T12:59:10.312Z",
+  "node": "v22.14.0",
+  "runtimeHashes": {
+    "baseline": "2c6aaf42288e22584a0e0a0ff1c96f6a04ad4c20e0e31080d8a7e480bbe995fa",
+    "candidate": "6217524f3e4ce61882352ae2eefaedb4f53e70b6d4dc0022c378567e491c60b8"
+  },
+  "harnessSha256": "e639858f5163f22e09118fdc41f3a7b33365ede7ffd9ccae7ee49f8b74bacffb",
+  "workerSha256": "cbdff69916e62c61a6b10a3db9e4409ba6bb55f1519e8f6817bf0c479aef00da",
+  "baselineSourceSha256": "832ec836d2c1df5c4c903271d34ac15dd748716a34482b31bad4a894aa7c520c",
+  "candidateSourceSha256": "a281e0da610c1d53f413ca1df6b77b99aad06c4a8b464316f1c63d72c77c2249",
+  "scope": "Offline comparison of actual before/after builds on identical frozen corpus files from the selective-index pilot. Exact AskResult parity includes ranking, floating-point scores, pointers, source, metadata and coverage. Formatting may remove a snippet only if its full text already appears verbatim in the same hit code. Four alternating rounds per arm/corpus; warm API five queries times five passes per round; CLI three frozen queries per round, fresh processes with refresh disabled. Real MCP includes refresh, discovery, default bounded replies and complete suffix recovery; all NDJSON request/response tokens counted using cl100k_base, including one-time setup. No models or simulated agent decisions. Fresh process is not cold OS cache; one machine, uncontrolled CPU load. Synthetic graph has containment/import edges only. No provider measurement or task-success inference.",
+  "providerUsage": null,
+  "providerCost": null,
+  "agentCorrectness": null,
+  "gate": {
+    "exactResultParity": true,
+    "preserveEveryCodeExcerptAndPointer": true,
+    "positiveAggregateWireTokenReduction": true,
+    "minLargeWarmReduction": 0.2,
+    "maxRealWarmRegression": 0.05
+  },
+  "corpora": []
+}

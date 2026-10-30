@@ -383,7 +383,7 @@ function structural(query: string, graph: GraphV1, limit: number, inPrefix?: str
       kind: outgoing ? "callee" : "caller",
       title: node ? node.name : other, // unresolved import target → raw module string
       pointer: node ? `${node.path}:${node.span}` : other,
-      snippet: node?.summary?.split("\n")[0].trim() ?? node?.signature ?? "",
+      snippet: (node?.summary_state === "stale" ? null : node?.summary)?.split("\n")[0].trim() ?? node?.signature ?? "",
       relation: e.relation,
       score: 1,
     });
@@ -655,7 +655,7 @@ function lexical(
       kind: "symbol",
       title: `${n.name} · ${n.kind}`,
       pointer: n.kind === "file" ? n.path : `${n.path}:${n.span}`,
-      snippet: n.summary?.split("\n")[0].trim() ?? n.signature ?? "",
+      snippet: (n.summary_state === "stale" ? null : n.summary)?.split("\n")[0].trim() ?? n.signature ?? "",
       score: hitScore,
       ...(scope === undefined ? {} : { scope }),
     };
@@ -1280,7 +1280,7 @@ function inlineSource(root: string, hits: AskHit[], graph: GraphV1 | null, full:
   const cruxByPointer = new Map<string, string>();
   if (!full && graph) {
     for (const n of graph.nodes)
-      if (n.crux?.code) cruxByPointer.set(`${n.path}:${n.span}`, n.crux.code);
+      if (n.summary_state !== "stale" && n.crux?.code) cruxByPointer.set(`${n.path}:${n.span}`, n.crux.code);
   }
   for (const h of hits) {
     const s = parseSpan(h.pointer);
@@ -1446,7 +1446,7 @@ export function skeleton(dir: string, file: string, opts: { contextDir?: string 
       kind: n.kind,
       span: n.span,
       signature: n.signature,
-      summary: n.summary?.split("\n")[0].trim() || undefined,
+      summary: (n.summary_state === "stale" ? null : n.summary)?.split("\n")[0].trim() || undefined,
     })),
     saved: savingsFor(graph, [defs[0].path]),
   };
@@ -1504,7 +1504,7 @@ export function formatAsk(r: AskResult): string {
   const lines = noteBlock ? [head, "", noteBlock, "", ...teamNotes] : [head, "", ...teamNotes];
   if (r.mode === "structural") {
     for (const h of r.hits) {
-      const tail = h.snippet ? ` — ${h.snippet}` : "";
+      const tail = h.snippet && !h.code?.includes(h.snippet) ? ` — ${h.snippet}` : "";
       lines.push(`- ${h.title}  ${h.pointer}  (${h.relation})${tail}`);
       if (h.code) lines.push("", "```", h.code, "```", "");
     }
@@ -1515,7 +1515,7 @@ export function formatAsk(r: AskResult): string {
       const label = r.scopes && h.scope ? `[${h.scope}/] ` : "";
       lines.push(`${i + 1}. ${label}${h.title}  [${h.kind}]`);
       lines.push(`   ${h.pointer}`);
-      if (h.snippet) lines.push(`   ${h.snippet}`);
+      if (h.snippet && !h.code?.includes(h.snippet)) lines.push(`   ${h.snippet}`);
       if (h.related?.length) lines.push(`   related: ${h.related.join(", ")}`);
       if (h.code) lines.push("", "```", h.code, "```");
       lines.push("");

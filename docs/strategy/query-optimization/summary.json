@@ -1,0 +1,376 @@
+{
+  "providerUsage": null,
+  "providerCost": null,
+  "agentCorrectness": null,
+  "exactParityCases": 432,
+  "corpora": [
+    {
+      "id": "julius",
+      "parity": 192,
+      "arms": {
+        "baseline": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 14.237520999999958,
+            "p95": 44.84445800000003
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 905.5411255000072,
+            "p95": 1814.8018750000047
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 170.4140625,
+            "p95": 174.6875
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 23.07129669189453,
+            "p95": 23.071533203125
+          },
+          "formattedTokens": 136731,
+          "totalMcpWireTokens": 22861,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 6,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 234.9490000000078,
+            "p95": 556.5001250000205
+          }
+        },
+        "candidate": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 9.619958499999967,
+            "p95": 27.263666
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 477.8232704999973,
+            "p95": 2432.3027500000026
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 169.9140625,
+            "p95": 172.53125
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 23.135704040527344,
+            "p95": 23.136619567871094
+          },
+          "formattedTokens": 132668,
+          "totalMcpWireTokens": 22147,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 6,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 66.05310399999144,
+            "p95": 100.32000000000698
+          }
+        }
+      },
+      "warmReduction": 0.32432349002329863,
+      "cliReduction": 0.47233399230083506,
+      "wireReduction": 0.031232229561261482
+    },
+    {
+      "id": "click",
+      "parity": 72,
+      "arms": {
+        "baseline": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 3.0934170000000165,
+            "p95": 5.490208999999993
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 171.0632080000214,
+            "p95": 1201.8806249999907
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 116.046875,
+            "p95": 116.84375
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 10.768287658691406,
+            "p95": 10.76983642578125
+          },
+          "formattedTokens": 69592,
+          "totalMcpWireTokens": 32881,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 9,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 50.8237705000065,
+            "p95": 110.53412499997648
+          }
+        },
+        "candidate": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 3.1772704999999917,
+            "p95": 6.404916999999983
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 192.96131250000326,
+            "p95": 709.3274169999931
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 120.4140625,
+            "p95": 121.71875
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 10.83333969116211,
+            "p95": 10.834945678710938
+          },
+          "formattedTokens": 68538,
+          "totalMcpWireTokens": 32299,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 9,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 37.24185449999641,
+            "p95": 62.42233400000259
+          }
+        }
+      },
+      "warmReduction": -0.02710707932360057,
+      "cliReduction": -0.1280117727008785,
+      "wireReduction": 0.017700191600012127
+    },
+    {
+      "id": "commander",
+      "parity": 72,
+      "arms": {
+        "baseline": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 1.6220619999999855,
+            "p95": 3.927084000000008
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 109.6952084999939,
+            "p95": 197.6123329999973
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 96.546875,
+            "p95": 96.828125
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 8.507144927978516,
+            "p95": 8.518081665039062
+          },
+          "formattedTokens": 39308,
+          "totalMcpWireTokens": 20470,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 6,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 29.995479000004707,
+            "p95": 36.96608399998513
+          }
+        },
+        "candidate": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 1.5018745000000067,
+            "p95": 2.746875000000003
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 102.49595850000333,
+            "p95": 118.42720799997915
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 96.921875,
+            "p95": 97.78125
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 8.543838500976562,
+            "p95": 8.546615600585938
+          },
+          "formattedTokens": 38659,
+          "totalMcpWireTokens": 20218,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 6,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 43.11970850000216,
+            "p95": 132.16674999997485
+          }
+        }
+      },
+      "warmReduction": 0.07409550313118729,
+      "cliReduction": 0.06562957578945638,
+      "wireReduction": 0.01231069858329259
+    },
+    {
+      "id": "zod",
+      "parity": 72,
+      "arms": {
+        "baseline": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 2.9494585000000058,
+            "p95": 6.109667000000002
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 135.4760625000199,
+            "p95": 297.87758299999405
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 114.5234375,
+            "p95": 115.25
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 9.21148681640625,
+            "p95": 9.21234130859375
+          },
+          "formattedTokens": 36014,
+          "totalMcpWireTokens": 15361,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 3,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 39.511478999993415,
+            "p95": 59.832792000001064
+          }
+        },
+        "candidate": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 2.1436874999999986,
+            "p95": 5.524290999999991
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 141.18983299999672,
+            "p95": 193.80233299999963
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 120.5,
+            "p95": 121.40625
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 9.276031494140625,
+            "p95": 9.277671813964844
+          },
+          "formattedTokens": 35618,
+          "totalMcpWireTokens": 15130,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 3,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 64.65145850001136,
+            "p95": 125.83237499999814
+          }
+        }
+      },
+      "warmReduction": 0.2731928589603839,
+      "cliReduction": -0.042175498715693704,
+      "wireReduction": 0.015038083458108198
+    },
+    {
+      "id": "synthetic-large",
+      "parity": 24,
+      "arms": {
+        "baseline": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 90.47858350000001,
+            "p95": 123.89724999999999
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 305.4945000000007,
+            "p95": 3518.7496249999967
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 378.796875,
+            "p95": 389.265625
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 48.45075988769531,
+            "p95": 48.45201110839844
+          },
+          "formattedTokens": 7041,
+          "totalMcpWireTokens": 8512,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 0,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 161.47510400001192,
+            "p95": 259.6647499999963
+          }
+        },
+        "candidate": {
+          "warmApiMs": {
+            "n": 100,
+            "p50": 55.53685450000006,
+            "p95": 82.344875
+          },
+          "coldCliMs": {
+            "n": 12,
+            "p50": 278.52868799999123,
+            "p95": 1647.1910410000128
+          },
+          "warmPeakRSSMiB": {
+            "n": 4,
+            "p50": 335.5625,
+            "p95": 350.71875
+          },
+          "retainedHeapMiB": {
+            "n": 4,
+            "p50": 48.51608657836914,
+            "p95": 48.516639709472656
+          },
+          "formattedTokens": 6777,
+          "totalMcpWireTokens": 7648,
+          "mcpSetupTokens": 760,
+          "mcpRecoveryCalls": 0,
+          "mcpWarmMs": {
+            "n": 6,
+            "p50": 91.79054149996955,
+            "p95": 176.40179199998965
+          }
+        }
+      },
+      "warmReduction": 0.3861878430048581,
+      "cliReduction": 0.08826938619192626,
+      "wireReduction": 0.10150375939849621
+    }
+  ],
+  "wireTokens": {
+    "baseline": 100085,
+    "candidate": 97442
+  },
+  "wireReduction": 0.026407553579457455,
+  "gate": {
+    "exactParity": true,
+    "sourceAndPointersRetained": true,
+    "positiveAggregateWireReduction": true,
+    "largeWarmGain": true,
+    "realWarmRegressions": true
+  },
+  "decision": "retain-changes"
+}
