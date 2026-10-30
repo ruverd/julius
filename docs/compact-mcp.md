@@ -54,3 +54,18 @@ Ranking and truncation notices are retained.
 
 See [investigations](investigations.md) for change-impact and failure-localization
 recipes, and [context economy](context-economy.md) for storage and accounting.
+
+`context.capture` optionally accepts `compact: "tap"`, `"log"` or `"build"` in
+its operation arguments. Compaction is off by default; graph results are not
+compacted. For example:
+
+```json
+{"operation":"context.capture","args":{"content":"<captured TAP output>","compact":"tap"},"budget":1200}
+```
+
+The summary labels `delivery: "compacted"` and `omittedDetail: true`, retains an
+original-byte handle, and fits the result budget. Small inputs remain verbatim;
+non-shrinking or over-budget summaries use existing bounded capture. Complete
+delivery and literal `focus` take precedence and bypass compaction. Recovery
+never recompacts the original. See the context economy documentation for which
+details each format summarizes and why recovery can outweigh initial savings.

@@ -17,6 +17,39 @@ julius read sha256:<digest> --raw > recovered.log
 julius economy stats
 ```
 
+### Optional output compaction
+
+Opt in for known noisy output with `--compact tap`, `--compact log` or
+`--compact build`. This is internal Julius code; no RTK or Caveman installation,
+model or extra dependency is required. Compaction is off by default.
+
+```sh
+julius capture --file tests.tap --compact tap --budget 1200
+julius run --compact tap --budget 1200 -- npm test
+julius run --compact build --budget 1200 -- npm run build
+```
+
+TAP compaction counts consecutive minimal top-level passing records. Their
+names and durations are omitted with an explicit notice. Failures, extra
+diagnostics, nested records and SKIP/TODO records remain verbatim. Log and build
+compaction collapse only consecutive identical lines, with additional-repeat
+counts and preserved order. These modes do not infer a format from a command.
+An unsuitable format simply produces no reduction.
+
+Original stdout/stderr or captured bytes remain recoverable through the same
+handles. Compacted content is a summary, not a prefix: recover from byte zero
+instead of concatenating it with a suffix. Names, individual timings and full
+event sequences may require recovery and can increase total traffic.
+
+For capture, small inputs stay verbatim; a summary that exceeds the full response
+budget falls back to the existing bounded preview. Custom API `preview` and
+`compact` cannot be combined. For run, a complete compacted stream envelope is
+used only when it is smaller in local token counts than the existing diagnostic
+preview; otherwise the diagnostic preview remains. Incomplete captures and
+timeouts retain existing preview behavior. Status, signal, capture limits,
+binary recovery and accounting rules are unchanged. No speed or provider-cost
+guarantee follows from selecting this option.
+
 Every command accepts `--repo <directory>` (default: current directory). Run executes
 its argv once, without a shell, and returns the original exit status or signal.
 Its response names separate stdout/stderr handles, status, and any capture limit.
@@ -94,11 +127,13 @@ The exported API uses the same accounting and recovery rules:
 import { Economy, economyTokens } from '@ruverd/julius';
 const economy = new Economy('/path/to/repo');
 const capture = await economy.capture(output, { budget: 512 }); // string or Uint8Array
+const summary = await economy.capture(output, { budget: 1200, compact: 'tap' });
 if (capture.handle) {
 	const recovered = await economy.read(capture.handle, { budget: 512, raw: true });
 	// recovered.bytes contains exact bytes; recovered.text is UTF-8 or base64.
 }
 const command = await economy.run(['npm', 'test'], { budget: 512 });
+const compactCommand = await economy.run(['npm', 'test'], { budget: 1200, compact: 'tap' });
 const stats = await economy.stats();
 ```
 

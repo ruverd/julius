@@ -47,3 +47,4 @@ export type { CruxSummarizer, FileCruxInput, NodeCrux, NodeRef } from "./ai/crux
 
 export { Economy, economyTokens, ECONOMY_ENCODING, ECONOMY_MAX_BYTES } from './economy/index.js';
 export type { CaptureOptions, ReadOptions, RunOptions, RunResult, EconomyResult, EconomyStats } from './economy/index.js';
+export type { CompactionFormat } from './economy/compact-output.js';

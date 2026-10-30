@@ -1,6 +1,7 @@
 import { runInvestigation, deliverInvestigation, type InvestigationArgs } from '../investigation/index.js';
 import { TOOLS, callTool, type ToolDef } from './tools.js';
 import { Economy, ECONOMY_MAX_BYTES } from '../economy/index.js';
+import { parseCompactionFormat } from '../economy/compact-output.js';
 import { selectDelivery } from '../economy/delivery.js';
 import { hasJuliusIndex } from '../graph/root.js';
 import { buildGraph } from '../graph/build.js';
@@ -19,7 +20,7 @@ export const OPERATIONS: ToolDef[] = [
   { name: 'julius_trace_calls', description: 'Call/reference edges and transitive impact.', inputSchema: object({ symbol: string, direction: { enum: ['in', 'out'] }, depth: { anyOf: [integer(100, 1), { enum: ['all'] }] }, in: string }, ['symbol']) },
   { name: 'julius_find_all', description: 'Search indexed source, grouped by symbol.', inputSchema: object({ pattern: string, in: string, ignore_case: { type: 'boolean' }, fixed: { type: 'boolean' } }, ['pattern']) },
   { name: 'julius_repo_map', description: 'Structural repository orientation.', inputSchema: object({ max_dirs: integer(100, 1) }) },
-  { name: 'context.capture', description: 'Bound supplied text; retain omitted bytes locally.', inputSchema: object({ content: { type: 'string', maxLength: ECONOMY_MAX_BYTES } }, ['content']) },
+  { name: 'context.capture', description: 'Bound supplied text; retain omitted bytes locally. Optional compact format summarizes TAP passes or consecutive repeated log/build lines.', inputSchema: object({ content: { type: 'string', maxLength: ECONOMY_MAX_BYTES }, compact: { enum: ['tap', 'log', 'build'] } }, ['content']) },
   { name: 'context.read', description: 'Recover a byte range or search a retained handle.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string }, ['handle']) },
   { name: 'context.stats', description: 'Local payload ledger; excludes protocol costs, not billing.', inputSchema: object({}) },
 ];
@@ -81,7 +82,12 @@ export async function callCompact(root: string, name: string, input: unknown, di
       || operation.name === 'julius_find_all' && args.fixed !== true ? {} : args;
     const choice = selectDelivery({ delivery: params.delivery, focus: params.focus, budget: params.budget, args: literalArgs });
     const economy = new Economy(root);
-    if (operation.name === 'context.capture') return { text: (await economy.present(args.content as string, choice, 'mcp')).text, isError: false };
+    if (operation.name === 'context.capture') {
+      if (args.compact !== undefined && choice.algorithm === 'fixed') {
+        return { text: (await economy.capture(args.content as string, { budget: choice.budget ?? 1200, transport: 'mcp', compact: parseCompactionFormat(args.compact) })).text, isError: false };
+      }
+      return { text: (await economy.present(args.content as string, choice, 'mcp')).text, isError: false };
+    }
     if (operation.name === 'context.read') return { text: (await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start: args.start as number | undefined, end: args.end as number | undefined, search: args.search as string | undefined })).text, isError: false };
     if (operation.name === 'context.stats') return { text: JSON.stringify(await economy.stats()), isError: false };
     if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice), isError: false };
