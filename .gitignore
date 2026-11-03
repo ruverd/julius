@@ -37,3 +37,8 @@ transcripts/
 
 # Local git worktrees.
 /.worktrees/
+
+# Kevin: keep personal memory, writing samples and overrides private.
+.kevin/memory.json
+.kevin/private/
+.kevin/local*.json
