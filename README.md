@@ -232,6 +232,8 @@ explicitly run through Julius can access the network.
 
 ## Development
 
+An experimental [hybrid Rust extractor](docs/hybrid-extractor.md) is available for TypeScript/TSX/JavaScript indexing. It requires an explicit native build and `JULIUS_EXTRACTOR=rust`; the default stack remains TypeScript.
+
 ```sh
 npm ci
 npm run build

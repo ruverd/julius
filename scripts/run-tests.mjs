@@ -49,7 +49,7 @@ const gitEnv = {
 const testHome = mkdtempSync(join(tmpdir(), "julius-suite-home-"));
 const testEnv = { ...process.env, ...gitEnv, HOME: testHome, USERPROFILE: testHome, XDG_CONFIG_HOME: join(testHome, ".config") };
 delete testEnv.JULIUS_HOME;
-const result = spawnSync(process.execPath, ["--import", "tsx", "--test", ...files], {
+const result = spawnSync(process.execPath, ["--import", "tsx", "--test", ...process.argv.slice(2), ...files], {
   cwd: repoRoot,
   stdio: "inherit",
   env: testEnv,

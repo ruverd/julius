@@ -24,11 +24,11 @@ try {
   const jsonStart = packOutput.lastIndexOf('\n[');
   const [packed] = JSON.parse(jsonStart < 0 ? packOutput : packOutput.slice(jsonStart + 1));
   const paths = packed.files.map((file) => file.path);
-  for (const required of ['dist/index.js', 'dist/index.d.ts', 'dist/bin/julius.js', 'dist/viewer/index.html', 'dist/graph/queries/php.scm', 'LICENSE', 'CREDITS.md', 'PROVENANCE.md', 'CHANGELOG.md', 'docs/upstream-changelog.md']) {
+  for (const required of ['dist/index.js', 'dist/index.d.ts', 'dist/bin/julius.js', 'dist/viewer/index.html', 'dist/graph/queries/php.scm', 'LICENSE', 'CREDITS.md', 'PROVENANCE.md', 'CHANGELOG.md', 'docs/upstream-changelog.md', 'docs/hybrid-extractor.md', 'native/extractor/Cargo.toml', 'native/extractor/Cargo.lock', 'native/extractor/build.rs', 'native/extractor/build.mjs', 'native/extractor/src/lib.rs']) {
     assert.ok(paths.includes(required), `Missing package file: ${required}`);
   }
   for (const path of paths) {
-    assert.ok(/^(?:dist\/|docs\/(?:assets\/|upstream-changelog\.md$)|(?:package\.json|README\.md|CHANGELOG\.md|CREDITS\.md|LICENSE|PROVENANCE\.md)$)/.test(path), `Unexpected package file: ${path}`);
+    assert.ok(/^(?:dist\/|native\/extractor\/(?:Cargo\.(?:toml|lock)|build\.(?:rs|mjs)|src\/lib\.rs)$|docs\/(?:assets\/|upstream-changelog\.md$|hybrid-extractor\.md$)|(?:package\.json|README\.md|CHANGELOG\.md|CREDITS\.md|LICENSE|PROVENANCE\.md)$)/.test(path), `Unexpected package file: ${path}`);
     assert.ok(!/(?:^|\/)(?:\.env(?:\..*)?|\.npmrc|\.git|\.julius)(?:\/|$)/.test(path), `Private state in package: ${path}`);
   }
   const consumer = join(scratch, 'consumer');

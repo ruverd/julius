@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Julius CLI: local graph navigation and shared repository learnings. */
+import "./graph/rust-settings.js";
 import { installGlobal, uninstallGlobal } from "./hosts/install.js";
 import { registerEconomyCommands } from "./economy/cli.js";
 import { spawnSync } from "node:child_process";
@@ -631,6 +632,7 @@ grouped(program.command("build"), GROUP.setup)
     // say which, and the install that fixes it. Nothing when everything loaded.
     const fallbackNotice = nativeFallbackNotice(g.nativeFallback, readPackageName(import.meta.url));
     if (fallbackNotice) console.error(fallbackNotice);
+    if (g.rustExtractor?.state === "fallback") console.error(`Rust extractor unavailable; using TypeScript: ${g.rustExtractor.reason}`);
 
     const rel = relative(process.cwd(), g.contextDir) || "julius";
     if (process.env.JULIUS_NO_GITIGNORE) {

@@ -23,6 +23,7 @@ export type { BuildOptions } from "./context/build.js";
 export { checkContext, formatCheckReport } from "./context/check.js";
 export type { CheckOptions } from "./context/check.js";
 export { checkGraph, formatGraphCheckReport } from "./graph/check.js";
+export { rustExtractorStatus, type RustExtractorStatus } from "./graph/rust.js";
 export type { GraphCheckResult, GraphCheckOptions } from "./graph/check.js";
 export type { ContextNode, NodeLink, SourceRef, Manifest } from "./context/node-file.js";
 

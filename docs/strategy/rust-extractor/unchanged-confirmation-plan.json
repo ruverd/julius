@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "date": "2026-11-03T16:02:37.914Z",
+  "initialReportSha256": "32d3f12132d27b5ff6054aadc21f105592e1dc70a77d2a2bde1f5dca8f5649eb",
+  "corpus": "commander",
+  "phase": "unchanged",
+  "rounds": 12,
+  "reason": "Initial four-round pilot observed an unchanged-build regression above its 10% gate. Repeat only this unresolved case with rotated order, no concurrent test suites. Initial gate remains recorded; this is not a new release gate.",
+  "rows": []
+}

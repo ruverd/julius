@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-03T19:29:09.742Z",
+  "base": "d3e5466",
+  "node": "v22.23.2",
+  "nativeBinarySha256": "d0dda5d0df99076325523643dc210059686763a827b3a46da157974eada740ca",
+  "checks": {
+    "build": "npm run build",
+    "nativeBuild": "npm run build:native (locked/offline)",
+    "typescript": {
+      "command": "npm test -- --test-concurrency=4",
+      "passed": 1558,
+      "failed": 0,
+      "skipped": 1,
+      "logSha256": "7f989e9465b6dbae38849632276c37f181d35555db357986279a228feab77585"
+    },
+    "rust": {
+      "command": "JULIUS_EXTRACTOR=rust JULIUS_TEST_RUST=1 npm test -- --test-concurrency=4",
+      "passed": 1558,
+      "failed": 0,
+      "skipped": 1,
+      "logSha256": "75bf6f53965c022317db9271a22c9c3d4a32af2642fc97b9ca4025c264fb6b49"
+    },
+    "nativeGrammarCompatibility": "All nine depth grammars compatible",
+    "releaseMetadata": "npm run release:check passed for 0.24.4",
+    "packageInspection": {
+      "files": 730,
+      "nativeSourcesPresent": true,
+      "nativeBinaryAndCargoTargetExcluded": true
+    },
+    "learningCheck": {
+      "exitCode": 1,
+      "checkedFiles": 44,
+      "notes": 19,
+      "reportedLexicalConflicts": 20,
+      "explanation": "Retained diagnostic/limit/fixture text matches rejected-keyword heuristics. The user authorized this opt-in follow-up; TypeScript remains default. No full rewrite, eager postings, report-cache provenance or provider/agent-speed claim is introduced."
+    }
+  },
+  "limitations": [
+    "One earlier unrestricted-concurrency run failed the inherited upkeep-hook two-second assertion; final capped suites pass.",
+    "Recorded 2.87x pilot speedup is historical, not a performance measurement of the hardened integration.",
+    "Native crash recovery and prebuilt binary distribution are not provided."
+  ],
+  "providerUsage": null,
+  "providerCost": null,
+  "agentCorrectness": null
+}
