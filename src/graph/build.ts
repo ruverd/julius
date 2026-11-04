@@ -21,6 +21,7 @@ import { extractFile, languageLabelOf, languageOf, type Language, type RawEdge }
 import { extractGeneric, fallbackLangOf, genericLangOf, warmGenericGrammars, type GenericLang } from "./generic.js";
 import { containerLangOf, extractContainer, warmContainerGrammars, type ContainerLang } from "./container.js";
 import { missingNativePackages, nativeReady, type NativeFallback } from "./native.js";
+import { rustExtractorStatus, type RustExtractorStatus } from "./rust.js";
 import { contentHash } from "../util/id.js";
 import { relPosix } from "../util/paths.js";
 import { readSourceFile } from "../util/source.js";
@@ -154,6 +155,8 @@ export interface GraphBuildOptions {
 }
 
 export interface GraphBuildResult {
+  /** Present only when the optional Rust backend was explicitly requested. */
+  rustExtractor?: RustExtractorStatus;
   /** Provenance of this completed build, including builds that cannot be reused across processes. */
   verification?: GraphVerification;
   contextDir: string;
@@ -466,6 +469,7 @@ export async function buildGraph(
 
   return {
     verification,
+    ...(process.env.JULIUS_EXTRACTOR === "rust" ? { rustExtractor: rustExtractorStatus() } : {}),
     contextDir: outDir,
     graphPath,
     cards: cardStats.written,

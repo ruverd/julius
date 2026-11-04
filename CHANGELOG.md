@@ -5,6 +5,10 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+### Added
+
+- Add an opt-in Rust extractor for TypeScript, TSX and JavaScript while keeping CLI/MCP and graph orchestration in TypeScript. Build it explicitly with `npm run build:native` and select it with `JULIUS_EXTRACTOR=rust`; missing or invalid addons fall back to TypeScript. Backend/binary identities invalidate extraction and freshness caches.
+
 ## 0.24.4
 
 ### Fixed

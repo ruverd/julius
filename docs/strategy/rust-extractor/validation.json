@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-03T16:02:59.852Z",
+  "reportSha256": "32d3f12132d27b5ff6054aadc21f105592e1dc70a77d2a2bde1f5dca8f5649eb",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "nativePackages": {
+    "tree-sitter": "0.25.1",
+    "tree-sitter-typescript": "0.23.2"
+  },
+  "sameInstalledCSources": [
+    {
+      "file": "tree-sitter/vendor/tree-sitter/lib/src/lib.c",
+      "sha256": "6bca070a6a70740c8e8af244af8a7311dbea09fbb60372376f5260facaf785f0"
+    },
+    {
+      "file": "tree-sitter/vendor/tree-sitter/lib/include/tree_sitter/api.h",
+      "sha256": "937c5389713f99318ac7adbdb3a95e9976bbd211e35e37ed5df878f29aa86c30"
+    },
+    {
+      "file": "tree-sitter-typescript/typescript/src/parser.c",
+      "sha256": "74fe453edd70f4eae9af0a1050cbd7943d8971d59165b6aaebbaa0a0b716d1aa"
+    },
+    {
+      "file": "tree-sitter-typescript/typescript/src/scanner.c",
+      "sha256": "9125013b42cb888379d9be909f1d73dfb75a37626c2cdbf4122718a2b431a6d3"
+    },
+    {
+      "file": "tree-sitter-typescript/tsx/src/parser.c",
+      "sha256": "1902cb53fa7ff5179df89b2eea863165e84c8cc866226419dc26921d8c055885"
+    },
+    {
+      "file": "tree-sitter-typescript/tsx/src/scanner.c",
+      "sha256": "d563cd30b2f39718c9ae4292795c5ce03a2ad01954ba3a86ef84c2781a736673"
+    },
+    {
+      "file": "tree-sitter-typescript/common/scanner.h",
+      "sha256": "da66ef2bd14a3f7ea743e25ba068c6c9aae2c3509db200ff80c4a0e6116e564c"
+    }
+  ],
+  "baselineSuite": {
+    "passed": 1585,
+    "failed": 0,
+    "skipped": 1,
+    "logSha256": "ea34af43c76d4519cea2b399ebc953c16e1d03afc558bb8936511af0eaa0a458"
+  },
+  "nativeSuite": {
+    "passed": 1585,
+    "failed": 0,
+    "skipped": 1,
+    "logSha256": "2873c1fcf38444afff5ed2238dc19a16e7985db11cc8b2722a92751e332ab877"
+  },
+  "initialBaselineFailure": {
+    "reason": "Snapshot lacked Git metadata; navigation-benchmark.test.ts could not run git ls-files. Initialized disposable Git repositories and reran complete baseline suite; native suite had metadata before this test ran.",
+    "logSha256": "5b24a6b6e0767786aab8cbf6d4059ad077b308ea770a3d1f156dc901f62408f8"
+  },
+  "initialHarnessDiscarded": "Before valid timing, stopped an initial pilot because its baseline worker imported the Rust addon and phases shared cumulative peak RSS. Valid report loads addon only in candidate and starts a fresh process for each build phase.",
+  "contractTests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "isolatedNpmBuildPassed": true,
+  "measuredProductionSourcesUnchanged": true,
+  "learningCheck": {
+    "exitCode": 1,
+    "diffLimitBytes": 400000,
+    "untrackedExperimentFilesExcluded": true,
+    "checkedFiles": 25,
+    "notes": 30,
+    "findings": {
+      "conflict": 20
+    },
+    "paths": [
+      "docs/compact-mcp.md",
+      "docs/context-economy.md",
+      "docs/strategy/agent-ab-haiku-v2.json"
+    ],
+    "scope": "Branch-wide check; findings belong to pre-existing work outside this experiment. No clean learning-check claim for the untracked additions."
+  }
+}

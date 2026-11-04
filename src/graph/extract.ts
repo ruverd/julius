@@ -13,6 +13,7 @@ import { basename } from "node:path";
 import { contentHash } from "../util/id.js";
 import { collectBindings, goReceiverVarOf, resolveRecvType, type FileBindings } from "./bindings.js";
 import { nativeParser } from "./native.js";
+import { extractRustFile } from "./rust.js";
 import type { Kind, NodeV1, Relation } from "./types.js";
 
 export type Language = "typescript" | "tsx" | "python" | "go" | "java" | "kotlin" | "swift" | "php" | "r";
@@ -369,6 +370,8 @@ function parseSource(parser: Parser, source: string): Parser.SyntaxNode {
 /** Throws when `lang`'s native grammar is unavailable: callers check `nativeReady`
  * (native.ts) first and hand such a file to its breadth-tier stand-in instead. */
 export function extractFile(rel: string, source: string, lang: Language): ExtractResult {
+  const rust = extractRustFile(rel, source, lang, { contentHash, fileResidual, searchBody, clean });
+  if (rust) return rust;
   const root = parseSource(nativeParser(lang), source);
   const bindings = collectBindings(root, lang);
   const importedSymbols = collectImportedSymbols(root, lang);

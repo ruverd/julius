@@ -31,6 +31,7 @@ import { CACHE_DIR } from "../context/node-file.js";
 import { readJson, writeJsonAtomic } from "../util/state.js";
 import type { RawEdge } from "./extract.js";
 import type { NodeV1 } from "./types.js";
+import { rustExtractorCacheKey } from "./rust.js";
 
 /** Bump when the on-disk shape below changes. */
 const CACHE_VERSION = 1;
@@ -142,7 +143,9 @@ let memoizedStamp: string | null | undefined;
  */
 export function extractorStamp(): string | null {
   if (memoizedStamp === undefined) memoizedStamp = computeStamp();
-  return memoizedStamp;
+  const backend = rustExtractorCacheKey();
+  if (memoizedStamp === null || backend === null) return null;
+  return createHash("sha256").update(memoizedStamp).update(backend).digest("hex").slice(0, 16);
 }
 
 function computeStamp(): string | null {

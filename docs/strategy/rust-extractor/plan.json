@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "date": "2026-11-03T15:55:47.581Z",
+  "work": "/tmp/julius-rust-extractor-20261103-run2",
+  "revision": "f4c5733f22d167f046ad6214d1b12016c961c409",
+  "sourceSha256": "3ee8291cb02abfe631098dcddf267c13bff79c4ca85609425731b0944632f595",
+  "lockSha256": "c6107ed3a16dbeb5303167a8ced16bbe0f87479c0ff528d982102fe65b322171",
+  "runtimeHashes": {
+    "baseline": "1436880a3a3b0b655ece7968e327def3b03c7516631b6d4b61b341a90b1e0ac3",
+    "candidate": "16672405cf8092608c8b2032b7c2674e4ee4a4d33ed070108a5bba93646be973"
+  },
+  "rustSha256": "c9eb40ed27a92adc73ef8cb4cccca3038c65c7b8e9ae07f17e49851d9d8c2989",
+  "adapterSha256": "c74835309187fb85d54e251c7610d5f2c27faa8a975f27318a8ba661a582eeb3",
+  "addonSha256": "a6774152842ffb3fc1c6058bf936742a0317b8e672c7deea72757bd2e9d44ea3",
+  "cargoLockSha256": "5d5e64821f71ef86163bbbb17bd3e52aaf6d21e5d97e6800101e3f646d622227",
+  "harnessSha256": "3c4b50a92e63a5aaa0da012e2d6b35ec297566aef6d88eec3b6b790712ff27f8",
+  "workerSha256": "954683e0e8e826e3847102b036dad625eff16c4396ab6d47acd90607a2e3d3fa",
+  "node": "v22.23.2",
+  "platform": "darwin",
+  "cpu": "Apple M4 Pro",
+  "logicalCpus": 12,
+  "memoryBytes": 25769803776,
+  "gate": {
+    "exactExtractionGraphIndexAndQueryParity": true,
+    "minRealFullBuildReduction": 0.2,
+    "maxIncrementalRegression": 0.1,
+    "maxWarmQueryRegression": 0.1,
+    "maxBuildPeakRSSRegression": 0.1,
+    "meaning": "Local pilot gate for further hybrid development, not release approval or evidence for a full rewrite. Medians across four fresh workers per arm, rotated order."
+  },
+  "scope": "Offline TS/TSX/JS structural extractor via synchronous in-process Node-API. Identical installed Tree-sitter core and grammar C sources. Rust returns compact definition tuples and unresolved edge tuples; existing TypeScript helpers materialize signatures/body text/hashes and residuals, resolve edges, build/search index and serve CLI/MCP. Other languages retain existing extractor. Complete indexing includes markdown cards. Every build phase uses a fresh process so peak RSS is phase-specific; caches remain on disk between full/unchanged/edit/add/delete. Native module still initialized by existing tier selection, so candidate retains that overhead. Build elapsedMs excludes imports/addon load; processElapsedMs includes them. Baseline never loads the Rust addon. Warm query and no-refresh CLI operate on identical saved graphs; no search-speed benefit is expected. Fresh process is not cold OS cache. One machine, uncontrolled load/cache/frequency, local development queries, no confidence intervals or agent-success evidence.",
+  "providerUsage": null,
+  "providerCost": null,
+  "agentCorrectness": null,
+  "corpora": [
+    "julius",
+    "commander",
+    "synthetic-large"
+  ]
+}

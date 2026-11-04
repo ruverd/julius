@@ -1,0 +1,643 @@
+{
+  "version": 1,
+  "date": "2026-11-03T16:02:37.914Z",
+  "initialReportSha256": "32d3f12132d27b5ff6054aadc21f105592e1dc70a77d2a2bde1f5dca8f5649eb",
+  "corpus": "commander",
+  "phase": "unchanged",
+  "rounds": 12,
+  "reason": "Initial four-round pilot observed an unchanged-build regression above its 10% gate. Repeat only this unresolved case with rotated order, no concurrent test suites. Initial gate remains recorded; this is not a new release gate.",
+  "rows": [
+    {
+      "arm": "baseline",
+      "round": 0,
+      "phase": "unchanged",
+      "elapsedMs": 159.38233300000002,
+      "maxRSSKiB": 74656,
+      "memory": {
+        "rss": 76447744,
+        "heapTotal": 20627456,
+        "heapUsed": 12582800,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 0,
+      "phase": "unchanged",
+      "elapsedMs": 110.65670799999998,
+      "maxRSSKiB": 74336,
+      "memory": {
+        "rss": 76136448,
+        "heapTotal": 20627456,
+        "heapUsed": 12632256,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 1,
+      "phase": "unchanged",
+      "elapsedMs": 63.474458,
+      "maxRSSKiB": 74816,
+      "memory": {
+        "rss": 76627968,
+        "heapTotal": 20627456,
+        "heapUsed": 12817696,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 1,
+      "phase": "unchanged",
+      "elapsedMs": 77.620542,
+      "maxRSSKiB": 75376,
+      "memory": {
+        "rss": 77201408,
+        "heapTotal": 20365312,
+        "heapUsed": 12577640,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 2,
+      "phase": "unchanged",
+      "elapsedMs": 81.83895799999999,
+      "maxRSSKiB": 74624,
+      "memory": {
+        "rss": 76414976,
+        "heapTotal": 20627456,
+        "heapUsed": 12585352,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 2,
+      "phase": "unchanged",
+      "elapsedMs": 77.355875,
+      "maxRSSKiB": 75136,
+      "memory": {
+        "rss": 76955648,
+        "heapTotal": 20889600,
+        "heapUsed": 12594056,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 3,
+      "phase": "unchanged",
+      "elapsedMs": 77.67279099999999,
+      "maxRSSKiB": 74656,
+      "memory": {
+        "rss": 76464128,
+        "heapTotal": 20627456,
+        "heapUsed": 12812984,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 3,
+      "phase": "unchanged",
+      "elapsedMs": 77.1175,
+      "maxRSSKiB": 74336,
+      "memory": {
+        "rss": 76136448,
+        "heapTotal": 20627456,
+        "heapUsed": 12800112,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 4,
+      "phase": "unchanged",
+      "elapsedMs": 82.35224999999998,
+      "maxRSSKiB": 75136,
+      "memory": {
+        "rss": 76955648,
+        "heapTotal": 20889600,
+        "heapUsed": 12577768,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 4,
+      "phase": "unchanged",
+      "elapsedMs": 76.521959,
+      "maxRSSKiB": 74800,
+      "memory": {
+        "rss": 76595200,
+        "heapTotal": 20627456,
+        "heapUsed": 12817664,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 5,
+      "phase": "unchanged",
+      "elapsedMs": 84.445667,
+      "maxRSSKiB": 74832,
+      "memory": {
+        "rss": 76627968,
+        "heapTotal": 20889600,
+        "heapUsed": 12810336,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 5,
+      "phase": "unchanged",
+      "elapsedMs": 77.37825000000001,
+      "maxRSSKiB": 74656,
+      "memory": {
+        "rss": 76464128,
+        "heapTotal": 20627456,
+        "heapUsed": 12803040,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 6,
+      "phase": "unchanged",
+      "elapsedMs": 78.347375,
+      "maxRSSKiB": 75600,
+      "memory": {
+        "rss": 77414400,
+        "heapTotal": 20627456,
+        "heapUsed": 12586800,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 6,
+      "phase": "unchanged",
+      "elapsedMs": 85.96791700000001,
+      "maxRSSKiB": 75376,
+      "memory": {
+        "rss": 77185024,
+        "heapTotal": 20627456,
+        "heapUsed": 12620608,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 7,
+      "phase": "unchanged",
+      "elapsedMs": 62.244666,
+      "maxRSSKiB": 74944,
+      "memory": {
+        "rss": 76742656,
+        "heapTotal": 20889600,
+        "heapUsed": 12623376,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 7,
+      "phase": "unchanged",
+      "elapsedMs": 78.64408300000001,
+      "maxRSSKiB": 74384,
+      "memory": {
+        "rss": 76169216,
+        "heapTotal": 20889600,
+        "heapUsed": 12590088,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 8,
+      "phase": "unchanged",
+      "elapsedMs": 76.336084,
+      "maxRSSKiB": 74032,
+      "memory": {
+        "rss": 75808768,
+        "heapTotal": 20365312,
+        "heapUsed": 12577728,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 8,
+      "phase": "unchanged",
+      "elapsedMs": 76.751834,
+      "maxRSSKiB": 74496,
+      "memory": {
+        "rss": 76300288,
+        "heapTotal": 20627456,
+        "heapUsed": 12814584,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 9,
+      "phase": "unchanged",
+      "elapsedMs": 85.491833,
+      "maxRSSKiB": 74816,
+      "memory": {
+        "rss": 76627968,
+        "heapTotal": 20889600,
+        "heapUsed": 12816160,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 9,
+      "phase": "unchanged",
+      "elapsedMs": 57.700250000000004,
+      "maxRSSKiB": 73984,
+      "memory": {
+        "rss": 75776000,
+        "heapTotal": 20627456,
+        "heapUsed": 12795088,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 10,
+      "phase": "unchanged",
+      "elapsedMs": 74.1465,
+      "maxRSSKiB": 74496,
+      "memory": {
+        "rss": 76283904,
+        "heapTotal": 20627456,
+        "heapUsed": 12800232,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 10,
+      "phase": "unchanged",
+      "elapsedMs": 79.41370799999999,
+      "maxRSSKiB": 75024,
+      "memory": {
+        "rss": 76840960,
+        "heapTotal": 20889600,
+        "heapUsed": 12633472,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "candidate",
+      "round": 11,
+      "phase": "unchanged",
+      "elapsedMs": 99.393833,
+      "maxRSSKiB": 74864,
+      "memory": {
+        "rss": 76660736,
+        "heapTotal": 20365312,
+        "heapUsed": 12591936,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    },
+    {
+      "arm": "baseline",
+      "round": 11,
+      "phase": "unchanged",
+      "elapsedMs": 55.706708,
+      "maxRSSKiB": 74080,
+      "memory": {
+        "rss": 75857920,
+        "heapTotal": 20627456,
+        "heapUsed": 12586568,
+        "external": 2563168,
+        "arrayBuffers": 41519
+      },
+      "counters": {
+        "files": 0,
+        "nativeMs": 0,
+        "materializeMs": 0,
+        "bytes": 0
+      },
+      "parsed": 0,
+      "reused": 8,
+      "nodes": 206,
+      "edges": 378,
+      "graphHash": "0be9643a764798442f8f1cc2dcdb528fb4670f4c0ff3823345131a536146150a",
+      "lexicalHash": "3bddf3233d3eabe4d5d987edc586271daf49598aad5940ca78f25284a559b3c9"
+    }
+  ],
+  "summary": {
+    "baselineMs": 77.499396,
+    "candidateMs": 78.54324949999999,
+    "reduction": -0.013469182392079393,
+    "exactGraphAndIndexParity": true,
+    "initialGateChanged": false,
+    "offlineGuardEmpty": true
+  }
+}

@@ -1,0 +1,543 @@
+{
+  "version": 1,
+  "reportSha256": "32d3f12132d27b5ff6054aadc21f105592e1dc70a77d2a2bde1f5dca8f5649eb",
+  "gate": {
+    "exactExtractionGraphIndexAndQueryParity": true,
+    "minRealFullBuildReduction": 0.2,
+    "maxIncrementalRegression": 0.1,
+    "maxWarmQueryRegression": 0.1,
+    "maxBuildPeakRSSRegression": 0.1,
+    "meaning": "Local pilot gate for further hybrid development, not release approval or evidence for a full rewrite. Medians across four fresh workers per arm, rotated order."
+  },
+  "corpora": [
+    {
+      "id": "julius",
+      "files": 173,
+      "nodes": 2201,
+      "edges": 5766,
+      "exactExtractionCases": 186,
+      "queryCasesPerRound": 28,
+      "build": {
+        "full": {
+          "elapsedMs": {
+            "baseline": 1389.4825624999999,
+            "candidate": 484.73420849999997,
+            "reduction": 0.6511404881340495,
+            "speedup": 2.8664834008718407,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 1591.2310005,
+            "candidate": 596.2986460000011,
+            "reduction": 0.6252595344028422,
+            "speedup": 2.6685135228363355,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 272584,
+            "candidate": 168216,
+            "reduction": 0.3828838082939571,
+            "speedup": 1.6204403861701622,
+            "observationsPerArm": 4
+          }
+        },
+        "unchanged": {
+          "elapsedMs": {
+            "baseline": 227.846396,
+            "candidate": 232.368729,
+            "reduction": -0.019848165603637558,
+            "speedup": 0.9805381170716823,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 357.4324164999998,
+            "candidate": 362.8036039999997,
+            "reduction": -0.015027141501587682,
+            "speedup": 0.985195330363918,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 165480,
+            "candidate": 165496,
+            "reduction": -0.00009668842156140833,
+            "speedup": 0.9999033209261855,
+            "observationsPerArm": 4
+          }
+        },
+        "one-file-edit": {
+          "elapsedMs": {
+            "baseline": 234.62454150000002,
+            "candidate": 221.1593545,
+            "reduction": 0.057390360419734776,
+            "speedup": 1.0608845464865924,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 359.2959165000011,
+            "candidate": 355.10504200000014,
+            "reduction": 0.011664130616416135,
+            "speedup": 1.0118017882156711,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 166760,
+            "candidate": 167320,
+            "reduction": -0.0033581194531062675,
+            "speedup": 0.9966531197704996,
+            "observationsPerArm": 4
+          }
+        },
+        "addition": {
+          "elapsedMs": {
+            "baseline": 234.2303125,
+            "candidate": 219.9297915,
+            "reduction": 0.06105324647082133,
+            "speedup": 1.0650231189802224,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 353.1700624999994,
+            "candidate": 368.2490835000008,
+            "reduction": -0.04269620390035578,
+            "speedup": 0.959052115332688,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 165000,
+            "candidate": 167216,
+            "reduction": -0.013430303030303126,
+            "speedup": 0.9867476796478806,
+            "observationsPerArm": 4
+          }
+        },
+        "deletion": {
+          "elapsedMs": {
+            "baseline": 231.59897899999999,
+            "candidate": 222.86312500000003,
+            "reduction": 0.037719743142736184,
+            "speedup": 1.0391982926740346,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 355.7926669999997,
+            "candidate": 352.03422950000004,
+            "reduction": 0.010563560884181089,
+            "speedup": 1.0106763410630206,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 167080,
+            "candidate": 168024,
+            "reduction": -0.005649988029686304,
+            "speedup": 0.9943817549873828,
+            "observationsPerArm": 4
+          }
+        }
+      },
+      "warm": {
+        "baseline": 5.7951664999999934,
+        "candidate": 5.800708500000042,
+        "reduction": -0.0009563141973656375,
+        "speedup": 0.9990445994657294,
+        "observationsPerArm": 200
+      },
+      "queryRSSKiB": {
+        "baseline": 211576,
+        "candidate": 210328,
+        "reduction": 0.005898589632094331,
+        "speedup": 1.0059335894412536,
+        "observationsPerArm": 4
+      },
+      "cli": {
+        "elapsedMs": {
+          "baseline": 158.71918749999713,
+          "candidate": 149.81656250000015,
+          "reduction": 0.05609041439931228,
+          "speedup": 1.0594235033259223,
+          "observationsPerArm": 8
+        },
+        "maxRSSKiB": {
+          "baseline": 143920,
+          "candidate": 144304,
+          "reduction": -0.0026681489716509077,
+          "speedup": 0.9973389511032266,
+          "observationsPerArm": 8
+        }
+      },
+      "mcp": {
+        "baseline": 42.938666500002,
+        "candidate": 42.67364550000275,
+        "reduction": 0.0061720826844783305,
+        "speedup": 1.0062104138724035,
+        "observationsPerArm": 6
+      },
+      "gates": {
+        "fullBuild": true,
+        "incremental": true,
+        "warmQuery": true,
+        "buildPeakRSS": true
+      },
+      "rustFullCountersMedian": {
+        "files": 173,
+        "nativeMs": 229.49970299999978,
+        "materializeMs": 29.909163499999984,
+        "bytes": 718206
+      }
+    },
+    {
+      "id": "commander",
+      "files": 8,
+      "nodes": 206,
+      "edges": 378,
+      "exactExtractionCases": 21,
+      "queryCasesPerRound": 24,
+      "build": {
+        "full": {
+          "elapsedMs": {
+            "baseline": 125.27489600000001,
+            "candidate": 61.0265,
+            "reduction": 0.512859304229636,
+            "speedup": 2.0527950316665713,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 198.70264600000155,
+            "candidate": 132.88200000000143,
+            "reduction": 0.33125198544160106,
+            "speedup": 1.4953315422705815,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 88056,
+            "candidate": 78120,
+            "reduction": 0.1128372853638594,
+            "speedup": 1.127188940092166,
+            "observationsPerArm": 4
+          }
+        },
+        "unchanged": {
+          "elapsedMs": {
+            "baseline": 60.4383545,
+            "candidate": 73.5454585,
+            "reduction": -0.21686732056876212,
+            "speedup": 0.821782279051262,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 129.31014549999963,
+            "candidate": 141.89183350000167,
+            "reduction": -0.09729853718246773,
+            "speedup": 0.9113290195097671,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 74160,
+            "candidate": 74560,
+            "reduction": -0.005393743257820827,
+            "speedup": 0.9946351931330472,
+            "observationsPerArm": 4
+          }
+        },
+        "one-file-edit": {
+          "elapsedMs": {
+            "baseline": 76.335958,
+            "candidate": 71.1765625,
+            "reduction": 0.06758801009610704,
+            "speedup": 1.0724872811889448,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 145.14016699999775,
+            "candidate": 145.18652099999963,
+            "reduction": -0.00031937402967074924,
+            "speedup": 0.9996807279375344,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 75280,
+            "candidate": 75456,
+            "reduction": -0.002337938363443204,
+            "speedup": 0.9976675148430874,
+            "observationsPerArm": 4
+          }
+        },
+        "addition": {
+          "elapsedMs": {
+            "baseline": 77.444625,
+            "candidate": 76.2103955,
+            "reduction": 0.015936929128393285,
+            "speedup": 1.0161950281441592,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 144.63489549999576,
+            "candidate": 151.57395850000103,
+            "reduction": -0.047976409676359744,
+            "speedup": 0.9542199526312086,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 75264,
+            "candidate": 75552,
+            "reduction": -0.003826530612244916,
+            "speedup": 0.9961880559085133,
+            "observationsPerArm": 4
+          }
+        },
+        "deletion": {
+          "elapsedMs": {
+            "baseline": 74.841208,
+            "candidate": 66.587459,
+            "reduction": 0.1102834817952163,
+            "speedup": 1.1239535060198047,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 142.0468535,
+            "candidate": 134.32968749999782,
+            "reduction": 0.05432831358001311,
+            "speedup": 1.0574494450454395,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 74176,
+            "candidate": 74856,
+            "reduction": -0.009167385677308015,
+            "speedup": 0.9909158918456771,
+            "observationsPerArm": 4
+          }
+        }
+      },
+      "warm": {
+        "baseline": 0.8153330000000096,
+        "candidate": 0.8582290000000086,
+        "reduction": -0.052611632302382416,
+        "speedup": 0.9500180021882288,
+        "observationsPerArm": 200
+      },
+      "queryRSSKiB": {
+        "baseline": 85392,
+        "candidate": 85744,
+        "reduction": -0.004122166010867456,
+        "speedup": 0.9958947564844187,
+        "observationsPerArm": 4
+      },
+      "cli": {
+        "elapsedMs": {
+          "baseline": 95.63133349999771,
+          "candidate": 97.6850415000008,
+          "reduction": -0.021475262603162903,
+          "speedup": 0.9789762284125858,
+          "observationsPerArm": 8
+        },
+        "maxRSSKiB": {
+          "baseline": 96472,
+          "candidate": 96656,
+          "reduction": -0.0019072891616220833,
+          "speedup": 0.9980963416652872,
+          "observationsPerArm": 8
+        }
+      },
+      "mcp": {
+        "baseline": 33.00029150000046,
+        "candidate": 23.213979500000278,
+        "reduction": 0.29655228954568613,
+        "speedup": 1.4215697700603234,
+        "observationsPerArm": 6
+      },
+      "gates": {
+        "fullBuild": true,
+        "incremental": false,
+        "warmQuery": true,
+        "buildPeakRSS": true
+      },
+      "rustFullCountersMedian": {
+        "files": 8,
+        "nativeMs": 12.636959000000012,
+        "materializeMs": 3.5196875000000034,
+        "bytes": 57280
+      }
+    },
+    {
+      "id": "synthetic-large",
+      "files": 1003,
+      "nodes": 13010,
+      "edges": 25007,
+      "exactExtractionCases": 1016,
+      "queryCasesPerRound": 24,
+      "build": {
+        "full": {
+          "elapsedMs": {
+            "baseline": 2430.5595000000003,
+            "candidate": 1031.816521,
+            "reduction": 0.5754818917208158,
+            "speedup": 2.355612117592756,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 2762.4918119999966,
+            "candidate": 1213.4287709999917,
+            "reduction": 0.5607484642202468,
+            "speedup": 2.2765998944655115,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 418808,
+            "candidate": 276232,
+            "reduction": 0.3404328475100762,
+            "speedup": 1.5161458484172725,
+            "observationsPerArm": 4
+          }
+        },
+        "unchanged": {
+          "elapsedMs": {
+            "baseline": 687.6867705000001,
+            "candidate": 673.0573745,
+            "reduction": 0.021273342206893697,
+            "speedup": 1.021735733912533,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 892.75902149998,
+            "candidate": 878.0202079999945,
+            "reduction": 0.016509285423094266,
+            "speedup": 1.0167864171754755,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 283376,
+            "candidate": 284024,
+            "reduction": -0.0022867144712326315,
+            "speedup": 0.9977185026617469,
+            "observationsPerArm": 4
+          }
+        },
+        "one-file-edit": {
+          "elapsedMs": {
+            "baseline": 680.7685415,
+            "candidate": 711.5182705,
+            "reduction": -0.045169139179443096,
+            "speedup": 0.9567829382956091,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 887.1879579999986,
+            "candidate": 919.9607505000022,
+            "reduction": -0.03694007814745781,
+            "speedup": 0.9643758796424832,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 284576,
+            "candidate": 283816,
+            "reduction": 0.0026706398290790023,
+            "speedup": 1.002677791245032,
+            "observationsPerArm": 4
+          }
+        },
+        "addition": {
+          "elapsedMs": {
+            "baseline": 657.7315834999999,
+            "candidate": 693.2772915,
+            "reduction": -0.054042878419871654,
+            "speedup": 0.9487280076301186,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 866.3565834999936,
+            "candidate": 902.7510415000033,
+            "reduction": -0.04200863558164447,
+            "speedup": 0.9596849448774526,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 283072,
+            "candidate": 286136,
+            "reduction": -0.010824101288718024,
+            "speedup": 0.989291805295384,
+            "observationsPerArm": 4
+          }
+        },
+        "deletion": {
+          "elapsedMs": {
+            "baseline": 698.9229995000001,
+            "candidate": 674.556125,
+            "reduction": 0.034863460663666634,
+            "speedup": 1.0361228274370797,
+            "observationsPerArm": 4
+          },
+          "processElapsedMs": {
+            "baseline": 912.9408540000004,
+            "candidate": 879.2199790000086,
+            "reduction": 0.03693653849780698,
+            "speedup": 1.038353171908519,
+            "observationsPerArm": 4
+          },
+          "maxRSSKiB": {
+            "baseline": 281064,
+            "candidate": 284248,
+            "reduction": -0.011328380724674902,
+            "speedup": 0.9887985139737131,
+            "observationsPerArm": 4
+          }
+        }
+      },
+      "warm": {
+        "baseline": 52.6756670000002,
+        "candidate": 52.27116699999988,
+        "reduction": 0.0076790674525359925,
+        "speedup": 1.0077384918534595,
+        "observationsPerArm": 200
+      },
+      "queryRSSKiB": {
+        "baseline": 455360,
+        "candidate": 459928,
+        "reduction": -0.010031623330990946,
+        "speedup": 0.9900680106451445,
+        "observationsPerArm": 4
+      },
+      "cli": {
+        "elapsedMs": {
+          "baseline": 274.71322950001195,
+          "candidate": 264.62735399999656,
+          "reduction": 0.03671419654005037,
+          "speedup": 1.0381135031868833,
+          "observationsPerArm": 8
+        },
+        "maxRSSKiB": {
+          "baseline": 217256,
+          "candidate": 216496,
+          "reduction": 0.0034981772655300336,
+          "speedup": 1.0035104574680365,
+          "observationsPerArm": 8
+        }
+      },
+      "mcp": {
+        "baseline": 88.92014600000402,
+        "candidate": 87.4352915000054,
+        "reduction": 0.01669874113790315,
+        "speedup": 1.016982324579984,
+        "observationsPerArm": 6
+      },
+      "gates": {
+        "fullBuild": true,
+        "incremental": true,
+        "warmQuery": true,
+        "buildPeakRSS": true
+      },
+      "rustFullCountersMedian": {
+        "files": 1003,
+        "nativeMs": 344.78540100000055,
+        "materializeMs": 51.42834749999997,
+        "bytes": 2155133
+      }
+    }
+  ],
+  "allGatesPass": false,
+  "validation": {
+    "productionSourceUnchanged": true,
+    "frozenRuntimeUnchanged": true,
+    "nativeBinaryUnchanged": true,
+    "offlineGuardEmpty": true
+  }
+}

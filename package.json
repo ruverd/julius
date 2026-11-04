@@ -46,7 +46,13 @@
     "PROVENANCE.md",
     "docs/upstream-changelog.md",
     "docs/assets/julius-hero.png",
-    "docs/assets/context-benchmark.svg"
+    "docs/assets/context-benchmark.svg",
+    "native/extractor/Cargo.toml",
+    "native/extractor/Cargo.lock",
+    "native/extractor/build.rs",
+    "native/extractor/build.mjs",
+    "native/extractor/src/lib.rs",
+    "docs/hybrid-extractor.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc -p viewer/tsconfig.json && node scripts/build-viewer.mjs",
@@ -58,7 +64,8 @@
     "release:check": "node scripts/check-release.mjs",
     "release:smoke": "node scripts/smoke-package.mjs",
     "release:publish": "node scripts/publish-release.mjs",
-    "benchmark:economy": "node scripts/benchmark-economy.mjs"
+    "benchmark:economy": "node scripts/benchmark-economy.mjs",
+    "build:native": "node native/extractor/build.mjs"
   },
   "engines": {
     "node": ">=20"
