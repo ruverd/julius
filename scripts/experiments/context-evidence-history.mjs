@@ -49,6 +49,45 @@ const manifest = [
   },
 ];
 
+// These cases were pinned before running the directed-recovery implementation.
+const holdout = [
+  {
+    project: 'julius', pr: 32, sha: 'db02ae2d721a0e5f3fbfa39eaff607f3d2929788',
+    name: 'prepared-docs-hit', budget: 300,
+    query: 'What does preparedAskDocs return on a cache hit?',
+    facts: [source('src/ask/prepared-index.ts', 15, 'if (cached) return cached')],
+  },
+  {
+    project: 'julius', pr: 30, sha: '22d09249ffcf17178c53998fc0849d95c417db93',
+    name: 'verified-index-reuse', budget: 450,
+    query: 'What did the investigation decision say about verification and index reuse, and how does loadVerifiedGraph check configurationHash and source hashes?',
+    facts: [source('.julius/learnings/2026-10-23-reuse-verified-indexes-and-defer-provider-ruver.md', 20, 'Reuse that proof independently of report-cache presence'),
+      source('src/investigation/index.ts', 95, 'verification.configurationHash !== snapshot.configurationHash'),
+      source('src/investigation/index.ts', 97, 'Object.entries(snapshot.hashes).every')],
+  },
+  {
+    project: 'julius', pr: 33, sha: 'fa969f05e0f4d26a8b1f4bffb5ba39884af9a6c4',
+    name: 'exact-tool-and-fallback-guidance', budget: 256,
+    query: 'In src/claude/skill-template.ts, give the exact When julius isn\'t enough fallback passage and the complete julius_call tool guidance that follows it.',
+    passages: [{ path: 'src/claude/skill-template.ts', from: 288, to: 300 }],
+  },
+  {
+    project: 'bulma', pr: 83, sha: '7303a61b9fa64575b8f8f1cd5cd8844b9992c069',
+    name: 'review-reference-validation', budget: 400,
+    query: 'In skills/bulma-lstm/scripts/review-actions.py, which guards reject a review ID from plan(state) and plan(live) before dismissal?',
+    facts: [source('skills/bulma-lstm/scripts/review-actions.py', 62, "review_id not in plan(state)['dismiss']"),
+      source('skills/bulma-lstm/scripts/review-actions.py', 78, "review_id not in plan(live)['dismiss']")],
+    wrongReference: 'skills/bulma-lstm/scripts/review-action.py',
+  },
+  {
+    project: 'bulma', pr: 85, sha: '22d0ef8d1501770812b3aef2bef95ebafe857ed5',
+    name: 'ambiguous-model-attribution', budget: 300,
+    query: 'When does model_identity.identity omit model attribution for ambiguous records?',
+    facts: [source('skills/bulma-host/scripts/model_identity.py', 15, "value.get('ambiguous') is True"),
+      source('skills/bulma-host/scripts/model_identity.py', 16, 'return {}')],
+  },
+];
+
 export const historicalPlan = {
   shortQueryWordLimit: 15,
   recoveryBudget: 700,
@@ -56,16 +95,24 @@ export const historicalPlan = {
   minimumNewlyComplete: 2,
 };
 
-export function historicalCases(juliusRepo, bulmaRepo) {
+export function historicalCases(juliusRepo, bulmaRepo, useHoldout = false) {
   const repositories = { julius: resolve(juliusRepo), bulma: resolve(bulmaRepo) };
-  return manifest.map(fixture => {
+  return (useHoldout ? holdout : manifest).map(fixture => {
     const repo = repositories[fixture.project];
-    const facts = fixture.facts.map(({ path, line, contains }) => {
-      const blob = execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8' });
+    const read = path => execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8', env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });
+    const facts = (fixture.facts ?? []).map(({ path, line, contains }) => {
+      const blob = read(path);
       const text = blob.split('\n')[line - 1];
       assert.ok(text?.includes(contains), `Invalid oracle ${fixture.project}#${fixture.pr} ${path}:${line}`);
       return { path, line, text };
     });
-    return { ...fixture, repo, facts, historical: true };
+    for (const { path, from, to } of fixture.passages ?? []) {
+      const lines = read(path).split('\n').slice(from - 1, to);
+      assert.equal(lines.length, to - from + 1);
+      for (let index = 0; index < lines.length; index++) {
+        if (lines[index].trim()) facts.push({ path, line: from + index, text: lines[index] });
+      }
+    }
+    return { ...fixture, repo, facts, historical: true, holdout: useHoldout };
   });
 }
