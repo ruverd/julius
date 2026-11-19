@@ -6,6 +6,10 @@ tokens fell 11.3% against the default mode in the same build and 10.1%
 against unmodified `main`. The case requiring recovery of a long exact line
 used 11.0% more estimated tokens than the same-build default.
 
+The [historical replay](context-evidence-history.md) tested six merged PRs
+from Julius and Bulma. It recovered more exact facts and used more traffic.
+It failed the promotion gate.
+
 ## Method
 
 Run `npm run build` followed by
