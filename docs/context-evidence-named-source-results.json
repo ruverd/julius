@@ -1,0 +1,421 @@
+{
+  "encoding": "cl100k_base",
+  "providerUsage": null,
+  "providerCost": null,
+  "agentLatency": null,
+  "defaultRevision": "6b22b95e6c28c2c9d11118b73464f6955f179e2d",
+  "priorRevision": "2903c86c51198aa6009b1ba9479cc00f189bc668",
+  "candidateRevision": "7d8b89a79b764887004ba481a5b8ac5564751d6b",
+  "recoveryBudget": 700,
+  "results": [
+    {
+      "name": "legacy-trail-launch-shapes",
+      "project": "julius",
+      "pr": 16,
+      "revision": "6b5ecee7ebc507fda206450c1bcc2695e35b3ee5",
+      "budget": 300,
+      "facts": [
+        {
+          "path": "src/hosts/install.ts",
+          "line": 124
+        },
+        {
+          "path": "src/hosts/install.ts",
+          "line": 125
+        }
+      ],
+      "arms": {
+        "default": {
+          "firstFactIds": [],
+          "finalFactIds": [
+            0,
+            1
+          ],
+          "totalTokens": 2084,
+          "calls": 5,
+          "protocolBytes": 7769,
+          "verifiedRecoveryBytes": 0
+        },
+        "prior": {
+          "firstFactIds": [
+            0,
+            1
+          ],
+          "finalFactIds": [
+            0,
+            1
+          ],
+          "totalTokens": 1330,
+          "calls": 3,
+          "protocolBytes": 5444,
+          "verifiedRecoveryBytes": 0
+        },
+        "lines": {
+          "firstFactIds": [
+            0,
+            1
+          ],
+          "finalFactIds": [
+            0,
+            1
+          ],
+          "totalTokens": 1342,
+          "calls": 3,
+          "protocolBytes": 5484,
+          "verifiedRecoveryBytes": 0
+        },
+        "focused": {
+          "firstFactIds": [
+            0,
+            1
+          ],
+          "finalFactIds": [
+            0,
+            1
+          ],
+          "totalTokens": 1318,
+          "calls": 3,
+          "protocolBytes": 5396,
+          "verifiedRecoveryBytes": 0
+        }
+      }
+    },
+    {
+      "name": "release-version-consistency",
+      "project": "julius",
+      "pr": 27,
+      "revision": "ccc375cfd81a0f560abfc79f6b0684284cc66bf4",
+      "budget": 300,
+      "facts": [
+        {
+          "path": "scripts/check-release.mjs",
+          "line": 14
+        },
+        {
+          "path": "scripts/check-release.mjs",
+          "line": 16
+        },
+        {
+          "path": "scripts/check-release.mjs",
+          "line": 17
+        }
+      ],
+      "arms": {
+        "default": {
+          "firstFactIds": [],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 2777,
+          "calls": 6,
+          "protocolBytes": 10242,
+          "verifiedRecoveryBytes": 0
+        },
+        "prior": {
+          "firstFactIds": [
+            1,
+            2
+          ],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 4167,
+          "calls": 7,
+          "protocolBytes": 15304,
+          "verifiedRecoveryBytes": 1965
+        },
+        "lines": {
+          "firstFactIds": [
+            1,
+            2
+          ],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 3871,
+          "calls": 7,
+          "protocolBytes": 13975,
+          "verifiedRecoveryBytes": 1965
+        },
+        "focused": {
+          "firstFactIds": [
+            1,
+            2
+          ],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 2460,
+          "calls": 5,
+          "protocolBytes": 9289,
+          "verifiedRecoveryBytes": 1236
+        }
+      }
+    },
+    {
+      "name": "thread-blocking-decision-and-check",
+      "project": "bulma",
+      "pr": 84,
+      "revision": "cd41bb1a009ebeccd9a06aaccdd210669460b173",
+      "budget": 375,
+      "facts": [
+        {
+          "path": ".julius/learnings/2026-11-17-gate-approvals-on-blocking-review-evidence-ruver.md",
+          "line": 14
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/gate.py",
+          "line": 131
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/gate.py",
+          "line": 134
+        }
+      ],
+      "arms": {
+        "default": {
+          "firstFactIds": [],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 3562,
+          "calls": 8,
+          "protocolBytes": 13560,
+          "verifiedRecoveryBytes": 0
+        },
+        "prior": {
+          "firstFactIds": [
+            0
+          ],
+          "finalFactIds": [
+            0
+          ],
+          "totalTokens": 4577,
+          "calls": 9,
+          "protocolBytes": 17544,
+          "verifiedRecoveryBytes": 3124
+        },
+        "lines": {
+          "firstFactIds": [
+            0
+          ],
+          "finalFactIds": [
+            0
+          ],
+          "totalTokens": 4366,
+          "calls": 9,
+          "protocolBytes": 16625,
+          "verifiedRecoveryBytes": 3124
+        },
+        "focused": {
+          "firstFactIds": [
+            0
+          ],
+          "finalFactIds": [
+            0,
+            1,
+            2
+          ],
+          "totalTokens": 3574,
+          "calls": 6,
+          "protocolBytes": 13389,
+          "verifiedRecoveryBytes": 2641
+        }
+      }
+    },
+    {
+      "name": "acceptance-finding-body-guard",
+      "project": "bulma",
+      "pr": 82,
+      "revision": "ea6d280f87a2a0223d8a26c3c9b2cd8a361a6af9",
+      "budget": 300,
+      "facts": [
+        {
+          "path": "skills/bulma-code-review/scripts/bind-findings.py",
+          "line": 105
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/bind-findings.py",
+          "line": 106
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/bind-findings.py",
+          "line": 107
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/bind-findings.py",
+          "line": 108
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/bind-findings.py",
+          "line": 109
+        }
+      ],
+      "arms": {
+        "default": {
+          "firstFactIds": [],
+          "finalFactIds": [
+            0,
+            1,
+            2
+          ],
+          "totalTokens": 3215,
+          "calls": 8,
+          "protocolBytes": 11952,
+          "verifiedRecoveryBytes": 0
+        },
+        "prior": {
+          "firstFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "finalFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "totalTokens": 1329,
+          "calls": 3,
+          "protocolBytes": 5481,
+          "verifiedRecoveryBytes": 0
+        },
+        "lines": {
+          "firstFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "finalFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "totalTokens": 1341,
+          "calls": 3,
+          "protocolBytes": 5521,
+          "verifiedRecoveryBytes": 0
+        },
+        "focused": {
+          "firstFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "finalFactIds": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "totalTokens": 1346,
+          "calls": 3,
+          "protocolBytes": 5548,
+          "verifiedRecoveryBytes": 0
+        }
+      }
+    },
+    {
+      "name": "very-large-diff-triggers",
+      "project": "bulma",
+      "pr": 80,
+      "revision": "f6a97318038a62cc017127556467a01da3ebfc45",
+      "budget": 300,
+      "facts": [
+        {
+          "path": "skills/bulma-code-review/scripts/batch-plan.py",
+          "line": 56
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/batch-plan.py",
+          "line": 58
+        },
+        {
+          "path": "skills/bulma-code-review/scripts/batch-plan.py",
+          "line": 60
+        }
+      ],
+      "arms": {
+        "default": {
+          "firstFactIds": [],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 3449,
+          "calls": 7,
+          "protocolBytes": 12407,
+          "verifiedRecoveryBytes": 0
+        },
+        "prior": {
+          "firstFactIds": [
+            1,
+            2
+          ],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 2499,
+          "calls": 5,
+          "protocolBytes": 9607,
+          "verifiedRecoveryBytes": 826
+        },
+        "lines": {
+          "firstFactIds": [
+            1,
+            2
+          ],
+          "finalFactIds": [
+            1,
+            2,
+            0
+          ],
+          "totalTokens": 2370,
+          "calls": 5,
+          "protocolBytes": 9017,
+          "verifiedRecoveryBytes": 826
+        },
+        "focused": {
+          "firstFactIds": [
+            0,
+            1,
+            2
+          ],
+          "finalFactIds": [
+            0,
+            1,
+            2
+          ],
+          "totalTokens": 1338,
+          "calls": 3,
+          "protocolBytes": 5442,
+          "verifiedRecoveryBytes": 0
+        }
+      }
+    }
+  ]
+}

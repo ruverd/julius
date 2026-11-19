@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const reportUrl = new URL('../docs/strategy/recovery-impact-comparison.json', import.meta.url);
+const evidenceUrl = new URL('../docs/context-evidence-named-source-results.json', import.meta.url);
 const outputUrl = new URL('../docs/assets/context-benchmark.svg', import.meta.url);
 const readmeUrl = new URL('../README.md', import.meta.url);
 const report = JSON.parse(readFileSync(reportUrl, 'utf8'));
@@ -40,6 +41,47 @@ assert.equal(report.codingAccuracy, null);
 assert.match(report.candidate.revision, /^[a-f0-9]{40}$/);
 const revision = report.candidate.revision.slice(0, 7);
 const format = value => value.toLocaleString('en-US');
+const evidence = JSON.parse(readFileSync(evidenceUrl, 'utf8'));
+assert.equal(evidence.encoding, report.encoding);
+assert.equal(evidence.providerUsage, null);
+assert.equal(evidence.providerCost, null);
+assert.equal(evidence.agentLatency, null);
+for (const pin of [evidence.defaultRevision, evidence.priorRevision, evidence.candidateRevision]) {
+  assert.match(pin, /^[a-f0-9]{40}$/);
+}
+const evidenceCases = evidence.results;
+assert.ok(evidenceCases.length > 0);
+assert.equal(new Set(evidenceCases.map(row => row.name)).size, evidenceCases.length);
+const totalFacts = evidenceCases.reduce((sum, row) => sum + row.facts.length, 0);
+const evidenceLanes = ['default', 'prior', 'lines', 'focused'];
+for (const row of evidenceCases) {
+  assert.match(row.revision, /^[a-f0-9]{40}$/);
+  assert.ok(row.facts.length > 0);
+  for (const lane of evidenceLanes) {
+    const arm = row.arms[lane];
+    for (const ids of [arm.firstFactIds, arm.finalFactIds]) {
+      assert.equal(new Set(ids).size, ids.length);
+      assert.ok(ids.every(id => Number.isSafeInteger(id) && id >= 0 && id < row.facts.length));
+    }
+    assert.ok(arm.firstFactIds.every(id => arm.finalFactIds.includes(id)));
+    assert.ok([arm.totalTokens, arm.calls, arm.protocolBytes, arm.verifiedRecoveryBytes]
+      .every(value => Number.isSafeInteger(value) && value >= 0));
+    assert.ok(arm.finalFactIds.every(id => row.arms.focused.finalFactIds.includes(id)));
+  }
+  for (const key of ['firstFactIds', 'finalFactIds', 'calls', 'verifiedRecoveryBytes']) {
+    assert.deepEqual(row.arms.lines[key], row.arms.prior[key]);
+  }
+}
+const evidenceTotals = evidenceLanes.map(lane => ({
+  facts: evidenceCases.reduce((sum, row) => sum + row.arms[lane].finalFactIds.length, 0),
+  firstComplete: evidenceCases.filter(row => row.arms[lane].firstFactIds.length === row.facts.length).length,
+  tokens: evidenceCases.reduce((sum, row) => sum + row.arms[lane].totalTokens, 0),
+  calls: evidenceCases.reduce((sum, row) => sum + row.arms[lane].calls, 0),
+}));
+const [evidenceDefault, evidencePrior, evidenceLines, evidenceFocused] = evidenceTotals;
+const evidenceReduction = (100 * (evidenceDefault.tokens - evidenceFocused.tokens) / evidenceDefault.tokens).toFixed(1);
+assert.ok(evidenceDefault.tokens > evidenceFocused.tokens && evidencePrior.tokens > evidenceFocused.tokens);
+assert.equal(evidenceFocused.facts, totalFacts);
 const difference = ((upstream.tokens - julius.tokens) / upstream.tokens * 100);
 const headline = difference >= 0
   ? `${difference.toFixed(1)}% fewer protocol tokens`
@@ -128,8 +170,37 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="846" vi
   </g>
 </svg>
 `;
-const summary = `**${headline}** in a [recorded offline MCP benchmark](#benchmarks).
-${upstream.tasks.length} task types, three languages, ${upstream.runs} executions per variant. Every declared evidence check passed.`;
+const summary = `**${evidenceReduction}% fewer estimated end-to-end tokens** in a [five-PR historical replay](#opt-in-evidence-on-historical-prs).
+Opt-in evidence recovered **${evidenceFocused.facts}/${totalFacts} pinned facts**, versus ${evidenceDefault.facts}/${totalFacts} on the default path.
+
+A separate [synthetic MCP comparison](#synthetic-mcp-comparison) recorded **${headline.toLowerCase()}**
+across ${upstream.tasks.length} task types and ${upstream.runs} executions per variant.`;
+const evidenceLabels = ['Default (pinned Julius main)', 'Previous evidence pilot', 'Compact transport only', 'Compact transport + focused evidence'];
+const evidenceTable = evidenceTotals.map((arm, index) =>
+  `| ${evidenceLabels[index]} | ${arm.facts}/${totalFacts} | ${arm.firstComplete}/${evidenceCases.length} | ${format(arm.tokens)} | ${arm.calls} |`
+).join('\n');
+const evidenceBenchmark = `Julius replayed the same queries and budgets against ${evidenceCases.length} previously
+unused Julius and Bulma PRs. The opt-in mode recovered every pinned fact,
+including all facts found by each control.
+
+| Mode | Facts recovered | Cases complete on first response | Estimated tokens | Calls |
+| --- | ---: | ---: | ---: | ---: |
+${evidenceTable}
+
+Compact transport alone saved ${format(evidencePrior.tokens - evidenceLines.tokens)} estimated
+tokens while delivering the same verified quotations, citations and calls.
+Focused evidence prioritizes exact identifiers in a named source and preserves
+note-plus-code composition.
+
+Counts estimate offline \`cl100k_base\` traffic for MCP setup, discovery, requests,
+responses and modeled local fallback reads. Call counts exclude setup. Provider
+usage, billing and model-driven agent speed remain unmeasured. Local cold latency
+varied across replays.
+
+[Use the opt-in MCP arguments](docs/compact-mcp.md#experimental-repository-evidence) ·
+[Recorded results](docs/context-evidence-named-source-results.json) ·
+[Reproduction and methodology](docs/context-evidence-history.md#transport-and-focused-scope-replay) ·
+[Measured source](https://github.com/ruverd/julius/commit/${evidence.candidateRevision})`;
 const table = tasks.map(task =>
   `| ${task.label} | ${format(task.upstream)} | ${format(task.julius)} | ${task.reduction.toFixed(1)}% |`
 ).join('\n');
@@ -178,7 +249,7 @@ The [earlier comparison](docs/strategy/performance-comparison.md) remains availa
 Regenerate the summary, tables, and chart with \`node scripts/render-readme-benchmark.mjs\`.
 Verify them with \`node scripts/render-readme-benchmark.mjs --check\`.`;
 let readme = readFileSync(readmeUrl, 'utf8');
-for (const [name, body] of [['summary', summary], ['results', benchmark]]) {
+for (const [name, body] of [['summary', summary], ['evidence', evidenceBenchmark], ['results', benchmark]]) {
   const start = `<!-- benchmark:${name}:start -->`;
   const end = `<!-- benchmark:${name}:end -->`;
   assert.equal(readme.split(start).length, 2, `Expected one ${start}`);

@@ -54,6 +54,10 @@ Ranking and truncation notices are retained.
 
 ## Experimental repository evidence
 
+Julius 0.25.0 or later supports the opt-in calls in this section. Discover
+`julius_find_code` and `context.read` with `julius_discover`, then pass the
+objects below as the arguments to `julius_call`.
+
 Set `evidence: true` on `julius_find_code` to request quoted excerpts from
 current code and active learnings in the checkout:
 
@@ -123,6 +127,18 @@ The same option on a `context.read` evidence query can prioritize exact
 identifiers in a named source and code next to a previously quoted line
 when composing notes and code. Use `exclude` to identify text already
 delivered. Notes remain eligible for composition.
+
+For a targeted search, pass the file and exact identifiers in the question.
+When the first reply provides a handle and leaves evidence to recover, reuse
+the question and exclude any range you already received.
+
+```json
+{"operation":"julius_find_code","args":{"query":"Where does src/harness.ts guard sharedTestState?","evidence":true,"evidenceScope":"auto"},"budget":300}
+```
+
+```json
+{"operation":"context.read","args":{"handle":"sha256:<digest>","evidence":{"query":"Where does src/harness.ts guard sharedTestState?","exclude":[{"source":"src/harness.ts","from":42,"to":44}],"limit":6},"evidenceScope":"auto","format":"lines"},"budget":700}
+```
 
 Source selectors use exact snapshot paths and inclusive line numbers. A
 range must belong to one file or one note section. Use `delivery: "complete"`

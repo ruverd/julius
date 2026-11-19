@@ -26,8 +26,11 @@ After MCP setup, keep asking normal coding questions. The agent discovers and
 calls Julius through two tools.
 
 <!-- benchmark:summary:start -->
-**49.3% fewer protocol tokens** in a [recorded offline MCP benchmark](#benchmarks).
-10 task types, three languages, 90 executions per variant. Every declared evidence check passed.
+**33.5% fewer estimated end-to-end tokens** in a [five-PR historical replay](#opt-in-evidence-on-historical-prs).
+Opt-in evidence recovered **16/16 pinned facts**, versus 14/16 on the default path.
+
+A separate [synthetic MCP comparison](#synthetic-mcp-comparison) recorded **49.3% fewer protocol tokens**
+across 10 task types and 90 executions per variant.
 <!-- benchmark:summary:end -->
 
 ## Install
@@ -49,7 +52,7 @@ julius --version
 
 Restart or reconnect the client's MCP session after updating. Run `julius install`
 again if the Node executable or installed package path changes. To select an
-exact version, use `npm install -g @ruverd/julius@0.24.3`.
+exact version, use `npm install -g @ruverd/julius@0.25.0`.
 
 ### Install from source
 
@@ -58,8 +61,7 @@ git clone https://github.com/ruverd/julius.git
 cd julius
 npm ci
 npm run build
-npm pack --pack-destination .
-npm install -g ./ruverd-julius-0.24.3.tgz
+archive=$(npm pack --silent) && npm install -g "./$archive"
 julius install --dry-run
 julius install
 ```
@@ -108,6 +110,38 @@ can be missing. A dependency is a candidate for investigation, not proof of a
 breakage. See [investigations and limitations](docs/investigations.md).
 
 ## Benchmarks
+
+### Opt-in evidence on historical PRs
+
+<!-- benchmark:evidence:start -->
+Julius replayed the same queries and budgets against 5 previously
+unused Julius and Bulma PRs. The opt-in mode recovered every pinned fact,
+including all facts found by each control.
+
+| Mode | Facts recovered | Cases complete on first response | Estimated tokens | Calls |
+| --- | ---: | ---: | ---: | ---: |
+| Default (pinned Julius main) | 14/16 | 0/5 | 15,087 | 34 |
+| Previous evidence pilot | 14/16 | 2/5 | 13,902 | 27 |
+| Compact transport only | 14/16 | 2/5 | 13,290 | 27 |
+| Compact transport + focused evidence | 16/16 | 3/5 | 10,036 | 20 |
+
+Compact transport alone saved 612 estimated
+tokens while delivering the same verified quotations, citations and calls.
+Focused evidence prioritizes exact identifiers in a named source and preserves
+note-plus-code composition.
+
+Counts estimate offline `cl100k_base` traffic for MCP setup, discovery, requests,
+responses and modeled local fallback reads. Call counts exclude setup. Provider
+usage, billing and model-driven agent speed remain unmeasured. Local cold latency
+varied across replays.
+
+[Use the opt-in MCP arguments](docs/compact-mcp.md#experimental-repository-evidence) ·
+[Recorded results](docs/context-evidence-named-source-results.json) ·
+[Reproduction and methodology](docs/context-evidence-history.md#transport-and-focused-scope-replay) ·
+[Measured source](https://github.com/ruverd/julius/commit/7d8b89a79b764887004ba481a5b8ac5564751d6b)
+<!-- benchmark:evidence:end -->
+
+### Synthetic MCP comparison
 
 <!-- benchmark:results:start -->
 **49.3% fewer protocol tokens**, with all declared evidence checks passing in both variants.

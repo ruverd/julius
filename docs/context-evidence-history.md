@@ -196,3 +196,6 @@ priority before shortlisting evidence. It retains ordinary note composition.
 The final five PRs were pinned separately at `cf519fa`. Use
 `--named-source-holdout` in place of `--transport-holdout` to reproduce that
 independent comparison with the same reference binaries and reader policy.
+The [recorded per-case totals and fact IDs](context-evidence-named-source-results.json)
+drive the historical replay table in the README. The synthetic comparison
+retains its own report, source revision, and traces.
