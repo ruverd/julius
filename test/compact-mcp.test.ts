@@ -7,6 +7,24 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
 import { economyTokens } from '../src/economy/index.js';
+import { searchEvidenceRanges } from '../src/mcp/context-evidence.js';
+
+test('opt-in search connects identifiers to a uniquely named source without changing quoted bytes', () => {
+  const snapshot = Buffer.from([
+    'Repository evidence', '', 'note ".julius/learnings/estimates.md" body L2 under "## Decided"',
+    '| Provider usage and cost estimates belong beside the published report.', '', 'code "scripts/summary.mjs" L1-L4',
+    '| // Provider usage and cost appear elsewhere in the report.',
+    '| assert.equal(report.providerUsage, null);',
+    '| assert.equal(report.providerCost, null);',
+    '| render(report);',
+  ].join('\n'));
+  const [range] = searchEvidenceRanges(snapshot, {
+    query: 'What did the note say about estimates, and how does summary.mjs validate providerUsage and providerCost?',
+    limit: 1,
+  }, true);
+  assert.equal(range?.evidence.path, 'scripts/summary.mjs');
+  assert.ok(range && snapshot.subarray(range.start, range.end).includes('providerUsage, null);\n| assert.equal(report.providerCost'));
+});
 
 export function client(repo: string, full = false, dir?: string) {
   const home = mkdtempSync(join(tmpdir(), 'julius mcp home '));

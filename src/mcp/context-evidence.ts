@@ -96,7 +96,11 @@ function evidenceTerms(text: string): string[] {
   });
 }
 
-function rankPassages(spans: Span[], query: string): Candidate[] {
+function namedIdentifiers(text: string): string[] {
+  return text.match(/\b(?:[a-z]\w*[A-Z]\w*|\w+_\w+)\b/g) ?? [];
+}
+
+function rankPassages(spans: Span[], query: string, requested?: Map<Span, Set<string>>): Candidate[] {
   const terms = new Set(evidenceTerms(query));
   const identifiers = new Set(query.toLowerCase().match(/[\w$]+/g) ?? []);
   const ranked: Candidate[] = [];
@@ -113,7 +117,10 @@ function rankPassages(spans: Span[], query: string): Candidate[] {
       const named = anchors.some(anchor => identifiers.has(anchor.name.toLowerCase()));
       const decision = span.heading?.toLowerCase() === '## decided';
       const affinity = named ? 4 : Number(anchors.length > 0 || decision);
-      const score = 2 * center.size + 1.5 * nearby.size + affinity + Math.min(3, pathMatches) + 1 / (position + 1);
+      const required = requested?.get(span);
+      const exact = required?.size ? new Set(namedIdentifiers(span.lines.slice(start, end).join('\n'))
+        .filter(name => required.has(name))).size : 0;
+      const score = 2 * center.size + 1.5 * nearby.size + affinity + Math.min(3, pathMatches) + 1 / (position + 1) + exact * 12;
       candidates.push({ span, index, start, end, terms: nearby, score });
     }
     candidates.sort((a, b) => b.score - a.score || a.index - b.index);
@@ -262,6 +269,18 @@ export function resolveEvidenceRange(bytes: Buffer, selector: EvidenceSelector):
 
 const NOTE_INTENT = /\b(?:notes?|learnings?|decisions?|documentation)\b/i;
 
+function namedCodeSources(code: Span[], query: string): Span[] {
+  const words = new Set((query.match(/[\w./$-]+/g) ?? []).map(word => word.replace(/\.+$/, '')));
+  const paths = code.filter(span => words.has(span.path));
+  if (paths.length) return paths;
+  const names = new Map<string, Span[]>();
+  for (const span of code) {
+    const name = span.path.split('/').at(-1)!;
+    if (name.includes('.') && words.has(name)) names.set(name, [...(names.get(name) ?? []), span]);
+  }
+  return [...names.values()].filter(matches => matches.length === 1).flat();
+}
+
 export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, joinEvidence = false): RetainedRange[] {
   const { query, source, limit = 5, exclude = [] } = selector;
   if (!query?.trim() || selector.from !== undefined || selector.to !== undefined || exclude.some(item => (item.to ?? item.from) < item.from)) {
@@ -274,7 +293,22 @@ export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, 
   const covered = new Set<string>();
   const contains = (span: Span, index: number) => claimed.some(item => item.source === span.path
     && item.from <= span.first + index && span.first + index <= (item.to ?? item.from));
-  const ranked = rankPassages(spans, query);
+  const requested = new Map<Span, Set<string>>();
+  const identifiers = namedIdentifiers(query);
+  if (joinEvidence && identifiers.length) {
+    for (const span of namedCodeSources(spans.filter(span => span.kind === 'code'), query)) {
+      const missing = new Set(identifiers);
+      for (const previouslyRead of exclude) {
+        if (previouslyRead.source !== span.path) continue;
+        const start = Math.max(0, previouslyRead.from - span.first);
+        const end = Math.min(span.lines.length, (previouslyRead.to ?? previouslyRead.from) - span.first + 1);
+        if (start >= end) continue;
+        for (const name of namedIdentifiers(span.lines.slice(start, end).join('\n'))) missing.delete(name);
+      }
+      requested.set(span, missing);
+    }
+  }
+  const ranked = rankPassages(spans, query, requested);
   const joinNotesAndCode = joinEvidence && NOTE_INTENT.test(query);
   const adjacent = (entry: Candidate) => {
     if (!joinNotesAndCode || entry.span.kind !== 'code') return 0;
@@ -316,13 +350,12 @@ export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, 
 
 function focusedCodeSource(code: Span[], query: string): Span | undefined {
   if (NOTE_INTENT.test(query) || /\b(?:compare|versus|across)\b/i.test(query)) return undefined;
-  const words = new Set(query.match(/[\w./$-]+/g) ?? []);
-  const paths = code.filter(span => words.has(span.path));
+  const paths = namedCodeSources(code, query);
   if (paths.length === 1) return paths[0];
   if (paths.length > 1) return undefined;
 
   const clauses = query.split(/[?;]|\band\s+(?=(?:how|what|when|which|where|why|show|quote)\b)/i).filter(part => part.trim());
-  const mentions = clauses.map(clause => new Set(clause.match(/\b(?:[a-z]\w*[A-Z]\w*|\w+_\w+)\b/g) ?? []));
+  const mentions = clauses.map(clause => new Set(namedIdentifiers(clause)));
   if (mentions.some(names => !names.size)) return undefined;
   const queries = new Set(mentions.flatMap(names => [...names]));
   const matching = code.map(span => {

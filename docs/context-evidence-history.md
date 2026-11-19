@@ -188,3 +188,11 @@ The experiment follows the design principles in [RTK's feature
 reference](https://github.com/rtk-ai/rtk/blob/develop/docs/usage/FEATURES.md),
 [Context Mode's architecture](https://github.com/mksglu/context-mode/blob/main/docs/how-it-works.md),
 and [Aider's budgeted repository map](https://aider.chat/docs/repomap.html).
+
+The first transport holdout became diagnostic after it exposed two missed
+assertions in a named source. Keep its original result for comparison. The
+follow-up gives exact, still-unquoted identifiers in a uniquely named source
+priority before shortlisting evidence. It retains ordinary note composition.
+The final five PRs were pinned separately at `cf519fa`. Use
+`--named-source-holdout` in place of `--transport-holdout` to reproduce that
+independent comparison with the same reference binaries and reader policy.

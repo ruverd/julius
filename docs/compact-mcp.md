@@ -115,13 +115,14 @@ A `more` row carries an explicit byte range for a passage that did not fit.
 A paginated direct range keeps the JSON byte cursor.
 
 Set `evidenceScope: "auto"` beside `evidence: true` to try a focused
-snapshot. An explicit file path, or concrete symbols for every question
+snapshot. An explicit file path or unique basename, or concrete symbols for every question
 clause that resolve to one indexed file, can narrow the snapshot to that
 file. Requests naming notes, decisions, documentation, or comparisons keep
 ordinary evidence composition. The default evidence scope is unchanged.
-The same option on a `context.read` evidence query can prioritize code next
-to a previously quoted line when composing notes and code. Use the normal
-`exclude` ranges to identify text already delivered.
+The same option on a `context.read` evidence query can prioritize exact
+identifiers in a named source and code next to a previously quoted line
+when composing notes and code. Use `exclude` to identify text already
+delivered. Notes remain eligible for composition.
 
 Source selectors use exact snapshot paths and inclusive line numbers. A
 range must belong to one file or one note section. Use `delivery: "complete"`
