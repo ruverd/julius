@@ -88,6 +88,12 @@ request up to eight matches, or `exclude` with up to 16 `source`/`from`/`to`
 ranges already read. A match too large to quote can appear in `more` with
 its citation and offsets for direct recovery.
 
+Search uses the excluded text to rank what remains. It favors evidence for
+less-covered parts of the question and nearby code that completes an
+excerpt. It also weighs the estimated token cost of quoting each passage.
+`limit` is a ceiling. Lower-value matches can be omitted even when room is
+available. Exact source and line requests still recover the specified range.
+
 Source selectors use exact snapshot paths and inclusive line numbers. A
 range must belong to one file or one note section. Use `delivery: "complete"`
 without a budget to read a long range verbatim. The response gives

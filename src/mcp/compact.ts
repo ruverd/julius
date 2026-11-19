@@ -100,7 +100,7 @@ export async function callCompact(root: string, name: string, input: unknown, di
         throw new Error('Evidence selectors cannot be combined with start, end or search');
       }
       if (selector?.query !== undefined) {
-        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector)), isError: false };
+        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector, choice.budget)), isError: false };
       }
       const result = await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start, end, search },
         selector && (bytes => resolveEvidenceRange(bytes, selector)),

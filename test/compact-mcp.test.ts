@@ -7,6 +7,37 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
 import { economyTokens } from '../src/economy/index.js';
+import { searchEvidenceRanges } from '../src/mcp/context-evidence.js';
+
+test('evidence search uses excluded lines to choose the next clause and keeps distinct facts with shared terms', () => {
+  const code = [
+    'const schedulingTimeout = observedTimeout;',
+    'const schedulingTimeoutForActiveWorkers = 450;',
+    'const schedulingTimeoutForIdleWorkers = 900;',
+    '',
+    'function acceptBatch(items) {',
+    '  return items.length <= maxBatchSize;',
+    '}',
+    '',
+    'const schedulingTimeoutForSlowWorkers = currentSchedulingTimeout;',
+    'const maxBatchSize = 20;',
+  ];
+  const snapshot = Buffer.from([
+    'Repository evidence', '', 'code "scheduler.ts" L1-L10', ...code.map(line => `| ${line}`), '',
+    'note ".julius/learnings/check.md" body L2 under "## Decided"',
+    '| Scheduling timeout applies after the worker has joined.',
+  ].join('\n'));
+  const query = 'What scheduling timeout applies to workers, and how many items can a batch accept?';
+  const [fresh] = searchEvidenceRanges(snapshot, { query, limit: 1 }, 400);
+  assert.equal(fresh?.evidence.kind, 'note');
+  const [next] = searchEvidenceRanges(snapshot, { query, limit: 1, exclude: [{ source: 'scheduler.ts', from: 1, to: 3 }] }, 400);
+  assert.equal(next?.evidence.path, 'scheduler.ts');
+  assert.ok(next && snapshot.subarray(next.start, next.end).includes('return items.length'));
+  const [idle] = searchEvidenceRanges(snapshot, {
+    query: 'idle worker scheduling timeout', source: 'scheduler.ts', limit: 1, exclude: [{ source: 'scheduler.ts', from: 1, to: 2 }],
+  }, 400);
+  assert.ok(idle && snapshot.subarray(idle.start, idle.end).includes('schedulingTimeoutForIdleWorkers = 900'));
+});
 
 export function client(repo: string, full = false, dir?: string) {
   const home = mkdtempSync(join(tmpdir(), 'julius mcp home '));

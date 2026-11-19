@@ -17,10 +17,12 @@ const cli = fileURLToPath(new URL('../../dist/bin/julius.js', import.meta.url));
 const onlyBaseline = process.argv.includes('--baseline-only');
 const history = process.argv.includes('--historical');
 const holdout = process.argv.includes('--holdout');
-const directed = holdout || process.argv.includes('--directed');
+const marginalHoldout = process.argv.includes('--marginal-holdout');
+const directed = holdout || marginalHoldout || process.argv.includes('--directed');
 const reverse = process.argv.includes('--reverse');
 const caseName = process.argv.find(arg => arg.startsWith('--case='))?.slice('--case='.length);
 const bulmaRepo = process.argv.find(arg => arg.startsWith('--bulma-repo='))?.slice('--bulma-repo='.length);
+const priorCli = process.argv.find(arg => arg.startsWith('--prior-cli='))?.slice('--prior-cli='.length);
 const scratch = mkdtempSync(join(tmpdir(), 'julius-context-benchmark-'));
 const wire = value => `${JSON.stringify(value)}\n`;
 const count = text => {
@@ -53,8 +55,8 @@ function prepare(fixture, lane) {
   return { repo, env };
 }
 
-async function client(repo, env, run) {
-  const child = spawn(process.execPath, [cli, 'mcp', repo], { cwd: repo, env, stdio: ['pipe', 'pipe', 'pipe'] });
+async function client(repo, env, binary, run) {
+  const child = spawn(process.execPath, [binary, 'mcp', repo], { cwd: repo, env, stdio: ['pipe', 'pipe', 'pipe'] });
   const exited = once(child, 'close');
   const output = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
   const record = [];
@@ -192,8 +194,9 @@ function baselineFacts(text, fixture) {
 
 async function evaluate(fixture, lane) {
   const { repo, env } = prepare(fixture, lane);
-  const pilot = lane === 'pilot';
-  const value = await client(repo, env, async ({ request, notify, record }) => {
+  const pilot = lane !== 'baseline';
+  const binary = lane !== 'pilot' && priorCli ? resolve(priorCli) : cli;
+  const value = await client(repo, env, binary, async ({ request, notify, record }) => {
     const start = performance.now();
     const tool = async (name, args, phase, allowError) => (await request('tools/call', { name, arguments: args }, phase, allowError)).content[0].text;
     const discover = operation => tool('julius_discover', operation ? { operation } : {}, 'discovery');
@@ -214,6 +217,7 @@ async function evaluate(fixture, lane) {
     const found = new Set(initialFacts);
     const handle = initial.match(/sha256:[0-9a-f]{64}/)?.[0];
     const recoveredRanges = [];
+    const recoveryTrace = [];
     let retained;
     const read = async phase => {
       const bounded = fixture.historical && phase === 'recovery';
@@ -245,14 +249,21 @@ async function evaluate(fixture, lane) {
         const reply = await tool('julius_call', { operation: 'context.read', budget: historicalPlan.recoveryBudget,
           args: { handle, ...selector },
         }, 'recovery', true);
+        const trace = { attempt: attempt + 1, textTokens: count(reply), bytes: Buffer.byteLength(reply), newFacts: [] };
+        recoveryTrace.push(trace);
         if (!reply.startsWith('{')) continue;
         if (pilot) {
           const data = JSON.parse(reply);
-          recoveredRanges.push(...(data.hits ?? (data.evidence ? [data] : [])));
+          const ranges = data.hits ?? (data.evidence ? [data] : []);
+          recoveredRanges.push(...ranges);
+          trace.ranges = ranges.map(({ start, end, evidence }) => ({ start, end, ...evidence }));
         }
         const recovered = pilot ? passage(reply) : visible(reply);
         all += `\n${recovered}`;
-        for (const index of check(recovered)) found.add(index);
+        for (const index of check(recovered)) {
+          if (!found.has(index)) trace.newFacts.push(index);
+          found.add(index);
+        }
       }
     } else if (found.size < fixture.facts.length && handle) {
       await discover('context.read');
@@ -305,19 +316,25 @@ async function evaluate(fixture, lane) {
     }
     const costs = phase => sum(delivery.filter(item => !phase || phase === item.phase).flatMap(({ request, response }) => [count(request), count(response)]));
     const localReads = delivery.filter(item => item.phase === 'local-read').map(item => ({ path: item.path, tokens: sum([count(item.request), count(item.response)]) }));
-    return { firstFacts: initialFacts.size, finalFacts: found.size, retainedFacts, initialTextTokens: count(initial), totalTokens: costs(), setupTokens: costs('setup'), discoveryTokens: costs('discovery'), queryTokens: costs('query'), contextReadTokens: costs('recovery'), localReads, calls: delivery.filter(item => item.phase !== 'setup').length, recoveryCalls: delivery.filter(item => item.phase === 'recovery' || item.phase === 'local-read').length, firstMs, totalMs };
+    return { firstFacts: initialFacts.size, finalFacts: found.size, firstFactIds: [...initialFacts], finalFactIds: [...found], retainedFacts,
+      initialTextTokens: count(initial), initialCitations: quotedRanges(first), totalTokens: costs(), protocolBytes: sum(delivery.flatMap(({ request, response }) => [Buffer.byteLength(request), Buffer.byteLength(response)])),
+      setupTokens: costs('setup'), discoveryTokens: costs('discovery'), queryTokens: costs('query'), contextReadTokens: costs('recovery'),
+      verifiedRecoveryBytes: recoveredRanges.reduce((n, range) => n + range.end - range.start, 0), recoveryTrace, localReads,
+      calls: delivery.filter(item => item.phase !== 'setup').length, recoveryCalls: delivery.filter(item => item.phase === 'recovery' || item.phase === 'local-read').length, firstMs, totalMs };
   });
   return value;
 }
 
 try {
-  if ((history || holdout) && !bulmaRepo) throw new Error('--historical and --holdout require --bulma-repo=/path/to/a/Bulma/git/repository');
-  const fixtures = (history || holdout ? historicalCases(process.cwd(), bulmaRepo, holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
+  const historical = history || holdout || marginalHoldout;
+  if (historical && !bulmaRepo) throw new Error('Historical samples require --bulma-repo=/path/to/a/Bulma/git/repository');
+  const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, marginalHoldout ? 'marginal' : holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
   assert.ok(fixtures.length, `Unknown case: ${caseName}`);
   const results = [];
   for (const [index, fixture] of fixtures.entries()) {
     const pilotFirst = (index % 2 === 1) !== reverse;
     const lanes = onlyBaseline ? ['baseline'] : pilotFirst ? ['pilot', 'baseline'] : ['baseline', 'pilot'];
+    if (priorCli && !onlyBaseline) lanes.splice(1, 0, 'prior');
     const row = { name: fixture.name, budget: fixture.budget, facts: fixture.facts.length };
     if (fixture.historical) Object.assign(row, { project: fixture.project, pr: fixture.pr, sha: fixture.sha, query: fixture.query,
       queryWords: fixture.query.split(/\s+/).length, oracle: fixture.facts.map(({ path, line }) => ({ path, line })),
@@ -325,14 +342,17 @@ try {
     for (const lane of lanes) row[lane] = await evaluate(fixture, lane);
     results.push(row);
   }
-  const aggregate = lane => Object.fromEntries(['firstFacts', 'finalFacts', 'initialTextTokens', 'totalTokens', 'discoveryTokens', 'calls', 'recoveryCalls'].map(key => [key, sum(results.map(row => row[lane][key]))]));
+  const aggregate = lane => Object.fromEntries(['firstFacts', 'finalFacts', 'initialTextTokens', 'totalTokens', 'protocolBytes', 'discoveryTokens', 'contextReadTokens', 'verifiedRecoveryBytes', 'calls', 'recoveryCalls'].map(key => [key, sum(results.map(row => row[lane][key]))]));
   const baseline = aggregate('baseline');
   const pilot = onlyBaseline ? null : aggregate('pilot');
+  const prior = priorCli && !onlyBaseline ? aggregate('prior') : null;
+  const preservesPrior = prior ? results.every(row => row.prior.finalFactIds.every(id => row.pilot.finalFactIds.includes(id))) : null;
   const { minimumTrafficReduction, minimumNewlyComplete } = historicalPlan;
   const gate = pilot && pilot.totalTokens !== null && baseline.totalTokens !== null
     && pilot.totalTokens <= baseline.totalTokens * (1 - minimumTrafficReduction)
+    && (!prior || (preservesPrior && prior.totalTokens !== null && pilot.totalTokens < prior.totalTokens))
     && results.every(row => row.pilot.finalFacts === row.facts && row.pilot.firstFacts >= row.baseline.firstFacts)
     && results.filter(row => row.pilot.firstFacts === row.facts && row.baseline.firstFacts < row.facts).length >= minimumNewlyComplete;
-  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, ...(history || holdout ? { historicalPlan } : {}), baseline, pilot, gate, results }, null, 2));
+  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, ...(historical ? { historicalPlan } : {}), baseline, ...(prior ? { prior, preservesPrior } : {}), pilot, gate, results }, null, 2));
   if (!onlyBaseline && !caseName && !gate) process.exitCode = 1;
 } finally { rmSync(scratch, { recursive: true, force: true }); }

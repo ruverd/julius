@@ -115,3 +115,37 @@ It includes simple lookups, decision-plus-code, an exact multi-line passage,
 and an intentionally incorrect source reference tested against a real handle.
 The original promotion thresholds still apply. Legacy-reader numbers above
 and directed-reader totals measure different recovery policies.
+
+## Marginal recovery replay
+
+Build the previous published pilot at `2903c86` separately and pass its
+compiled CLI to the reader. The first two lanes use that binary with the
+default and opted-in modes respectively. The third uses the current build
+with evidence enabled. Every lane reads the same pinned tree with the same
+budgets and protocol. The evidence lanes use the same exclusion and recovery
+rules. The default uses its existing literal and byte selectors. The gate
+retains the original coverage and traffic thresholds, requires preserving
+each fact obtained by the previous pilot, and requires less total traffic
+than the previous pilot.
+
+```sh
+npm run build
+node scripts/experiments/context-evidence-benchmark.mjs --marginal-holdout --bulma-repo=/path/to/bulma --prior-cli=/path/to/prior/dist/bin/julius.js
+```
+
+The new holdout was pinned in `585757b` before the ranking change. The old
+holdout (`--holdout`) and original PRs (`--historical --directed`) remain
+diagnostic. Each row includes fact IDs, initial citations, exact returned
+byte ranges and phase counts. Transport bytes include modeled local reads.
+The retained-byte audit verifies cited excerpts and the content digest
+outside the traffic and latency measurements.
+
+The previous pilot's holdout generated 2,377 additional estimated recovery
+tokens against default, about 75% of the total increase. In the index reuse
+case, both pilots initially quoted `src/investigation/index.ts` line 95. The
+previous pilot missed the complementary hash check on line 97 in both
+follow-up calls. Restore coverage signals from the excluded lines in the
+snapshot, give independent query clauses and evidence kinds room, and rank
+remaining clipped passages per estimated serialized token. Adjacent code
+gets a soft bonus for completing a guard or statement. Direct file and line
+requests retain the exact byte-oriented path.

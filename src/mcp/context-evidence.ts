@@ -260,42 +260,102 @@ export function resolveEvidenceRange(bytes: Buffer, selector: EvidenceSelector):
   return range(span, from - span.first, to - span.first + 1);
 }
 
-export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector): RetainedRange[] {
+export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, budget: number | null = null): RetainedRange[] {
   const { query, source, limit = 5, exclude = [] } = selector;
   if (!query?.trim() || selector.from !== undefined || selector.to !== undefined || exclude.some(item => (item.to ?? item.from) < item.from)) {
     throw new Error('Evidence search requires a query and valid exclusions');
   }
-  const { spans, range } = retainedSpans(bytes, source);
+  const parseSource = exclude.some(previous => previous.source !== source) ? undefined : source;
+  const { spans: snapshot, range } = retainedSpans(bytes, parseSource);
+  const spans = source ? snapshot.filter(span => span.path === source) : snapshot;
   if (source && !spans.length) throw new Error('Requested evidence was not found in this snapshot');
   const claimed = [...exclude];
   const used = new Set<string>();
   const covered = new Set<string>();
+  const coveredByKind = { code: new Set<string>(), note: new Set<string>() };
+  const previouslyShown = new Map<Span, Array<{ start: number; end: number }>>();
+  const facets = query.split(/[?;]|\band\s+(?=(?:how|what|when|which|where|why|show|quote)\b)/i)
+    .map(part => new Set(evidenceTerms(part))).filter(facet => facet.size > 0);
+  const observe = (span: Span, start: number, end: number) => {
+    used.add(span.path);
+    for (const term of evidenceTerms(span.lines.slice(start, end).join('\n'))) {
+      covered.add(term);
+      coveredByKind[span.kind].add(term);
+    }
+  };
+  for (const span of snapshot) {
+    for (const previous of exclude) {
+      if (span.path !== previous.source) continue;
+      const start = Math.max(0, previous.from - span.first);
+      const end = Math.min(span.lines.length, (previous.to ?? previous.from) - span.first + 1);
+      if (start >= end) continue;
+      observe(span, start, end);
+      const shown = previouslyShown.get(span) ?? [];
+      shown.push({ start, end });
+      previouslyShown.set(span, shown);
+    }
+  }
   const contains = (span: Span, index: number) => claimed.some(item => item.source === span.path
     && item.from <= span.first + index && span.first + index <= (item.to ?? item.from));
   const ranked = rankPassages(spans, query);
-  const priority = (entry: Candidate) => entry.score
-    + (used.has(entry.span.path) ? 0 : 4)
-    + 2 * [...entry.terms].filter(term => !covered.has(term)).length;
+  const priced = new Map<string, { tokens: number; terms: Set<string> }>();
+  const price = (item: RetainedRange) => {
+    const key = `${item.start}:${item.end}`;
+    let cached = priced.get(key);
+    if (!cached) {
+      const content = bytes.subarray(item.start, item.end).toString('utf8');
+      const wire = JSON.stringify({ ...item, content, format: 'utf8' });
+      let tokens;
+      try { tokens = economyTokens(wire); }
+      catch (error) {
+        if (!(error instanceof Error && error.message.startsWith('Exact token count unavailable'))) throw error;
+        tokens = Buffer.byteLength(wire);
+      }
+      cached = { tokens, terms: new Set(evidenceTerms(content)) };
+      priced.set(key, cached);
+    }
+    return cached;
+  };
   const results: RetainedRange[] = [];
+  let quoted = 0;
+  let firstDensity = 0;
+  let estimatedUsed = 55;
   for (let count = 0; count < limit; count++) {
-    let best: Candidate | undefined;
+    const gaps = facets.map(facet => [...facet].filter(term => !covered.has(term)));
+    let best: { span: Span; start: number; end: number; item: RetainedRange; tokens: number } | undefined;
     let bestPriority = -Infinity;
     for (const entry of ranked) {
-      if (contains(entry.span, entry.index)) continue;
-      const score = priority(entry);
-      if (score > bestPriority) { best = entry; bestPriority = score; }
+      const { span, index } = entry;
+      if (contains(span, index)) continue;
+      let start = index;
+      let end = index + 1;
+      while (start > entry.start && !contains(span, start - 1)) start--;
+      while (end < entry.end && !contains(span, end)) end++;
+      const item = range(span, start, end);
+      const { tokens, terms } = price(item);
+      const novelty = gaps.reduce((bestGap, gap, facet) => Math.max(bestGap,
+        3 * gap.filter(term => terms.has(term)).length * gap.length / facets[facet]!.size), 0);
+      const complementary = [...entry.terms].filter(term => terms.has(term) && covered.has(term) && !coveredByKind[span.kind].has(term)).length;
+      const newWords = [...terms].filter(term => !covered.has(term)).length;
+      // Completing an adjacent guard can add evidence even when it repeats a query term.
+      const distance = (previouslyShown.get(span) ?? []).reduce((best, shown) =>
+        Math.min(best, Math.max(shown.start - index, index - shown.end + 1)), Infinity);
+      const continuation = span.kind === 'code' && distance <= 2 ? 6 / distance : 0;
+      const utility = entry.score + novelty + complementary + continuation + Math.min(2, newWords / 4) + (used.has(span.path) ? 0 : 2);
+      const density = utility / tokens;
+      if (density > bestPriority) { best = { span, start, end, item, tokens }; bestPriority = density; }
     }
     if (!best) break;
-    const { span, index } = best;
-    let start = index;
-    let end = index + 1;
-    while (start > best.start && !contains(span, start - 1)) start--;
-    while (end < best.end && !contains(span, end)) end++;
-    const result = range(span, start, end);
-    results.push(result);
-    claimed.push({ source: span.path, from: result.evidence.from, to: result.evidence.to });
-    used.add(span.path);
-    for (const term of best.terms) covered.add(term);
+    if (quoted >= 2 && bestPriority < firstDensity / 2) break;
+    const { span, start, end, item, tokens } = best;
+    results.push(item);
+    claimed.push({ source: span.path, from: item.evidence.from, to: item.evidence.to });
+    if (budget === null || estimatedUsed + tokens <= budget) {
+      if (quoted === 0) firstDensity = bestPriority;
+      quoted++;
+      estimatedUsed += tokens;
+      observe(span, start, end);
+    }
   }
   return results;
 }
