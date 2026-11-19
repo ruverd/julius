@@ -88,8 +88,11 @@ function visible(value) {
   return format === 'utf8' ? content : '';
 }
 
-function noteBody(content) {
-  return content.slice(content.indexOf('\n---\n', 4) + 5).trim();
+function noteText(content) {
+  const bodyStart = content.indexOf('\n---\n', 4) + 5;
+  const raw = content.slice(bodyStart);
+  const leading = raw.length - raw.trimStart().length;
+  return { body: raw.trim(), offset: content.slice(0, bodyStart + leading).split('\n').length - 1 };
 }
 
 function quote(path, kind, from, to, body) {
@@ -129,7 +132,7 @@ function localPassages(repo, path, query, budget) {
   }
   catch (error) { if (error.code === 'ENOENT' || error.code === 'EISDIR') return ''; throw error; }
   const kind = path.startsWith('.julius/learnings/') ? 'note' : 'code';
-  const lines = (kind === 'note' ? noteBody(content) : content).split('\n');
+  const lines = (kind === 'note' ? noteText(content).body : content).split('\n');
   if (lines.at(-1) === '') lines.pop();
   const radius = /\b(?:exact|entire|complete)\b/i.test(query) ? 8 : 2;
   const terms = new Set(tokenize(query).map(term => term.replace(/([^s])s$/, '$1')));
@@ -161,13 +164,16 @@ function pilotFacts(text, fixture, repo) {
       const path = JSON.parse(heading[2]);
       const original = fixture.files?.[path] ?? (fixture.historical ? readFileSync(join(repo, path), 'utf8') : undefined);
       assert.ok(original, `Unknown pilot source: ${path}`);
-      const body = heading[1] === 'note' ? noteBody(original) : original;
-      source = { path, lines: body.split('\n') };
+      const { body, offset } = heading[1] === 'note' ? noteText(original) : { body: original, offset: 0 };
+      source = { path, lines: body.split('\n'), offset };
       line = Number(heading[3]);
     } else if (row.startsWith('| ')) {
       const excerpt = row.slice(2);
-      assert.equal(excerpt, source?.lines[line++ - 1], `Inexact excerpt from ${source?.path}`);
-      fixture.facts.forEach((fact, index) => { if (fact.path === source.path && fact.text === excerpt) found.add(index); });
+      assert.equal(excerpt, source?.lines[line - 1], `Inexact excerpt from ${source?.path}`);
+      fixture.facts.forEach((fact, index) => {
+        if (fact.path === source.path && fact.text === excerpt && (fact.line === undefined || fact.line === line + source.offset)) found.add(index);
+      });
+      line++;
     }
   }
   return found;
@@ -177,6 +183,8 @@ function baselineFacts(text, fixture) {
   const found = new Set();
   fixture.facts.forEach((fact, index) => {
     // The inherited renderer strips note bullet markers from displayed leads.
+    if ((fact.previous !== undefined || fact.following !== undefined) && !text.split('\n').some((line, i, rows) => line === fact.text
+      && ((fact.previous?.trim() && rows[i - 1] === fact.previous) || (fact.following?.trim() && rows[i + 1] === fact.following)))) return;
     if (text.includes(fact.path) && text.includes(fact.text.replace(/^- /, ''))) found.add(index);
   });
   return found;
@@ -205,6 +213,7 @@ async function evaluate(fixture, lane) {
     const initialFacts = check(first);
     const found = new Set(initialFacts);
     const handle = initial.match(/sha256:[0-9a-f]{64}/)?.[0];
+    const recoveredRanges = [];
     let retained;
     const read = async phase => {
       const bounded = fixture.historical && phase === 'recovery';
@@ -237,6 +246,10 @@ async function evaluate(fixture, lane) {
           args: { handle, ...selector },
         }, 'recovery', true);
         if (!reply.startsWith('{')) continue;
+        if (pilot) {
+          const data = JSON.parse(reply);
+          recoveredRanges.push(...(data.hits ?? (data.evidence ? [data] : [])));
+        }
         const recovered = pilot ? passage(reply) : visible(reply);
         all += `\n${recovered}`;
         for (const index of check(recovered)) found.add(index);
@@ -271,6 +284,9 @@ async function evaluate(fixture, lane) {
     let retainedFacts;
     if (pilot) {
       const available = check(retained ?? first);
+      for (const { start, end, content, format } of recoveredRanges) {
+        assert.deepEqual(Buffer.from(retained).subarray(start, end), Buffer.from(content, format));
+      }
       retainedFacts = available.size;
       const absent = fixture.facts.filter((_, index) => !available.has(index));
       if (!fixture.historical) assert.deepEqual(absent, [], `${fixture.name}: evidence missing from retained sources`);

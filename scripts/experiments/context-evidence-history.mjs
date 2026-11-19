@@ -101,10 +101,11 @@ export function historicalCases(juliusRepo, bulmaRepo, useHoldout = false) {
     const repo = repositories[fixture.project];
     const read = path => execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8', env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });
     const facts = (fixture.facts ?? []).map(({ path, line, contains }) => {
-      const blob = read(path);
-      const text = blob.split('\n')[line - 1];
+      const rows = read(path).split('\n');
+      const text = rows[line - 1];
       assert.ok(text?.includes(contains), `Invalid oracle ${fixture.project}#${fixture.pr} ${path}:${line}`);
-      return { path, line, text };
+      const repeated = rows.filter(row => row === text).length > 1;
+      return { path, line, text, ...(repeated ? { previous: rows[line - 2], following: rows[line] } : {}) };
     });
     for (const { path, from, to } of fixture.passages ?? []) {
       const lines = read(path).split('\n').slice(from - 1, to);
