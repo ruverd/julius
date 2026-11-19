@@ -132,9 +132,44 @@ const marginalHoldout = [
   },
 ];
 
+const transportHoldout = [
+  {
+    project: 'julius', pr: 17, sha: '46a33b12a3ccb2f153ffa56aad14a210494d0c03',
+    name: 'investigation-argument-guards', budget: 325,
+    query: 'In src/investigation/index.ts, quote the exact argument guards for change-impact and failure-localization in validateArgs.',
+    facts: [source('src/investigation/index.ts', 91, 'change-impact requires paths'), source('src/investigation/index.ts', 92, 'failure-localization requires a literal query')],
+  },
+  {
+    project: 'julius', pr: 29, sha: '5c2887757fb95299c44e32f9a044fc6ef4472963',
+    name: 'benchmark-unknown-provider-metrics', budget: 375,
+    query: 'What did the offline measurement decision say about unknown provider measurements, and how does render-readme-benchmark.mjs validate providerUsage and providerCost?',
+    facts: [source('.julius/learnings/2026-10-23-offline-measurement-disclaimers-are-not-provider-ruver.md', 20, 'retains null for unknown provider measurements'),
+      source('scripts/render-readme-benchmark.mjs', 37, 'report.providerUsage'), source('scripts/render-readme-benchmark.mjs', 38, 'report.providerCost')],
+  },
+  {
+    project: 'julius', pr: 23, sha: '0376b7ec1f687f0a17a2b1c953af9e5f9991ecbb',
+    name: 'comparison-recovery-integrity', budget: 350,
+    query: 'How does scripts/experiments/local-comparison.mjs check that recovery advances contiguously and verify the byte digest?',
+    facts: [source('scripts/experiments/local-comparison.mjs', 158, 'Recovery must advance contiguously'), source('scripts/experiments/local-comparison.mjs', 162, 'Recovery byte integrity')],
+  },
+  {
+    project: 'bulma', pr: 89, sha: '2188cd1c43c70f0b9f8fc0a5a35d689e9704847a',
+    name: 'answer-workflow-allowlist', budget: 325,
+    query: 'How does Bulma Answer decide allowed_actions, and how does it filter requested_actions before running a workflow?',
+    facts: [source('skills/bulma/scripts/answer.py', 113, 'set(workflows).intersection'), source('skills/bulma/scripts/answer.py', 128, 'a in allowed_actions')],
+  },
+  {
+    project: 'bulma', pr: 79, sha: '082bd407074648c6eb7d14ebf4d7ef5a999a51b5',
+    name: 'gate-open-review-exit', budget: 325,
+    query: 'In skills/bulma-code-review/scripts/gate.py, which open change request condition triggers OPEN_REVIEW and what exact message and exit status does it use?',
+    facts: [source('skills/bulma-code-review/scripts/gate.py', 377, 'open change request from'),
+      source('skills/bulma-code-review/scripts/gate.py', 378, 'OPEN_REVIEW post a COMMENT review'), source('skills/bulma-code-review/scripts/gate.py', 380, 'return 4')],
+  },
+];
+
 export function historicalCases(juliusRepo, bulmaRepo, sample = false) {
   const repositories = { julius: resolve(juliusRepo), bulma: resolve(bulmaRepo) };
-  const fixtures = sample === 'marginal' ? marginalHoldout : sample ? holdout : manifest;
+  const fixtures = sample === 'transport' ? transportHoldout : sample === 'marginal' ? marginalHoldout : sample ? holdout : manifest;
   return fixtures.map(fixture => {
     const repo = repositories[fixture.project];
     const read = path => execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8', env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });
