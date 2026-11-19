@@ -260,120 +260,102 @@ export function resolveEvidenceRange(bytes: Buffer, selector: EvidenceSelector):
   return range(span, from - span.first, to - span.first + 1);
 }
 
-export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, budget: number | null = null): RetainedRange[] {
+const NOTE_INTENT = /\b(?:notes?|learnings?|decisions?|documentation)\b/i;
+
+export function searchEvidenceRanges(bytes: Buffer, selector: EvidenceSelector, joinEvidence = false): RetainedRange[] {
   const { query, source, limit = 5, exclude = [] } = selector;
   if (!query?.trim() || selector.from !== undefined || selector.to !== undefined || exclude.some(item => (item.to ?? item.from) < item.from)) {
     throw new Error('Evidence search requires a query and valid exclusions');
   }
-  const parseSource = exclude.some(previous => previous.source !== source) ? undefined : source;
-  const { spans: snapshot, range } = retainedSpans(bytes, parseSource);
-  const spans = source ? snapshot.filter(span => span.path === source) : snapshot;
+  const { spans, range } = retainedSpans(bytes, source);
   if (source && !spans.length) throw new Error('Requested evidence was not found in this snapshot');
   const claimed = [...exclude];
   const used = new Set<string>();
   const covered = new Set<string>();
-  const coveredByKind = { code: new Set<string>(), note: new Set<string>() };
-  const previouslyShown = new Map<Span, Array<{ start: number; end: number }>>();
-  const facets = query.split(/[?;]|\band\s+(?=(?:how|what|when|which|where|why|show|quote)\b)/i)
-    .map(part => new Set(evidenceTerms(part))).filter(facet => facet.size > 0);
-  const observe = (span: Span, start: number, end: number) => {
-    used.add(span.path);
-    for (const term of evidenceTerms(span.lines.slice(start, end).join('\n'))) {
-      covered.add(term);
-      coveredByKind[span.kind].add(term);
-    }
-  };
-  for (const span of snapshot) {
-    for (const previous of exclude) {
-      if (span.path !== previous.source) continue;
-      const start = Math.max(0, previous.from - span.first);
-      const end = Math.min(span.lines.length, (previous.to ?? previous.from) - span.first + 1);
-      if (start >= end) continue;
-      observe(span, start, end);
-      const shown = previouslyShown.get(span) ?? [];
-      shown.push({ start, end });
-      previouslyShown.set(span, shown);
-    }
-  }
   const contains = (span: Span, index: number) => claimed.some(item => item.source === span.path
     && item.from <= span.first + index && span.first + index <= (item.to ?? item.from));
   const ranked = rankPassages(spans, query);
-  const priced = new Map<string, { tokens: number; terms: Set<string> }>();
-  const price = (item: RetainedRange) => {
-    const key = `${item.start}:${item.end}`;
-    let cached = priced.get(key);
-    if (!cached) {
-      const content = bytes.subarray(item.start, item.end).toString('utf8');
-      const wire = JSON.stringify({ ...item, content, format: 'utf8' });
-      let tokens;
-      try { tokens = economyTokens(wire); }
-      catch (error) {
-        if (!(error instanceof Error && error.message.startsWith('Exact token count unavailable'))) throw error;
-        tokens = Buffer.byteLength(wire);
-      }
-      cached = { tokens, terms: new Set(evidenceTerms(content)) };
-      priced.set(key, cached);
+  const joinNotesAndCode = joinEvidence && NOTE_INTENT.test(query);
+  const adjacent = (entry: Candidate) => {
+    if (!joinNotesAndCode || entry.span.kind !== 'code') return 0;
+    const line = entry.span.first + entry.index;
+    let distance = Infinity;
+    for (const previous of exclude) {
+      if (previous.source === entry.span.path) distance = Math.min(distance,
+        Math.max(previous.from - line, line - (previous.to ?? previous.from)));
     }
-    return cached;
+    return distance > 0 && distance <= 2 ? 12 / distance : 0;
   };
+  const priority = (entry: Candidate) => entry.score
+    + (used.has(entry.span.path) ? 0 : 4)
+    + 2 * [...entry.terms].filter(term => !covered.has(term)).length
+    + adjacent(entry);
   const results: RetainedRange[] = [];
-  let quoted = 0;
-  let firstDensity = 0;
-  let estimatedUsed = 55;
   for (let count = 0; count < limit; count++) {
-    const gaps = facets.map(facet => [...facet].filter(term => !covered.has(term)));
-    let best: { span: Span; start: number; end: number; item: RetainedRange; tokens: number } | undefined;
+    let best: Candidate | undefined;
     let bestPriority = -Infinity;
     for (const entry of ranked) {
-      const { span, index } = entry;
-      if (contains(span, index)) continue;
-      let start = index;
-      let end = index + 1;
-      while (start > entry.start && !contains(span, start - 1)) start--;
-      while (end < entry.end && !contains(span, end)) end++;
-      const item = range(span, start, end);
-      const { tokens, terms } = price(item);
-      const novelty = gaps.reduce((bestGap, gap, facet) => Math.max(bestGap,
-        3 * gap.filter(term => terms.has(term)).length * gap.length / facets[facet]!.size), 0);
-      const complementary = [...entry.terms].filter(term => terms.has(term) && covered.has(term) && !coveredByKind[span.kind].has(term)).length;
-      const newWords = [...terms].filter(term => !covered.has(term)).length;
-      // Completing an adjacent guard can add evidence even when it repeats a query term.
-      const distance = (previouslyShown.get(span) ?? []).reduce((best, shown) =>
-        Math.min(best, Math.max(shown.start - index, index - shown.end + 1)), Infinity);
-      const continuation = span.kind === 'code' && distance <= 2 ? 6 / distance : 0;
-      const utility = entry.score + novelty + complementary + continuation + Math.min(2, newWords / 4) + (used.has(span.path) ? 0 : 2);
-      const density = utility / tokens;
-      if (density > bestPriority) { best = { span, start, end, item, tokens }; bestPriority = density; }
+      if (contains(entry.span, entry.index)) continue;
+      const score = priority(entry);
+      if (score > bestPriority) { best = entry; bestPriority = score; }
     }
     if (!best) break;
-    if (quoted >= 2 && bestPriority < firstDensity / 2) break;
-    const { span, start, end, item, tokens } = best;
-    results.push(item);
-    claimed.push({ source: span.path, from: item.evidence.from, to: item.evidence.to });
-    if (budget === null || estimatedUsed + tokens <= budget) {
-      if (quoted === 0) firstDensity = bestPriority;
-      quoted++;
-      estimatedUsed += tokens;
-      observe(span, start, end);
-    }
+    const { span, index } = best;
+    let start = index;
+    let end = index + 1;
+    while (start > best.start && !contains(span, start - 1)) start--;
+    while (end < best.end && !contains(span, end)) end++;
+    const result = range(span, start, end);
+    results.push(result);
+    claimed.push({ source: span.path, from: result.evidence.from, to: result.evidence.to });
+    used.add(span.path);
+    for (const term of best.terms) covered.add(term);
   }
   return results;
 }
 
+function focusedCodeSource(code: Span[], query: string): Span | undefined {
+  if (NOTE_INTENT.test(query) || /\b(?:compare|versus|across)\b/i.test(query)) return undefined;
+  const words = new Set(query.match(/[\w./$-]+/g) ?? []);
+  const paths = code.filter(span => words.has(span.path));
+  if (paths.length === 1) return paths[0];
+  if (paths.length > 1) return undefined;
+
+  const clauses = query.split(/[?;]|\band\s+(?=(?:how|what|when|which|where|why|show|quote)\b)/i).filter(part => part.trim());
+  const mentions = clauses.map(clause => new Set(clause.match(/\b(?:[a-z]\w*[A-Z]\w*|\w+_\w+)\b/g) ?? []));
+  if (mentions.some(names => !names.size)) return undefined;
+  const queries = new Set(mentions.flatMap(names => [...names]));
+  const matching = code.map(span => {
+    const names = new Set((span.anchors ?? []).map(anchor => anchor.name).filter(name => queries.has(name)));
+    for (const line of span.lines) {
+      const definition = /\b(?:function|def|class|const|let)\s+([\w$]+)/.exec(line);
+      if (definition?.[1] && queries.has(definition[1])) names.add(definition[1]);
+    }
+    return { span, names };
+  }).filter(item => item.names.size > 0);
+  if (matching.length !== 1) return undefined;
+  const [only] = matching;
+  return only && mentions.every(group => [...group].some(name => only.names.has(name))) ? only.span : undefined;
+}
+
 export async function deliverContextEvidence(
   root: string,
-  args: { query: string; limit?: number; in?: string },
+  args: { query: string; limit?: number; in?: string; evidenceScope?: 'auto' },
   choice: DeliveryChoice,
   dir?: string,
 ): Promise<string> {
   await ensureFreshGraph(root, { contextDir: dir });
   const result = ask(root, args.query, { contextDir: dir, limit: args.limit ?? 5, in: args.in });
   const code = codeSpans(root, result.hits);
-  const prefix = normalizePathPrefix(args.in ?? '');
-  const live = liveLearnings(listCheckoutNotes(root));
-  const scoped = prefix ? live.filter(note => note.touches.some(touch => pathUnderPrefix(touch.split('#')[0]!, prefix))) : live;
-  const ranked = findNotes(scoped, args.query, code.map(span => span.path), 8);
-  const spans = [...noteSpans(ranked.map(({ note }) => note)), ...code];
+  const focused = args.evidenceScope === 'auto' ? focusedCodeSource(code, args.query) : undefined;
+  let spans = focused ? [focused] : code;
+  if (!focused) {
+    const prefix = normalizePathPrefix(args.in ?? '');
+    const live = liveLearnings(listCheckoutNotes(root));
+    const scoped = prefix ? live.filter(note => note.touches.some(touch => pathUnderPrefix(touch.split('#')[0]!, prefix))) : live;
+    const ranked = findNotes(scoped, args.query, code.map(span => span.path), 8);
+    spans = [...noteSpans(ranked.map(({ note }) => note)), ...code];
+  }
   const archive = spans.length
     ? ['Repository evidence', ...spans.map(span => renderSpan(span, 0, span.lines.length))].join('\n\n')
     : 'No repository evidence matched.';

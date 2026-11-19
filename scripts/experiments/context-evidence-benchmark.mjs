@@ -22,10 +22,15 @@ const marginalHoldout = process.argv.includes('--marginal-holdout');
 const transportHoldout = process.argv.includes('--transport-holdout');
 const directed = holdout || marginalHoldout || transportHoldout || process.argv.includes('--directed');
 const formatLines = process.argv.includes('--format-lines');
+const transportControl = process.argv.includes('--transport-control');
+const preferNext = process.argv.includes('--prefer-next');
+const focusEvidence = process.argv.includes('--focus-evidence');
+const sameDelivery = process.argv.includes('--same-delivery');
 const reverse = process.argv.includes('--reverse');
 const caseName = process.argv.find(arg => arg.startsWith('--case='))?.slice('--case='.length);
 const bulmaRepo = process.argv.find(arg => arg.startsWith('--bulma-repo='))?.slice('--bulma-repo='.length);
 const priorCli = process.argv.find(arg => arg.startsWith('--prior-cli='))?.slice('--prior-cli='.length);
+const defaultCli = process.argv.find(arg => arg.startsWith('--default-cli='))?.slice('--default-cli='.length);
 const scratch = mkdtempSync(join(tmpdir(), 'julius-context-benchmark-'));
 const wire = value => `${JSON.stringify(value)}\n`;
 const count = text => {
@@ -260,13 +265,15 @@ function baselineFacts(text, fixture) {
 async function evaluate(fixture, lane) {
   const { repo, env } = prepare(fixture, lane);
   const pilot = lane !== 'baseline';
-  const binary = lane !== 'pilot' && priorCli ? resolve(priorCli) : cli;
+  const candidate = lane === 'pilot' || lane === 'transport';
+  const control = lane === 'baseline' ? defaultCli ?? priorCli : priorCli;
+  const binary = !candidate && control ? resolve(control) : cli;
   const value = await client(repo, env, binary, async ({ request, notify, record }) => {
     const start = performance.now();
     const tool = async (name, args, phase, allowError) => (await request('tools/call', { name, arguments: args }, phase, allowError)).content[0].text;
     const discover = operation => tool('julius_discover', operation ? { operation } : {}, 'discovery');
     const find = () => tool('julius_call', { operation: 'julius_find_code', budget: fixture.budget,
-      args: { query: fixture.query, ...(pilot ? { evidence: true } : {}) } }, 'query');
+      args: { query: fixture.query, ...(pilot ? { evidence: true } : {}), ...(lane === 'pilot' && focusEvidence ? { evidenceScope: 'auto' } : {}) } }, 'query');
     await request('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'context-evidence-benchmark', version: '1' } }, 'setup');
     notify('notifications/initialized', 'setup');
     await request('tools/list', undefined, 'setup');
@@ -306,22 +313,29 @@ async function evaluate(fixture, lane) {
       const next = first.split('\n').filter(line => line.startsWith('next ')).map(line => JSON.parse(line.slice(5)));
       const clues = fixture.query.match(/\b[A-Z][A-Z0-9_]{2,}\b|\b[a-z]\w*[A-Z]\w*\b|\b\w+_\w+\b/g) ?? [];
       const searches = [...new Set(clues)].slice(0, 2).map(search => ({ search }));
+      let requestedNext = false;
       for (let attempt = 0; attempt < 2 && found.size < fixture.facts.length; attempt++) {
         const exclude = quotedRanges(all).slice(0, 16);
-        const nextRange = attempt > 0 && next.find(item => !exclude.some(seen => seen.source === item.source && seen.from <= item.from && seen.to >= item.to));
+        const nextRange = !requestedNext && (preferNext || attempt > 0)
+          && next.find(item => !exclude.some(seen => seen.source === item.source && seen.from <= item.from && seen.to >= item.to));
         const selector = pilot ? { evidence: nextRange || { query: fixture.query, exclude, limit: 6 } } : searches[attempt] ?? {};
+        requestedNext ||= Boolean(pilot && nextRange);
         if (!pilot && attempt > searches.length) break;
         const reply = await tool('julius_call', { operation: 'context.read', budget: historicalPlan.recoveryBudget,
-          args: { handle, ...selector, ...(lane === 'pilot' && formatLines && selector.evidence?.query ? { format: 'lines' } : {}) },
+          args: { handle, ...selector, ...(candidate && formatLines && selector.evidence ? { format: 'lines' } : {}),
+            ...(lane === 'pilot' && focusEvidence && selector.evidence?.query ? { evidenceScope: 'auto' } : {}),
+          },
         }, 'recovery', true);
         const trace = { attempt: attempt + 1, textTokens: count(reply), bytes: Buffer.byteLength(reply), newFacts: [] };
         recoveryTrace.push(trace);
         if (!reply.startsWith('{') && !reply.startsWith('evidence ')) continue;
         if (pilot) {
           const data = decodeEvidence(reply);
+          assert.equal(data.handle, handle);
           const ranges = data.hits ?? (data.evidence ? [data] : []);
           recoveredRanges.push(...ranges);
           trace.ranges = ranges.map(({ start, end, evidence }) => ({ start, end, ...evidence }));
+          trace.more = data.more ?? [];
         }
         const recovered = pilot ? passage(reply) : visible(reply);
         all += `\n${recovered}`;
@@ -393,6 +407,7 @@ async function evaluate(fixture, lane) {
 try {
   const historical = history || holdout || marginalHoldout || transportHoldout;
   if (historical && !bulmaRepo) throw new Error('Historical samples require --bulma-repo=/path/to/a/Bulma/git/repository');
+  if (transportControl && (!formatLines || !focusEvidence || onlyBaseline)) throw new Error('--transport-control requires --format-lines and --focus-evidence');
   const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, transportHoldout ? 'transport' : marginalHoldout ? 'marginal' : holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
   assert.ok(fixtures.length, `Unknown case: ${caseName}`);
   const results = [];
@@ -400,6 +415,7 @@ try {
     const pilotFirst = (index % 2 === 1) !== reverse;
     const lanes = onlyBaseline ? ['baseline'] : pilotFirst ? ['pilot', 'baseline'] : ['baseline', 'pilot'];
     if (priorCli && !onlyBaseline) lanes.splice(1, 0, 'prior');
+    if (transportControl) lanes.splice(pilotFirst ? 1 : lanes.length - 1, 0, 'transport');
     const row = { name: fixture.name, budget: fixture.budget, facts: fixture.facts.length };
     if (fixture.historical) Object.assign(row, { project: fixture.project, pr: fixture.pr, sha: fixture.sha, query: fixture.query,
       queryWords: fixture.query.split(/\s+/).length, oracle: fixture.facts.map(({ path, line }) => ({ path, line })),
@@ -411,13 +427,28 @@ try {
   const baseline = aggregate('baseline');
   const pilot = onlyBaseline ? null : aggregate('pilot');
   const prior = priorCli && !onlyBaseline ? aggregate('prior') : null;
+  const transport = transportControl ? aggregate('transport') : null;
   const preservesPrior = prior ? results.every(row => row.prior.finalFactIds.every(id => row.pilot.finalFactIds.includes(id))) : null;
+  const preservesDefault = pilot ? results.every(row => row.baseline.finalFactIds.every(id => row.pilot.finalFactIds.includes(id))) : null;
+  if (sameDelivery || transportControl) {
+    assert.ok(prior, 'Transport identity requires an evidence control');
+    for (const row of results) {
+      const fixed = lane => ({ facts: lane.finalFactIds, initial: lane.initialCitations, ranges: lane.recoveryTrace.map(item => [item.ranges, item.more]),
+        bytes: lane.verifiedRecoveryBytes, calls: lane.calls, paths: lane.localReads.map(item => item.path) });
+      assert.deepEqual(fixed(transportControl ? row.transport : row.pilot), fixed(row.prior), `Transport changed evidence delivery in ${row.name}`);
+    }
+  }
+  const objective = pilot && prior && preservesPrior && preservesDefault && pilot.totalTokens !== null
+    && baseline.totalTokens !== null && prior.totalTokens !== null
+    && pilot.totalTokens < baseline.totalTokens && pilot.totalTokens < prior.totalTokens;
   const { minimumTrafficReduction, minimumNewlyComplete } = historicalPlan;
   const gate = pilot && pilot.totalTokens !== null && baseline.totalTokens !== null
     && pilot.totalTokens <= baseline.totalTokens * (1 - minimumTrafficReduction)
     && (!prior || (preservesPrior && prior.totalTokens !== null && pilot.totalTokens < prior.totalTokens))
     && results.every(row => row.pilot.finalFacts === row.facts && row.pilot.firstFacts >= row.baseline.firstFacts)
     && results.filter(row => row.pilot.firstFacts === row.facts && row.baseline.firstFacts < row.facts).length >= minimumNewlyComplete;
-  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, transportHoldout, formatLines, ...(historical ? { historicalPlan } : {}), baseline, ...(prior ? { prior, preservesPrior } : {}), pilot, gate, results }, null, 2));
+  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, transportHoldout,
+    formatLines, preferNext, focusEvidence, sameDelivery, ...(historical ? { historicalPlan } : {}), baseline,
+    ...(prior ? { prior, preservesPrior, preservesDefault, objective } : {}), ...(transport ? { transport } : {}), pilot, gate, results }, null, 2));
   if (!onlyBaseline && !caseName && !gate) process.exitCode = 1;
 } finally { rmSync(scratch, { recursive: true, force: true }); }

@@ -40,6 +40,17 @@ function representation(bytes: Buffer): { content: string; format: string } {
   try { return { content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes), format: 'utf8' }; }
   catch { return { content: bytes.toString('base64'), format: 'base64' }; }
 }
+
+function compactEvidenceText(text: string, budget: number | null, format: 'lines' | undefined,
+  handle: string, hits: EvidenceHit[], more: RetainedRange[],
+): string {
+  if (format !== 'lines') return text;
+  const compact = evidenceLines(handle, hits, more);
+  if (compact === null) return text;
+  const tokens = countPayloadTokens(compact);
+  return tokens !== null && tokens < (countPayloadTokens(text) ?? Infinity)
+    && (budget === null || tokens <= budget) ? compact : text;
+}
 function digest(bytes: Buffer): string { return createHash('sha256').update(bytes).digest('hex'); }
 function safeDirectory(path: string): void {
   try { mkdirSync(path); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
@@ -181,7 +192,7 @@ export class Economy {
     return bytes;
   }
 
-  async read(handle: string, options: ReadOptions, select?: (bytes: Buffer) => RetainedRange): Promise<EconomyResult> {
+  async read(handle: string, options: ReadOptions, select?: (bytes: Buffer) => RetainedRange, format?: 'lines'): Promise<EconomyResult> {
     if (options.budget !== null) budgetCheck(options.budget);
     const bytes = this.retainedBytes(handle);
     const range = select?.(bytes);
@@ -203,6 +214,9 @@ export class Economy {
           }) + '\n' + shown.content,
           bytes: selected, handle, omittedBytes: bytes.length - selected.length }
         : this.render(selected, handle, options.budget, start, bytes.length, options.transport, undefined, range);
+    if (range && !options.raw && result.bytes.length === selected.length) {
+      result.text = compactEvidenceText(result.text, options.budget, format, handle, [{ ...range, ...shown }], []);
+    }
     this.record(0, countPayloadTokens(result.text)); return result;
   }
 
@@ -225,16 +239,9 @@ export class Economy {
     }
     const text = render();
     if (!fits(text)) throw new Error('Budget too small for evidence recovery');
-    const tokens = countPayloadTokens(text);
-    const compact = format === 'lines' ? evidenceLines(handle, hits, more) : null;
-    const compactTokens = compact === null ? null : countPayloadTokens(compact);
-    if (compact !== null && compactTokens !== null && compactTokens < (tokens ?? Infinity)
-      && (budget === null || compactTokens <= budget)) {
-      this.record(0, compactTokens);
-      return compact;
-    }
-    this.record(0, tokens);
-    return text;
+    const delivered = compactEvidenceText(text, budget, format, handle, hits, more);
+    this.record(0, countPayloadTokens(delivered));
+    return delivered;
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {
     budgetCheck(options.budget);

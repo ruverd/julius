@@ -7,37 +7,6 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
 import { economyTokens } from '../src/economy/index.js';
-import { searchEvidenceRanges } from '../src/mcp/context-evidence.js';
-
-test('evidence search uses excluded lines to choose the next clause and keeps distinct facts with shared terms', () => {
-  const code = [
-    'const schedulingTimeout = observedTimeout;',
-    'const schedulingTimeoutForActiveWorkers = 450;',
-    'const schedulingTimeoutForIdleWorkers = 900;',
-    '',
-    'function acceptBatch(items) {',
-    '  return items.length <= maxBatchSize;',
-    '}',
-    '',
-    'const schedulingTimeoutForSlowWorkers = currentSchedulingTimeout;',
-    'const maxBatchSize = 20;',
-  ];
-  const snapshot = Buffer.from([
-    'Repository evidence', '', 'code "scheduler.ts" L1-L10', ...code.map(line => `| ${line}`), '',
-    'note ".julius/learnings/check.md" body L2 under "## Decided"',
-    '| Scheduling timeout applies after the worker has joined.',
-  ].join('\n'));
-  const query = 'What scheduling timeout applies to workers, and how many items can a batch accept?';
-  const [fresh] = searchEvidenceRanges(snapshot, { query, limit: 1 }, 400);
-  assert.equal(fresh?.evidence.kind, 'note');
-  const [next] = searchEvidenceRanges(snapshot, { query, limit: 1, exclude: [{ source: 'scheduler.ts', from: 1, to: 3 }] }, 400);
-  assert.equal(next?.evidence.path, 'scheduler.ts');
-  assert.ok(next && snapshot.subarray(next.start, next.end).includes('return items.length'));
-  const [idle] = searchEvidenceRanges(snapshot, {
-    query: 'idle worker scheduling timeout', source: 'scheduler.ts', limit: 1, exclude: [{ source: 'scheduler.ts', from: 1, to: 2 }],
-  }, 400);
-  assert.ok(idle && snapshot.subarray(idle.start, idle.end).includes('schedulingTimeoutForIdleWorkers = 900'));
-});
 
 export function client(repo: string, full = false, dir?: string) {
   const home = mkdtempSync(join(tmpdir(), 'julius mcp home '));
@@ -158,6 +127,10 @@ test('opt-in evidence keeps source and note excerpts together and rebuilds after
     assert.equal(Buffer.from(body).subarray(span.start, span.end).toString(), rows.join('\n'));
     const partial = JSON.parse(await call({ ...selector, budget: 256 }));
     assert.equal(partial.next.end, span.end, 'continuation stops at the selected passage');
+    assert.deepEqual(JSON.parse(await call({ ...selector, budget: 256, args: { ...selector.args, format: 'lines' } })), partial);
+    const compactExact = await call({ ...selector, budget: 256, args: { handle, format: 'lines', evidence: { source, from: 2 } } });
+    assert.match(compactExact, /^evidence sha256:[a-f0-9]+\nsource 0 note /);
+    assert.match(compactExact, /\n\| - Calibration evidence sequence must be recorded in order\.$/);
     const tail = await call({ operation: 'context.read', args: { handle, ...partial.next }, delivery: 'complete' });
     assert.equal(partial.content + tail.slice(tail.indexOf('\n') + 1), `| - ${long}`);
     const lookup = JSON.parse(await call({ operation: 'context.read', budget: 500, args: { handle,
@@ -189,6 +162,17 @@ test('opt-in evidence keeps source and note excerpts together and rebuilds after
     }
     const inherited = await call(args);
     assert.doesNotMatch(inherited, /^Repository evidence/m);
+
+    const focused = await call({ ...args, args: { evidence: true, evidenceScope: 'auto',
+      query: 'In calibration.ts, what does calibrationSequence return?',
+    } });
+    assert.match(focused, /code "calibration.ts"/);
+    assert.doesNotMatch(focused, /note "|More evidence/);
+    const composed = await call({ ...args, args: { evidence: true, evidenceScope: 'auto',
+      query: 'What did the calibration note decide and what does calibrationSequence return?',
+    } });
+    assert.match(composed, /note "\.julius\/learnings\/calibration.md"/);
+    assert.match(composed, /code "calibration.ts"/);
 
     writeFileSync(join(repo, 'calibration.ts'), code(29));
     writeFileSync(join(notes, 'calibration.md'), current('retired'));

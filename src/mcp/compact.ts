@@ -17,14 +17,14 @@ const object = (properties: object, required: string[] = []) => ({ type: 'object
 const evidenceLocation = { source: string, from: integer(ECONOMY_MAX_BYTES, 1), to: integer(ECONOMY_MAX_BYTES, 1) };
 export const OPERATIONS: ToolDef[] = [
   { name: 'investigation.execute', description: 'Investigate change impact or locate literal failure evidence locally in one call; reuse verified results. Experimental structural evidence, not proof of correctness.', inputSchema: object({ recipe: { enum: ['change-impact', 'failure-localization'] }, paths: { type: 'array', minItems: 1, maxItems: 32, items: string }, query: { type: 'string', minLength: 1, maxLength: 512 }, depth: integer(8, 1) }, ['recipe']) },
-  { name: 'julius_find_code', description: 'Rank code by query.', inputSchema: object({ query: string, limit: integer(100, 1), full: { type: 'boolean' }, in: string, evidence: { type: 'boolean', description: 'Quote code and active repo notes.' } }, ['query']) },
+  { name: 'julius_find_code', description: 'Rank code by query.', inputSchema: object({ query: string, limit: integer(100, 1), full: { type: 'boolean' }, in: string, evidence: { type: 'boolean', description: 'Quote code and active repo notes.' }, evidenceScope: { enum: ['auto'] } }, ['query']) },
   { name: 'julius_file_api', description: 'File signatures and source locations.', inputSchema: object({ file: string }, ['file']) },
   { name: 'julius_check_freshness', description: 'Report graph drift.', inputSchema: object({}) },
   { name: 'julius_trace_calls', description: 'Call/reference edges and transitive impact.', inputSchema: object({ symbol: string, direction: { enum: ['in', 'out'] }, depth: { anyOf: [integer(100, 1), { enum: ['all'] }] }, in: string }, ['symbol']) },
   { name: 'julius_find_all', description: 'Search indexed source, grouped by symbol.', inputSchema: object({ pattern: string, in: string, ignore_case: { type: 'boolean' }, fixed: { type: 'boolean' } }, ['pattern']) },
   { name: 'julius_repo_map', description: 'Structural repository orientation.', inputSchema: object({ max_dirs: integer(100, 1) }) },
   { name: 'context.capture', description: 'Bound supplied text; retain omitted bytes locally. Optional compact format summarizes TAP passes or consecutive repeated log/build lines.', inputSchema: object({ content: { type: 'string', maxLength: ECONOMY_MAX_BYTES }, compact: { enum: ['tap', 'log', 'build'] } }, ['content']) },
-  { name: 'context.read', description: 'Read retained bytes or cited evidence.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string, format: { enum: ['lines'] }, evidence: object({ ...evidenceLocation, query: string, limit: integer(8, 1), exclude: { type: 'array', maxItems: 16, items: object(evidenceLocation, ['source', 'from']) } }) }, ['handle']) },
+  { name: 'context.read', description: 'Read retained bytes or cited evidence.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string, format: { enum: ['lines'] }, evidenceScope: { enum: ['auto'] }, evidence: object({ ...evidenceLocation, query: string, limit: integer(8, 1), exclude: { type: 'array', maxItems: 16, items: object(evidenceLocation, ['source', 'from']) } }) }, ['handle']) },
   { name: 'context.stats', description: 'Local payload ledger; excludes protocol costs, not billing.', inputSchema: object({}) },
 ];
 export const COMPACT_TOOLS: ToolDef[] = [
@@ -99,22 +99,28 @@ export async function callCompact(root: string, name: string, input: unknown, di
       if (selector && (start !== undefined || end !== undefined || search !== undefined)) {
         throw new Error('Evidence selectors cannot be combined with start, end or search');
       }
-      if (args.format !== undefined && selector?.query === undefined) throw new Error('Lines format requires an evidence query');
+      const format = args.format as 'lines' | undefined;
+      if (format && !selector) throw new Error('Lines format requires an evidence selector');
+      if (args.evidenceScope !== undefined && selector?.query === undefined) throw new Error('Evidence scope requires an evidence query');
       if (selector?.query !== undefined) {
-        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector, choice.budget), args.format as 'lines' | undefined), isError: false };
+        return { text: await economy.readEvidence(args.handle as string, choice.budget,
+          bytes => searchEvidenceRanges(bytes, selector, args.evidenceScope === 'auto'), format), isError: false };
       }
       const result = await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start, end, search },
-        selector && (bytes => resolveEvidenceRange(bytes, selector)),
+        selector && (bytes => resolveEvidenceRange(bytes, selector)), format,
       );
       return { text: result.text, isError: false };
     }
     if (operation.name === 'context.stats') return { text: JSON.stringify(await economy.stats()), isError: false };
     if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice), isError: false };
     if (!TOOLS.some(t => t.name === operation.name)) throw new Error('Unsupported graph operation');
+    if (operation.name === 'julius_find_code' && args.evidenceScope !== undefined && args.evidence !== true) {
+      throw new Error('Evidence scope requires evidence mode');
+    }
     await ensureGraph(root, dir);
     if (operation.name === 'julius_find_code' && args.evidence === true) {
       if (readWorkspace(root, dir)) throw new Error('Experimental evidence requires an individual repository root');
-      return { text: await deliverContextEvidence(root, args as { query: string; limit?: number; in?: string }, choice, dir), isError: false };
+      return { text: await deliverContextEvidence(root, args as { query: string; limit?: number; in?: string; evidenceScope?: 'auto' }, choice, dir), isError: false };
     }
     const result = await callTool(root, operation.name, args, dir);
     return { text: (await economy.present(result.text, choice, 'mcp')).text, isError: result.isError };

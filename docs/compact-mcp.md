@@ -88,13 +88,11 @@ request up to eight matches, or `exclude` with up to 16 `source`/`from`/`to`
 ranges already read. A match too large to quote can appear in `more` with
 its citation and offsets for direct recovery.
 
-Search uses the excluded text to rank what remains. It favors evidence for
-less-covered parts of the question and nearby code that completes an
-excerpt. It also weighs the estimated token cost of quoting each passage.
-`limit` is a ceiling. Lower-value matches can be omitted even when room is
-available. Exact source and line requests still recover the specified range.
+Exclusions prevent search from returning already quoted lines. The rank
+favors complementary passages within each search. `limit` is a ceiling.
+Exact source and line requests recover the specified range.
 
-Set `format: "lines"` beside `handle` on a `context.read` evidence query
+Set `format: "lines"` beside `handle` on a `context.read` evidence request
 to request shared source declarations and literal quote rows. The server
 selects and caps the same ranges as the JSON reply, then uses lines when
 it fits and costs fewer tokens. Clients can receive either representation.
@@ -114,6 +112,16 @@ inclusive line range and starting byte offset. Its literal `| ` rows retain
 the snapshot bytes, including those prefixes. Join those rows with LF and add
 their UTF-8 byte length to the starting offset to derive the exclusive end.
 A `more` row carries an explicit byte range for a passage that did not fit.
+A paginated direct range keeps the JSON byte cursor.
+
+Set `evidenceScope: "auto"` beside `evidence: true` to try a focused
+snapshot. An explicit file path, or concrete symbols for every question
+clause that resolve to one indexed file, can narrow the snapshot to that
+file. Requests naming notes, decisions, documentation, or comparisons keep
+ordinary evidence composition. The default evidence scope is unchanged.
+The same option on a `context.read` evidence query can prioritize code next
+to a previously quoted line when composing notes and code. Use the normal
+`exclude` ranges to identify text already delivered.
 
 Source selectors use exact snapshot paths and inclusive line numbers. A
 range must belong to one file or one note section. Use `delivery: "complete"`

@@ -149,3 +149,42 @@ snapshot, give independent query clauses and evidence kinds room, and rank
 remaining clipped passages per estimated serialized token. Adjacent code
 gets a soft bonus for completing a guard or statement. Direct file and line
 requests retain the exact byte-oriented path.
+
+## Transport and focused scope replay
+
+The negative marginal-ranking build remains reproducible at `791dcae`.
+The grouped line representation was first tested on that build with the
+same selected passages. The tested branch then restored the original
+ranking from `2903c86`. It offers two independent options for clients.
+`format: "lines"` packs the same selected evidence in a smaller envelope.
+`evidenceScope: "auto"` can narrow a strongly anchored query to one source
+or help complete an adjacent guard on composition queries. The default
+protocol and byte-range selectors retain their behavior.
+
+The four replay lanes are unmodified `main` at `6b22b95`, the evidence pilot
+at `2903c86`, the same selection with line transport, and line transport
+with focused scope. Build the two reference CLIs separately, then run:
+
+```sh
+npm run build
+node scripts/experiments/context-evidence-benchmark.mjs --transport-holdout --format-lines --focus-evidence --transport-control --bulma-repo=/path/to/bulma --default-cli=/path/to/main/dist/bin/julius.js --prior-cli=/path/to/prior/dist/bin/julius.js
+```
+
+The five fresh PRs were pinned at `0dcf557` before this experiment.
+`--same-delivery` asserts identical ranges, citations, delivered fact IDs,
+audited bytes, call counts and fallback paths in the format-only comparison.
+The transport profile counts complete JSON-RPC responses for the original
+JSON envelope, shared JSON fields, and grouped literal rows. It also counts
+the quote rows alone as a lower bound. The end-to-end replay includes
+requests, discovery, recovery and fallback reads, using the same limits and
+visible-source rules as the prior directed replay.
+
+The cost objective requires total traffic below both controls with every
+fact they delivered still covered. The earlier promotion gate also requires
+all facts, at least 10% savings against default, and two additional cases
+completed by the first response. Cold stdio latency includes graph startup.
+
+The experiment follows the design principles in [RTK's feature
+reference](https://github.com/rtk-ai/rtk/blob/develop/docs/usage/FEATURES.md),
+[Context Mode's architecture](https://github.com/mksglu/context-mode/blob/main/docs/how-it-works.md),
+and [Aider's budgeted repository map](https://aider.chat/docs/repomap.html).
