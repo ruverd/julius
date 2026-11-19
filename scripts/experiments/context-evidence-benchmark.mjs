@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { ECONOMY_ENCODING, economyTokens } from '../../dist/economy/index.js';
 import { repoPlace } from '../../dist/notes/home.js';
 import { tokenize } from '../../dist/ask/index-file.js';
+import { evidenceLines } from '../../dist/economy/evidence-transport.js';
 import { cases } from './context-evidence-cases.mjs';
 import { historicalCases, historicalPlan } from './context-evidence-history.mjs';
 
@@ -18,7 +19,9 @@ const onlyBaseline = process.argv.includes('--baseline-only');
 const history = process.argv.includes('--historical');
 const holdout = process.argv.includes('--holdout');
 const marginalHoldout = process.argv.includes('--marginal-holdout');
-const directed = holdout || marginalHoldout || process.argv.includes('--directed');
+const transportHoldout = process.argv.includes('--transport-holdout');
+const directed = holdout || marginalHoldout || transportHoldout || process.argv.includes('--directed');
+const formatLines = process.argv.includes('--format-lines');
 const reverse = process.argv.includes('--reverse');
 const caseName = process.argv.find(arg => arg.startsWith('--case='))?.slice('--case='.length);
 const bulmaRepo = process.argv.find(arg => arg.startsWith('--bulma-repo='))?.slice('--bulma-repo='.length);
@@ -102,7 +105,7 @@ function quote(path, kind, from, to, body) {
 }
 
 function passage(text) {
-  const data = JSON.parse(text);
+  const data = decodeEvidence(text);
   if (data.hits) return data.hits.filter(hit => hit.format === 'utf8').map(({ evidence, content }) =>
     quote(evidence.path, evidence.kind, evidence.from, evidence.to, content)).join('\n\n');
   if (!data.evidence || data.format !== 'utf8') return visible(text);
@@ -110,6 +113,68 @@ function passage(text) {
   if (data.next) body = body.slice(0, body.lastIndexOf('\n') + 1);
   const { path, kind, from, to } = data.evidence;
   return quote(path, kind, from, to, body);
+}
+
+function decodeEvidence(text) {
+  if (!text.startsWith('evidence ')) return JSON.parse(text);
+  const [header, ...rows] = text.split('\n');
+  const handle = header.slice('evidence '.length);
+  assert.match(handle, /^sha256:[a-f0-9]{64}$/);
+  const sources = new Map();
+  const hits = [];
+  const more = [];
+  let current;
+  function flush() {
+    if (!current) return;
+    const content = current.rows.join('\n');
+    hits.push({ start: current.start, end: current.start + Buffer.byteLength(content), evidence: current.evidence, content, format: 'utf8' });
+    current = undefined;
+  }
+  for (const row of rows) {
+    if (row.startsWith('| ')) { assert.ok(current); current.rows.push(row); continue; }
+    flush();
+    const source = /^source (\d+) (code|note) ("(?:[^"\\]|\\.)*")(?: ("(?:[^"\\]|\\.)*"))?$/.exec(row);
+    if (source) {
+      sources.set(Number(source[1]), { kind: source[2], path: JSON.parse(source[3]), ...(source[4] ? { heading: JSON.parse(source[4]) } : {}) });
+      continue;
+    }
+    const item = /^(hit|more) (\d+) L(\d+)(?:-L(\d+))? (\d+)(?::(\d+))?$/.exec(row);
+    assert.ok(item && sources.has(Number(item[2])), `Invalid evidence row: ${row}`);
+    const evidence = { ...sources.get(Number(item[2])), from: Number(item[3]), to: Number(item[4] ?? item[3]) };
+    const start = Number(item[5]);
+    if (item[1] === 'hit') current = { start, evidence, rows: [] };
+    else more.push({ start, end: Number(item[6]), evidence });
+  }
+  flush();
+  return { delivery: 'evidence', handle, hits, ...(more.length ? { more } : {}) };
+}
+
+function profileTransport(delivery) {
+  const results = [];
+  for (const { phase, response } of delivery) {
+    if (phase !== 'recovery') continue;
+    const rpc = JSON.parse(response);
+    const part = rpc.result.content[0];
+    if (!part.text.startsWith('{')) continue;
+    const data = JSON.parse(part.text);
+    if (data.delivery !== 'evidence') continue;
+    const { handle, hits, more = [] } = data;
+    const wireCost = text => count(wire({ ...rpc, result: { ...rpc.result, content: [{ ...part, text }] } }));
+    const sources = [];
+    const tuple = range => {
+      const { path, kind, heading, from, to } = range.evidence;
+      const source = JSON.stringify([path, kind, heading]);
+      let id = sources.indexOf(source);
+      if (id === -1) { id = sources.length; sources.push(source); }
+      return [id, range.start, range.end, from, to];
+    };
+    const groupedHits = hits.map(hit => [...tuple(hit), hit.content, ...(hit.format === 'utf8' ? [] : [hit.format])]);
+    const groupedMore = more.map(tuple);
+    const grouped = JSON.stringify({ delivery: 'evidence', handle, sources: sources.map(source => JSON.parse(source)), hits: groupedHits, ...(more.length ? { more: groupedMore } : {}) });
+    const lines = evidenceLines(handle, hits, more);
+    results.push({ json: count(response), quotesOnly: wireCost(hits.map(hit => hit.content).join('\n')), grouped: wireCost(grouped), lines: lines === null ? null : wireCost(lines) });
+  }
+  return results;
 }
 
 function quotedRanges(text) {
@@ -247,13 +312,13 @@ async function evaluate(fixture, lane) {
         const selector = pilot ? { evidence: nextRange || { query: fixture.query, exclude, limit: 6 } } : searches[attempt] ?? {};
         if (!pilot && attempt > searches.length) break;
         const reply = await tool('julius_call', { operation: 'context.read', budget: historicalPlan.recoveryBudget,
-          args: { handle, ...selector },
+          args: { handle, ...selector, ...(lane === 'pilot' && formatLines && selector.evidence?.query ? { format: 'lines' } : {}) },
         }, 'recovery', true);
         const trace = { attempt: attempt + 1, textTokens: count(reply), bytes: Buffer.byteLength(reply), newFacts: [] };
         recoveryTrace.push(trace);
-        if (!reply.startsWith('{')) continue;
+        if (!reply.startsWith('{') && !reply.startsWith('evidence ')) continue;
         if (pilot) {
-          const data = JSON.parse(reply);
+          const data = decodeEvidence(reply);
           const ranges = data.hits ?? (data.evidence ? [data] : []);
           recoveredRanges.push(...ranges);
           trace.ranges = ranges.map(({ start, end, evidence }) => ({ start, end, ...evidence }));
@@ -319,16 +384,16 @@ async function evaluate(fixture, lane) {
     return { firstFacts: initialFacts.size, finalFacts: found.size, firstFactIds: [...initialFacts], finalFactIds: [...found], retainedFacts,
       initialTextTokens: count(initial), initialCitations: quotedRanges(first), totalTokens: costs(), protocolBytes: sum(delivery.flatMap(({ request, response }) => [Buffer.byteLength(request), Buffer.byteLength(response)])),
       setupTokens: costs('setup'), discoveryTokens: costs('discovery'), queryTokens: costs('query'), contextReadTokens: costs('recovery'),
-      verifiedRecoveryBytes: recoveredRanges.reduce((n, range) => n + range.end - range.start, 0), recoveryTrace, localReads,
+      verifiedRecoveryBytes: recoveredRanges.reduce((n, range) => n + range.end - range.start, 0), recoveryTrace, localReads, transportProfile: profileTransport(delivery),
       calls: delivery.filter(item => item.phase !== 'setup').length, recoveryCalls: delivery.filter(item => item.phase === 'recovery' || item.phase === 'local-read').length, firstMs, totalMs };
   });
   return value;
 }
 
 try {
-  const historical = history || holdout || marginalHoldout;
+  const historical = history || holdout || marginalHoldout || transportHoldout;
   if (historical && !bulmaRepo) throw new Error('Historical samples require --bulma-repo=/path/to/a/Bulma/git/repository');
-  const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, marginalHoldout ? 'marginal' : holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
+  const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, transportHoldout ? 'transport' : marginalHoldout ? 'marginal' : holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
   assert.ok(fixtures.length, `Unknown case: ${caseName}`);
   const results = [];
   for (const [index, fixture] of fixtures.entries()) {
@@ -353,6 +418,6 @@ try {
     && (!prior || (preservesPrior && prior.totalTokens !== null && pilot.totalTokens < prior.totalTokens))
     && results.every(row => row.pilot.finalFacts === row.facts && row.pilot.firstFacts >= row.baseline.firstFacts)
     && results.filter(row => row.pilot.firstFacts === row.facts && row.baseline.firstFacts < row.facts).length >= minimumNewlyComplete;
-  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, ...(historical ? { historicalPlan } : {}), baseline, ...(prior ? { prior, preservesPrior } : {}), pilot, gate, results }, null, 2));
+  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, transportHoldout, formatLines, ...(historical ? { historicalPlan } : {}), baseline, ...(prior ? { prior, preservesPrior } : {}), pilot, gate, results }, null, 2));
   if (!onlyBaseline && !caseName && !gate) process.exitCode = 1;
 } finally { rmSync(scratch, { recursive: true, force: true }); }

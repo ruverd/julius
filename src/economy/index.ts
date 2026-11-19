@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { get_encoding } from 'tiktoken';
 import { completeHeader, scanLiterals, growSlice, lineHits, utf8SafeEnd, type DeliveryChoice } from './delivery.js';
 import { compactOutput, parseCompactionFormat, type CompactionFormat } from './compact-output.js';
+import { evidenceLines, type EvidenceHit } from './evidence-transport.js';
 
 let encoding: ReturnType<typeof get_encoding> | undefined;
 export const ECONOMY_ENCODING = 'cl100k_base';
@@ -205,10 +206,10 @@ export class Economy {
     this.record(0, countPayloadTokens(result.text)); return result;
   }
 
-  async readEvidence(handle: string, budget: number | null, select: (bytes: Buffer) => RetainedRange[]): Promise<string> {
+  async readEvidence(handle: string, budget: number | null, select: (bytes: Buffer) => RetainedRange[], format?: 'lines'): Promise<string> {
     if (budget !== null) budgetCheck(budget);
     const bytes = this.retainedBytes(handle);
-    const hits: Array<RetainedRange & ReturnType<typeof representation>> = [];
+    const hits: EvidenceHit[] = [];
     const more: RetainedRange[] = [];
     const render = () => JSON.stringify({ delivery: 'evidence', handle, hits, ...(more.length ? { more } : {}) });
     const fits = (text: string) => budget === null || (countPayloadTokens(text) ?? Infinity) <= budget;
@@ -224,7 +225,15 @@ export class Economy {
     }
     const text = render();
     if (!fits(text)) throw new Error('Budget too small for evidence recovery');
-    this.record(0, countPayloadTokens(text));
+    const tokens = countPayloadTokens(text);
+    const compact = format === 'lines' ? evidenceLines(handle, hits, more) : null;
+    const compactTokens = compact === null ? null : countPayloadTokens(compact);
+    if (compact !== null && compactTokens !== null && compactTokens < (tokens ?? Infinity)
+      && (budget === null || compactTokens <= budget)) {
+      this.record(0, compactTokens);
+      return compact;
+    }
+    this.record(0, tokens);
     return text;
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {

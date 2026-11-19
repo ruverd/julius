@@ -94,6 +94,27 @@ excerpt. It also weighs the estimated token cost of quoting each passage.
 `limit` is a ceiling. Lower-value matches can be omitted even when room is
 available. Exact source and line requests still recover the specified range.
 
+Set `format: "lines"` beside `handle` on a `context.read` evidence query
+to request shared source declarations and literal quote rows. The server
+selects and caps the same ranges as the JSON reply, then uses lines when
+it fits and costs fewer tokens. Clients can receive either representation.
+
+```text
+evidence sha256:<digest>
+source 0 code "src/app.ts"
+hit 0 L8-L9 120
+| const enabled = true;
+| start(enabled);
+more 0 L12 178:210
+```
+
+A `source` line gives a response-local number, source kind, JSON-quoted path,
+and optional JSON-quoted note section. Each `hit` names that source, the
+inclusive line range and starting byte offset. Its literal `| ` rows retain
+the snapshot bytes, including those prefixes. Join those rows with LF and add
+their UTF-8 byte length to the starting offset to derive the exclusive end.
+A `more` row carries an explicit byte range for a passage that did not fit.
+
 Source selectors use exact snapshot paths and inclusive line numbers. A
 range must belong to one file or one note section. Use `delivery: "complete"`
 without a budget to read a long range verbatim. The response gives

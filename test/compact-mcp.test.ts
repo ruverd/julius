@@ -169,6 +169,19 @@ test('opt-in evidence keeps source and note excerpts together and rebuilds after
       assert.equal(Buffer.from(body).subarray(hit.start, hit.end).toString(), hit.content);
       assert.ok(!hit.content.includes(long));
     }
+    const compact = await call({ operation: 'context.read', budget: 500, args: { handle, format: 'lines',
+      evidence: { query: 'calibration sequence evidence', exclude: [{ source, from: 3 }] },
+    } });
+    assert.ok(compact.startsWith(`evidence ${handle}\n`));
+    assert.ok(economyTokens(compact) < economyTokens(JSON.stringify(lookup)));
+    assert.equal(compact.split('\n').filter(line => line.startsWith('hit ')).length, lookup.hits.length);
+    for (const hit of lookup.hits) {
+      assert.ok(compact.includes(` ${hit.start}\n${hit.content}`));
+    }
+    const incompatibleFormat = await c.request('tools/call', { name: 'julius_call', arguments: {
+      operation: 'context.read', args: { handle, format: 'lines', start: 0 },
+    } });
+    assert.equal(incompatibleFormat.result.isError, true);
     for (const invalid of [{ source: 'private.md', from: 1 }, { source, from: 1000 }, { source, from: 3, to: 2 }]) {
       const reply = await c.request('tools/call', { name: 'julius_call', arguments: { ...selector, args: { handle, evidence: invalid } } });
       assert.equal(reply.result.isError, true);

@@ -24,7 +24,7 @@ export const OPERATIONS: ToolDef[] = [
   { name: 'julius_find_all', description: 'Search indexed source, grouped by symbol.', inputSchema: object({ pattern: string, in: string, ignore_case: { type: 'boolean' }, fixed: { type: 'boolean' } }, ['pattern']) },
   { name: 'julius_repo_map', description: 'Structural repository orientation.', inputSchema: object({ max_dirs: integer(100, 1) }) },
   { name: 'context.capture', description: 'Bound supplied text; retain omitted bytes locally. Optional compact format summarizes TAP passes or consecutive repeated log/build lines.', inputSchema: object({ content: { type: 'string', maxLength: ECONOMY_MAX_BYTES }, compact: { enum: ['tap', 'log', 'build'] } }, ['content']) },
-  { name: 'context.read', description: 'Read retained bytes or cited evidence.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string, evidence: object({ ...evidenceLocation, query: string, limit: integer(8, 1), exclude: { type: 'array', maxItems: 16, items: object(evidenceLocation, ['source', 'from']) } }) }, ['handle']) },
+  { name: 'context.read', description: 'Read retained bytes or cited evidence.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string, format: { enum: ['lines'] }, evidence: object({ ...evidenceLocation, query: string, limit: integer(8, 1), exclude: { type: 'array', maxItems: 16, items: object(evidenceLocation, ['source', 'from']) } }) }, ['handle']) },
   { name: 'context.stats', description: 'Local payload ledger; excludes protocol costs, not billing.', inputSchema: object({}) },
 ];
 export const COMPACT_TOOLS: ToolDef[] = [
@@ -99,8 +99,9 @@ export async function callCompact(root: string, name: string, input: unknown, di
       if (selector && (start !== undefined || end !== undefined || search !== undefined)) {
         throw new Error('Evidence selectors cannot be combined with start, end or search');
       }
+      if (args.format !== undefined && selector?.query === undefined) throw new Error('Lines format requires an evidence query');
       if (selector?.query !== undefined) {
-        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector, choice.budget)), isError: false };
+        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector, choice.budget), args.format as 'lines' | undefined), isError: false };
       }
       const result = await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start, end, search },
         selector && (bytes => resolveEvidenceRange(bytes, selector)),
