@@ -95,9 +95,47 @@ export const historicalPlan = {
   minimumNewlyComplete: 2,
 };
 
-export function historicalCases(juliusRepo, bulmaRepo, useHoldout = false) {
+const marginalHoldout = [
+  {
+    project: 'julius', pr: 25, sha: '00b1fce23b1434a88ed162aa3469b47b143e7d90',
+    name: 'literal-match-limit', budget: 300,
+    query: 'How does scanLiterals separate its hit limit from its total count?',
+    facts: [source('src/economy/delivery.ts', 135, 'hits.length < limit'), source('src/economy/delivery.ts', 136, 'count++')],
+  },
+  {
+    project: 'julius', pr: 31, sha: '69db32f4f508955ce0954e54ced8810b1f8c3c2c',
+    name: 'learning-command-and-sections', budget: 300,
+    query: 'In src/claude/note-signals.ts, what exact julius note command and section guidance does noteAsk give?',
+    facts: [source('src/claude/note-signals.ts', 328, 'const SAVE'), source('src/claude/note-signals.ts', 329, 'const CLOSE')],
+  },
+  {
+    project: 'julius', pr: 15, sha: 'e624c78d28080f94ceb7f7ec22e5c7f9e45aef1e',
+    name: 'bounded-regex-settings', budget: 375,
+    query: 'How does boundedMatcher set up its VM context, and how does it enforce REGEX_TIMEOUT_MS while matching?',
+    facts: [source('src/search/grep.ts', 89, 'REGEX_TIMEOUT_MS = 1000'), source('src/search/grep.ts', 101, 'codeGeneration:'),
+      source('src/search/grep.ts', 105, 'runInContext(context, { timeout: REGEX_TIMEOUT_MS })')],
+  },
+  {
+    project: 'bulma', pr: 90, sha: '595a80cfc6708bde5a02c9150086d072bb2001bf',
+    name: 'image-evidence-policy-and-cap', budget: 275,
+    query: 'In skills/bulma/scripts/answer.py, quote the exact IMAGE_POLICY and show the cap inspect_attachments applies to selected images.',
+    passages: [{ path: 'skills/bulma/scripts/answer.py', from: 85, to: 89 }],
+    facts: [source('skills/bulma/scripts/answer.py', 105, 'len(selected) < 4')],
+  },
+  {
+    project: 'bulma', pr: 77, sha: '9e60519a2ae8ffa4481f9909ed57dea5eeb5d920',
+    name: 'actions-ci-precedence', budget: 400,
+    query: 'How does job_kind treat a failure on an unfinished job, and when does classify_ci let a pending rollup override a successful Actions result?',
+    facts: [source('skills/bulma-code-review/scripts/gate.py', 149, 'done in FAILED'),
+      source('skills/bulma-code-review/scripts/gate.py', 151, 'phase != "completed"'),
+      source('skills/bulma-code-review/scripts/gate.py', 208, 'result in {"success", "unknown", "unverified"}')],
+  },
+];
+
+export function historicalCases(juliusRepo, bulmaRepo, sample = false) {
   const repositories = { julius: resolve(juliusRepo), bulma: resolve(bulmaRepo) };
-  return (useHoldout ? holdout : manifest).map(fixture => {
+  const fixtures = sample === 'marginal' ? marginalHoldout : sample ? holdout : manifest;
+  return fixtures.map(fixture => {
     const repo = repositories[fixture.project];
     const read = path => execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8', env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });
     const facts = (fixture.facts ?? []).map(({ path, line, contains }) => {
@@ -114,6 +152,6 @@ export function historicalCases(juliusRepo, bulmaRepo, useHoldout = false) {
         if (lines[index].trim()) facts.push({ path, line: from + index, text: lines[index] });
       }
     }
-    return { ...fixture, repo, facts, historical: true, holdout: useHoldout };
+    return { ...fixture, repo, facts, historical: true, holdout: Boolean(sample) };
   });
 }
