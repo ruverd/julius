@@ -8,13 +8,15 @@ import { buildGraph } from '../graph/build.js';
 import { wiringPath } from '../graph/write.js';
 import { contextDirFor } from '../context/node-file.js';
 import { existsSync } from 'node:fs';
+import { readWorkspace } from '../graph/workspace.js';
+import { deliverContextEvidence } from './context-evidence.js';
 
 const string = { type: 'string', minLength: 1, maxLength: 4096 };
 const integer = (maximum: number, minimum = 0) => ({ type: 'integer', minimum, maximum });
 const object = (properties: object, required: string[] = []) => ({ type: 'object', properties, required, additionalProperties: false });
 export const OPERATIONS: ToolDef[] = [
   { name: 'investigation.execute', description: 'Investigate change impact or locate literal failure evidence locally in one call; reuse verified results. Experimental structural evidence, not proof of correctness.', inputSchema: object({ recipe: { enum: ['change-impact', 'failure-localization'] }, paths: { type: 'array', minItems: 1, maxItems: 32, items: string }, query: { type: 'string', minLength: 1, maxLength: 512 }, depth: integer(8, 1) }, ['recipe']) },
-  { name: 'julius_find_code', description: 'Rank code by query.', inputSchema: object({ query: string, limit: integer(100, 1), full: { type: 'boolean' }, in: string }, ['query']) },
+  { name: 'julius_find_code', description: 'Rank code by query.', inputSchema: object({ query: string, limit: integer(100, 1), full: { type: 'boolean' }, in: string, evidence: { type: 'boolean', description: 'Quote code and active repo notes.' } }, ['query']) },
   { name: 'julius_file_api', description: 'File signatures and source locations.', inputSchema: object({ file: string }, ['file']) },
   { name: 'julius_check_freshness', description: 'Report graph drift.', inputSchema: object({}) },
   { name: 'julius_trace_calls', description: 'Call/reference edges and transitive impact.', inputSchema: object({ symbol: string, direction: { enum: ['in', 'out'] }, depth: { anyOf: [integer(100, 1), { enum: ['all'] }] }, in: string }, ['symbol']) },
@@ -93,6 +95,10 @@ export async function callCompact(root: string, name: string, input: unknown, di
     if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice), isError: false };
     if (!TOOLS.some(t => t.name === operation.name)) throw new Error('Unsupported graph operation');
     await ensureGraph(root, dir);
+    if (operation.name === 'julius_find_code' && args.evidence === true) {
+      if (readWorkspace(root, dir)) throw new Error('Experimental evidence requires an individual repository root');
+      return { text: await deliverContextEvidence(root, args as { query: string; limit?: number; in?: string }, choice, dir), isError: false };
+    }
     const result = await callTool(root, operation.name, args, dir);
     return { text: (await economy.present(result.text, choice, 'mcp')).text, isError: result.isError };
   } catch (error) { return { text: error instanceof Error ? error.message : String(error), isError: true }; }

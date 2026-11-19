@@ -52,6 +52,37 @@ A column heading explains `symbol kind location incomingEdges`.
 Every symbol retains its file path, kind, span, count and matched source lines.
 Ranking and truncation notices are retained.
 
+## Experimental repository evidence
+
+Set `evidence: true` on `julius_find_code` to request quoted excerpts from
+current code and active learnings in the checkout:
+
+```json
+{"operation":"julius_find_code","args":{"query":"What is the parallel test policy and where does the harness share state?","evidence":true},"budget":300}
+```
+
+The pilot ranks files with the existing graph, ranks learnings with the
+existing note matcher, and selects literal lines across both source types.
+It reads each ranked file once and collapses identical note sections with the
+same declared file scope. It uses up to eight matching learnings. With `in`,
+a learning must name a touched path within that prefix. Sources come from a
+single checkout. Personal learnings and cached branch learnings are excluded.
+
+Each excerpt names its path and line range. Note ranges start at line 1 of
+the parsed Markdown body, after front matter and outer whitespace. `under`
+names its section. `| ` marks the start of each quoted line. If the results
+exceed the budget, `More evidence` gives the `context.read` handle for the
+full snapshot of matched files and note sections. Use `search` or byte
+ranges for a particular excerpt and `delivery: "complete"` without a budget
+to read the snapshot. A retained snapshot describes the checkout at the time
+of the original query.
+
+An explicit `focus` or `delivery: "complete"` applies existing economy
+delivery to that snapshot. The pilot reads the current source text regardless
+of `full`. Narrow the query or lower `limit` if the capture exceeds the 8 MiB
+store limit. Ordinary `julius_find_code`, the CLI and `--full-tools` keep their
+existing output. See [the pilot evaluation](context-evidence-pilot.md).
+
 See [investigations](investigations.md) for change-impact and failure-localization
 recipes, and [context economy](context-economy.md) for storage and accounting.
 

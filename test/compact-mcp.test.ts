@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { spawn, execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { once } from 'node:events';
@@ -76,6 +77,55 @@ test('full tools require explicit compatibility mode', async () => {
   const repo = mkdtempSync(join(tmpdir(), 'julius full ')); const c = client(repo, true);
   try { const r = await c.request('tools/list'); assert.equal(r.result.tools.length, 6); }
   finally { await c.close(); rmSync(repo, { recursive: true, force: true }); }
+});
+
+test('opt-in evidence keeps source and note excerpts together and rebuilds after edits', async () => {
+  const scratch = mkdtempSync(join(tmpdir(), 'julius combined evidence '));
+  const repo = join(scratch, 'repo');
+  mkdirSync(repo);
+  execFileSync('git', ['init', '-q', repo]);
+  const notes = join(repo, '.julius', 'learnings');
+  mkdirSync(notes, { recursive: true });
+  const long = 'Calibration evidence sequence: ' + 'ruby coral steel ink '.repeat(175).trim();
+  const current = (status: string) => `---\ntitle: Calibration evidence sequence\nstatus: ${status}\n---\n\n## Decided\n- Calibration evidence sequence must be recorded in order.\n- ${long}\n`;
+  const code = (n: number) => `const calibrationSeed = ${n};\nexport function calibrationSequence() { return calibrationSeed; }\n`;
+  writeFileSync(join(notes, 'calibration.md'), current('active'));
+  writeFileSync(join(repo, 'calibration.ts'), code(17));
+  if (process.platform !== 'win32') {
+    const outside = join(scratch, 'private.md');
+    writeFileSync(outside, current('active').replaceAll('Calibration evidence sequence', 'Calibration OUTSIDE_PRIVATE evidence sequence'));
+    symlinkSync(outside, join(notes, 'private.md'));
+  }
+  const c = client(repo);
+  const call = async (args: object) => {
+    const reply = await c.request('tools/call', { name: 'julius_call', arguments: args });
+    const text = reply.result.content[0].text as string;
+    assert.equal(reply.result.isError, false, text);
+    return text;
+  };
+  const args = { operation: 'julius_find_code', args: { query: 'What is the calibration evidence sequence and what does calibrationSequence return?' }, budget: 256 };
+  try {
+    const first = await call({ ...args, args: { ...args.args, evidence: true } });
+    assert.ok(economyTokens(first) <= args.budget);
+    assert.match(first, /note "\.julius\/learnings\/calibration.md" body L2 under "## Decided"/);
+    assert.match(first, /code "calibration.ts" L1-L2\n\| const calibrationSeed = 17;/);
+    assert.ok(!first.includes(long));
+    const handle = first.match(/sha256:[a-f0-9]{64}/)?.[0];
+    assert.ok(handle);
+    const recovery = await call({ operation: 'context.read', args: { handle }, delivery: 'complete' });
+    const body = recovery.slice(recovery.indexOf('\n') + 1);
+    assert.equal(`sha256:${createHash('sha256').update(body).digest('hex')}`, handle);
+    assert.ok(body.includes(`| - ${long}`));
+    assert.ok(!body.includes('OUTSIDE_PRIVATE'));
+    const inherited = await call(args);
+    assert.doesNotMatch(inherited, /^Repository evidence/m);
+
+    writeFileSync(join(repo, 'calibration.ts'), code(29));
+    writeFileSync(join(notes, 'calibration.md'), current('retired'));
+    const updated = await call({ ...args, args: { ...args.args, evidence: true } });
+    assert.match(updated, /calibrationSeed = 29/);
+    assert.doesNotMatch(updated, /calibrationSeed = 17|calibration\.md|OUTSIDE_PRIVATE/);
+  } finally { await c.close(); rmSync(scratch, { recursive: true, force: true }); }
 });
 
 

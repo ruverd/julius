@@ -1244,7 +1244,7 @@ export interface AskOptions {
 
 /** Parse a `path:Lx-Ly` pointer into its parts, or null if it isn't one
  * (concept multi-path lists and raw import strings return null). */
-function parseSpan(pointer: string): { path: string; from: number; to: number } | null {
+export function parseSpan(pointer: string): { path: string; from: number; to: number } | null {
   const m = pointer.match(/^(.*):L(\d+)-L(\d+)$/);
   if (!m) return null;
   return { path: m[1], from: Number(m[2]), to: Number(m[3]) };
