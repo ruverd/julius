@@ -5,9 +5,18 @@ The unchanged upstream history is in [upstream-changelog.md](docs/upstream-chang
 
 ## [Unreleased]
 
+## 0.25.0
+
 ### Added
 
+- Opt-in quoted repository evidence for `julius_find_code` and bounded snapshot recovery through `context.read`, with source citations and verifiable byte offsets.
+- Opt-in `evidenceScope: "auto"` for strongly anchored code queries and `format: "lines"` for lossless, compact recovery. Recovery can also return JSON.
+- Opt-in summaries for TAP, logs and build output in `julius run`, `julius capture` and MCP `context.capture`, with handles for exact recovery.
 - Add an opt-in Rust extractor for TypeScript, TSX and JavaScript while keeping CLI/MCP and graph orchestration in TypeScript. Build it explicitly with `npm run build:native` and select it with `JULIUS_EXTRACTOR=rust`; missing or invalid addons fall back to TypeScript. Backend/binary identities invalidate extraction and freshness caches.
+
+### Documentation
+
+- Record the five-PR historical replay. The opt-in mode recovered 16/16 pinned facts versus 14/16 on `main`, with 10,036 versus 15,087 estimated end-to-end tokens and 20 versus 34 calls. The replay estimates protocol and modeled fallback traffic. Provider usage, billing and agent speed remain unmeasured.
 
 ## 0.24.4
 

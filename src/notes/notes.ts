@@ -25,6 +25,8 @@ import { liveLearnings, newLearningId, readLearningFields, type LearningKind, ty
 import { changedFiles, ownPath } from "./git-facts.js";
 import { checkoutRoot, childCheckouts, ensureRepoHome, notePlaces, repoPlace, shownPath } from "./home.js";
 import { ensureRepoJulius, LEARNINGS_DIR, learningsDir } from "./repo-julius.js";
+import { readScopedSource } from "../util/source.js";
+import { MAX_FILE_BYTES } from "../ingest/fs.js";
 
 export interface NoteCost {
   minutes?: number;
@@ -142,7 +144,9 @@ function rebaseTouch(t: string, checkout: string, here: string): string {
 }
 
 /** Every `.md` in `notesDir` that parses as a note, with touches rebased onto `here`. */
-function readNotesIn(notesDir: string, checkout: string, here: string, scope: LearningScope): Note[] {
+function readNotesIn(notesDir: string, checkout: string, here: string, scope: LearningScope,
+  read: (path: string) => string | null = path => readFileSync(path, "utf8"),
+): Note[] {
   let files: string[];
   try {
     files = readdirSync(notesDir).filter((f) => f.endsWith(".md"));
@@ -152,13 +156,25 @@ function readNotesIn(notesDir: string, checkout: string, here: string, scope: Le
   const out: Note[] = [];
   for (const f of files) {
     try {
-      const n = parseNote(readFileSync(join(notesDir, f), "utf8"), join(notesDir, f));
+      const path = join(notesDir, f);
+      const text = read(path);
+      const n = text === null ? null : parseNote(text, path);
       if (n) out.push({ ...n, scope, touches: n.touches.map((t) => rebaseTouch(t, checkout, here)) });
     } catch {
       /* unreadable: skip */
     }
   }
   return out;
+}
+
+/** The checked-out repository's own notes, without reading home or branch caches. */
+export function listCheckoutNotes(dir: string): Note[] {
+  const here = resolve(dir);
+  const checkout = checkoutRoot(here);
+  if (!checkout) return [];
+  return readNotesIn(learningsDir(checkout), checkout, here, 'repo',
+    path => readScopedSource(checkout, path, MAX_FILE_BYTES),
+  ).sort((a, b) => a.path.localeCompare(b.path));
 }
 
 /** The file name a note is known by, wherever it sits: one learning on a branch and in the tree is one learning. */
