@@ -86,7 +86,7 @@ test('opt-in evidence keeps source and note excerpts together and rebuilds after
   execFileSync('git', ['init', '-q', repo]);
   const notes = join(repo, '.julius', 'learnings');
   mkdirSync(notes, { recursive: true });
-  const long = 'Calibration evidence sequence: ' + 'ruby coral steel ink '.repeat(175).trim();
+  const long = 'Calibration evidence sequence 🌎: ' + 'ruby coral steel ink '.repeat(175).trim();
   const current = (status: string) => `---\ntitle: Calibration evidence sequence\nstatus: ${status}\n---\n\n## Decided\n- Calibration evidence sequence must be recorded in order.\n- ${long}\n`;
   const code = (n: number) => `const calibrationSeed = ${n};\nexport function calibrationSequence() { return calibrationSeed; }\n`;
   writeFileSync(join(notes, 'calibration.md'), current('active'));
@@ -117,6 +117,32 @@ test('opt-in evidence keeps source and note excerpts together and rebuilds after
     assert.equal(`sha256:${createHash('sha256').update(body).digest('hex')}`, handle);
     assert.ok(body.includes(`| - ${long}`));
     assert.ok(!body.includes('OUTSIDE_PRIVATE'));
+    const source = '.julius/learnings/calibration.md';
+    const selector = { operation: 'context.read', args: { handle, evidence: { source, from: 3 } } };
+    const exact = await call({ ...selector, delivery: 'complete' });
+    const [header, ...rows] = exact.split('\n');
+    const span = JSON.parse(header!);
+    assert.deepEqual(span.evidence, { path: source, kind: 'note', from: 3, to: 3, heading: '## Decided' });
+    assert.equal(rows.join('\n'), `| - ${long}`);
+    assert.equal(Buffer.from(body).subarray(span.start, span.end).toString(), rows.join('\n'));
+    const partial = JSON.parse(await call({ ...selector, budget: 256 }));
+    assert.equal(partial.next.end, span.end, 'continuation stops at the selected passage');
+    const tail = await call({ operation: 'context.read', args: { handle, ...partial.next }, delivery: 'complete' });
+    assert.equal(partial.content + tail.slice(tail.indexOf('\n') + 1), `| - ${long}`);
+    const lookup = JSON.parse(await call({ operation: 'context.read', budget: 500, args: { handle,
+      evidence: { query: 'calibration sequence evidence', exclude: [{ source, from: 3 }] },
+    } }));
+    assert.deepEqual(new Set(lookup.hits.map((hit: { evidence: { kind: string } }) => hit.evidence.kind)), new Set(['note', 'code']));
+    assert.ok(lookup.hits.some((hit: { content: string }) => hit.content.includes('const calibrationSeed = 17')));
+    for (const hit of lookup.hits) {
+      assert.equal(Buffer.from(body).subarray(hit.start, hit.end).toString(), hit.content);
+      assert.ok(!hit.content.includes(long));
+    }
+    for (const invalid of [{ source: 'private.md', from: 1 }, { source, from: 1000 }, { source, from: 3, to: 2 }]) {
+      const reply = await c.request('tools/call', { name: 'julius_call', arguments: { ...selector, args: { handle, evidence: invalid } } });
+      assert.equal(reply.result.isError, true);
+      assert.doesNotMatch(reply.result.content[0].text, /OUTSIDE_PRIVATE|ruby coral/);
+    }
     const inherited = await call(args);
     assert.doesNotMatch(inherited, /^Repository evidence/m);
 

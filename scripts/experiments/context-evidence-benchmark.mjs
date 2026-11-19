@@ -2,20 +2,24 @@ import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { ECONOMY_ENCODING, economyTokens } from '../../dist/economy/index.js';
 import { repoPlace } from '../../dist/notes/home.js';
+import { tokenize } from '../../dist/ask/index-file.js';
 import { cases } from './context-evidence-cases.mjs';
 import { historicalCases, historicalPlan } from './context-evidence-history.mjs';
 
 const cli = fileURLToPath(new URL('../../dist/bin/julius.js', import.meta.url));
 const onlyBaseline = process.argv.includes('--baseline-only');
 const history = process.argv.includes('--historical');
+const holdout = process.argv.includes('--holdout');
+const directed = holdout || process.argv.includes('--directed');
 const reverse = process.argv.includes('--reverse');
+const caseName = process.argv.find(arg => arg.startsWith('--case='))?.slice('--case='.length);
 const bulmaRepo = process.argv.find(arg => arg.startsWith('--bulma-repo='))?.slice('--bulma-repo='.length);
 const scratch = mkdtempSync(join(tmpdir(), 'julius-context-benchmark-'));
 const wire = value => `${JSON.stringify(value)}\n`;
@@ -36,7 +40,7 @@ function prepare(fixture, lane) {
   mkdirSync(repo, { recursive: true });
   mkdirSync(home, { recursive: true });
   if (fixture.historical) {
-    const archive = execFileSync('git', ['-C', fixture.repo, 'archive', fixture.sha], { maxBuffer: 64 * 1024 * 1024 });
+    const archive = execFileSync('git', ['-C', fixture.repo, 'archive', fixture.sha], { maxBuffer: 64 * 1024 * 1024, env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });
     execFileSync('tar', ['-x', '-C', repo], { input: archive });
   }
   execFileSync('git', ['init', '-q', repo]);
@@ -57,14 +61,14 @@ async function client(repo, env, run) {
   let id = 0;
   let errors = '';
   child.stderr.on('data', data => { errors += data; });
-  const request = async (method, params, phase) => {
+  const request = async (method, params, phase, allowError = false) => {
     const json = wire({ jsonrpc: '2.0', id: ++id, method, params });
     child.stdin.write(json);
     const reply = await output.next();
     assert.ok(!reply.done, errors || 'MCP closed before responding');
     const parsed = JSON.parse(reply.value);
     assert.equal(parsed.id, id);
-    assert.ok(parsed.result && !parsed.result.isError, JSON.stringify(parsed));
+    assert.ok(parsed.result && (allowError || !parsed.result.isError), JSON.stringify(parsed));
     record.push({ phase, request: json, response: `${reply.value}\n` });
     return parsed.result;
   };
@@ -84,6 +88,69 @@ function visible(value) {
   return format === 'utf8' ? content : '';
 }
 
+function noteBody(content) {
+  return content.slice(content.indexOf('\n---\n', 4) + 5).trim();
+}
+
+function quote(path, kind, from, to, body) {
+  return `${kind} ${JSON.stringify(path)} ${kind === 'note' ? 'body ' : ''}L${from}-L${to}\n${body}`;
+}
+
+function passage(text) {
+  const data = JSON.parse(text);
+  if (data.hits) return data.hits.filter(hit => hit.format === 'utf8').map(({ evidence, content }) =>
+    quote(evidence.path, evidence.kind, evidence.from, evidence.to, content)).join('\n\n');
+  if (!data.evidence || data.format !== 'utf8') return visible(text);
+  let body = data.content;
+  if (data.next) body = body.slice(0, body.lastIndexOf('\n') + 1);
+  const { path, kind, from, to } = data.evidence;
+  return quote(path, kind, from, to, body);
+}
+
+function quotedRanges(text) {
+  return [...text.matchAll(/^(?:code|note) ("(?:[^"\\]|\\.)*") (?:body )?L(\d+)(?:-L(\d+))?/gm)].map(match => ({
+    source: JSON.parse(match[1]), from: Number(match[2]), to: Number(match[3] ?? match[2]),
+  }));
+}
+
+function sourcePaths(text, repo) {
+  const paths = new Set(text.match(/[\w./-]+\.(?:[cm]?[jt]sx?|py|rs|md)\b/g) ?? []);
+  return [...paths].filter(path => relative(repo, resolve(repo, path)).replaceAll('\\', '/') === path);
+}
+
+// Host-side fallback uses only the question and paths visible to the reader.
+// Give both modes the same bounded excerpt operation and budget.
+function localPassages(repo, path, query, budget) {
+  let content;
+  try {
+    const file = join(repo, path);
+    if (realpathSync(file) !== join(realpathSync(repo), path) || !lstatSync(file).isFile()) return '';
+    content = readFileSync(file, 'utf8');
+  }
+  catch (error) { if (error.code === 'ENOENT' || error.code === 'EISDIR') return ''; throw error; }
+  const kind = path.startsWith('.julius/learnings/') ? 'note' : 'code';
+  const lines = (kind === 'note' ? noteBody(content) : content).split('\n');
+  if (lines.at(-1) === '') lines.pop();
+  const radius = /\b(?:exact|entire|complete)\b/i.test(query) ? 8 : 2;
+  const terms = new Set(tokenize(query).map(term => term.replace(/([^s])s$/, '$1')));
+  const score = line => new Set(tokenize(line).map(term => term.replace(/([^s])s$/, '$1')).filter(term => terms.has(term))).size;
+  const anchors = lines.map((line, index) => ({ index, score: score(line) })).filter(anchor => anchor.score > 0);
+  anchors.sort((a, b) => b.score - a.score || a.index - b.index);
+  const fragments = [];
+  const seen = new Set();
+  for (const { index } of anchors.slice(0, 30)) {
+    if (seen.has(index)) continue;
+    const start = Math.max(0, index - radius);
+    const end = Math.min(lines.length, index + radius + 1);
+    if (lines.slice(start, end).some((_, offset) => seen.has(start + offset))) continue;
+    const fragment = quote(path, kind, start + 1, end, lines.slice(start, end).map(line => `| ${line}`).join('\n'));
+    if ((count([...fragments, fragment].join('\n\n')) ?? Infinity) > budget) continue;
+    fragments.push(fragment);
+    for (let line = start; line < end; line++) seen.add(line);
+  }
+  return fragments.join('\n\n');
+}
+
 function pilotFacts(text, fixture, repo) {
   const found = new Set();
   let source;
@@ -94,7 +161,7 @@ function pilotFacts(text, fixture, repo) {
       const path = JSON.parse(heading[2]);
       const original = fixture.files?.[path] ?? (fixture.historical ? readFileSync(join(repo, path), 'utf8') : undefined);
       assert.ok(original, `Unknown pilot source: ${path}`);
-      const body = heading[1] === 'note' ? original.slice(original.indexOf('\n---\n', 4) + 5).trim() : original;
+      const body = heading[1] === 'note' ? noteBody(original) : original;
       source = { path, lines: body.split('\n') };
       line = Number(heading[3]);
     } else if (row.startsWith('| ')) {
@@ -120,7 +187,7 @@ async function evaluate(fixture, lane) {
   const pilot = lane === 'pilot';
   const value = await client(repo, env, async ({ request, notify, record }) => {
     const start = performance.now();
-    const tool = async (name, args, phase) => (await request('tools/call', { name, arguments: args }, phase)).content[0].text;
+    const tool = async (name, args, phase, allowError) => (await request('tools/call', { name, arguments: args }, phase, allowError)).content[0].text;
     const discover = operation => tool('julius_discover', operation ? { operation } : {}, 'discovery');
     const find = () => tool('julius_call', { operation: 'julius_find_code', budget: fixture.budget,
       args: { query: fixture.query, ...(pilot ? { evidence: true } : {}) } }, 'query');
@@ -156,19 +223,47 @@ async function evaluate(fixture, lane) {
       retained = body;
       return body;
     };
-    if (found.size < fixture.facts.length && handle) {
+    if (directed && found.size < fixture.facts.length && handle) {
+      await discover('context.read');
+      const next = first.split('\n').filter(line => line.startsWith('next ')).map(line => JSON.parse(line.slice(5)));
+      const clues = fixture.query.match(/\b[A-Z][A-Z0-9_]{2,}\b|\b[a-z]\w*[A-Z]\w*\b|\b\w+_\w+\b/g) ?? [];
+      const searches = [...new Set(clues)].slice(0, 2).map(search => ({ search }));
+      for (let attempt = 0; attempt < 2 && found.size < fixture.facts.length; attempt++) {
+        const exclude = quotedRanges(all).slice(0, 16);
+        const nextRange = attempt > 0 && next.find(item => !exclude.some(seen => seen.source === item.source && seen.from <= item.from && seen.to >= item.to));
+        const selector = pilot ? { evidence: nextRange || { query: fixture.query, exclude, limit: 6 } } : searches[attempt] ?? {};
+        if (!pilot && attempt > searches.length) break;
+        const reply = await tool('julius_call', { operation: 'context.read', budget: historicalPlan.recoveryBudget,
+          args: { handle, ...selector },
+        }, 'recovery', true);
+        if (!reply.startsWith('{')) continue;
+        const recovered = pilot ? passage(reply) : visible(reply);
+        all += `\n${recovered}`;
+        for (const index of check(recovered)) found.add(index);
+      }
+    } else if (found.size < fixture.facts.length && handle) {
       await discover('context.read');
       all = await read('recovery');
       for (const index of check(all)) found.add(index);
     }
-    const missing = fixture.facts.filter((_, index) => !found.has(index));
     // A host can read exact repo files when the MCP response exposes a path.
     // Model that local read explicitly because main retains only formatted note leads.
-    for (const path of new Set(missing.map(fact => fact.path))) {
-      if (fixture.historical ? ![first, all, fixture.query].some(text => text.includes(path)) : !all.includes(path)) continue;
-      const content = readFileSync(join(repo, path), 'utf8');
-      record.push({ phase: 'local-read', request: wire({ method: 'readFile', path }), response: wire({ path, content }) });
-      fixture.facts.forEach((fact, index) => { if (fact.path === path && content.split('\n').includes(fact.text)) found.add(index); });
+    if (directed) {
+      const paths = sourcePaths(`${fixture.query}\n${all}`, repo);
+      for (const path of paths.slice(0, 3)) {
+        if (found.size === fixture.facts.length) break;
+        const content = localPassages(repo, path, fixture.query, historicalPlan.recoveryBudget);
+        record.push({ phase: 'local-read', path, request: wire({ method: 'readPassages', path, query: fixture.query }), response: wire({ path, content }) });
+        for (const index of pilotFacts(content, fixture, repo)) found.add(index);
+      }
+    } else {
+      const missing = fixture.facts.filter((_, index) => !found.has(index));
+      for (const path of new Set(missing.map(fact => fact.path))) {
+        if (fixture.historical ? ![first, all, fixture.query].some(text => text.includes(path)) : !all.includes(path)) continue;
+        const content = readFileSync(join(repo, path), 'utf8');
+        record.push({ phase: 'local-read', path, request: wire({ method: 'readFile', path }), response: wire({ path, content }) });
+        fixture.facts.forEach((fact, index) => { if (fact.path === path && content.split('\n').includes(fact.text)) found.add(index); });
+      }
     }
     const totalMs = performance.now() - start;
     const delivery = [...record];
@@ -181,25 +276,34 @@ async function evaluate(fixture, lane) {
       if (!fixture.historical) assert.deepEqual(absent, [], `${fixture.name}: evidence missing from retained sources`);
       if (fixture.requiresRecovery) assert.ok(retained && initialFacts.size < fixture.facts.length, 'fixture must require handle recovery');
       if (fixture.duplicate) assert.equal(first.split(fixture.duplicate).length - 1, 1);
+      if (fixture.wrongReference) {
+        assert.ok(handle, 'wrong-reference holdout needs a retained snapshot');
+        const wrong = await tool('julius_call', { operation: 'context.read', args: { handle,
+          evidence: { source: fixture.wrongReference, from: 62 },
+        } }, 'audit', true);
+        assert.equal(wrong, 'Requested evidence was not found in this snapshot');
+      }
     }
     for (const text of [first, all, retained ?? '']) {
       for (const deny of [...(fixture.forbidden ?? []), ...(pilot ? fixture.pilotForbidden ?? [] : [])]) assert.ok(!text.includes(deny), `${fixture.name}: exposed ${deny}`);
     }
     const costs = phase => sum(delivery.filter(item => !phase || phase === item.phase).flatMap(({ request, response }) => [count(request), count(response)]));
-    return { firstFacts: initialFacts.size, finalFacts: found.size, retainedFacts, initialTextTokens: count(initial), totalTokens: costs(), setupTokens: costs('setup'), discoveryTokens: costs('discovery'), calls: delivery.filter(item => item.phase !== 'setup').length, recoveryCalls: delivery.filter(item => item.phase === 'recovery' || item.phase === 'local-read').length, firstMs, totalMs };
+    const localReads = delivery.filter(item => item.phase === 'local-read').map(item => ({ path: item.path, tokens: sum([count(item.request), count(item.response)]) }));
+    return { firstFacts: initialFacts.size, finalFacts: found.size, retainedFacts, initialTextTokens: count(initial), totalTokens: costs(), setupTokens: costs('setup'), discoveryTokens: costs('discovery'), queryTokens: costs('query'), contextReadTokens: costs('recovery'), localReads, calls: delivery.filter(item => item.phase !== 'setup').length, recoveryCalls: delivery.filter(item => item.phase === 'recovery' || item.phase === 'local-read').length, firstMs, totalMs };
   });
   return value;
 }
 
 try {
-  if (history && !bulmaRepo) throw new Error('--historical requires --bulma-repo=/path/to/a/Bulma/git/repository');
-  const fixtures = history ? historicalCases(process.cwd(), bulmaRepo) : cases;
+  if ((history || holdout) && !bulmaRepo) throw new Error('--historical and --holdout require --bulma-repo=/path/to/a/Bulma/git/repository');
+  const fixtures = (history || holdout ? historicalCases(process.cwd(), bulmaRepo, holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
+  assert.ok(fixtures.length, `Unknown case: ${caseName}`);
   const results = [];
   for (const [index, fixture] of fixtures.entries()) {
     const pilotFirst = (index % 2 === 1) !== reverse;
     const lanes = onlyBaseline ? ['baseline'] : pilotFirst ? ['pilot', 'baseline'] : ['baseline', 'pilot'];
     const row = { name: fixture.name, budget: fixture.budget, facts: fixture.facts.length };
-    if (history) Object.assign(row, { project: fixture.project, pr: fixture.pr, sha: fixture.sha, query: fixture.query,
+    if (fixture.historical) Object.assign(row, { project: fixture.project, pr: fixture.pr, sha: fixture.sha, query: fixture.query,
       queryWords: fixture.query.split(/\s+/).length, oracle: fixture.facts.map(({ path, line }) => ({ path, line })),
     });
     for (const lane of lanes) row[lane] = await evaluate(fixture, lane);
@@ -213,6 +317,6 @@ try {
     && pilot.totalTokens <= baseline.totalTokens * (1 - minimumTrafficReduction)
     && results.every(row => row.pilot.finalFacts === row.facts && row.pilot.firstFacts >= row.baseline.firstFacts)
     && results.filter(row => row.pilot.firstFacts === row.facts && row.baseline.firstFacts < row.facts).length >= minimumNewlyComplete;
-  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, ...(history ? { historicalPlan } : {}), baseline, pilot, gate, results }, null, 2));
-  if (!onlyBaseline && !gate) process.exitCode = 1;
+  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, ...(history || holdout ? { historicalPlan } : {}), baseline, pilot, gate, results }, null, 2));
+  if (!onlyBaseline && !caseName && !gate) process.exitCode = 1;
 } finally { rmSync(scratch, { recursive: true, force: true }); }

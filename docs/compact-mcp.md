@@ -72,10 +72,31 @@ Each excerpt names its path and line range. Note ranges start at line 1 of
 the parsed Markdown body, after front matter and outer whitespace. `under`
 names its section. `| ` marks the start of each quoted line. If the results
 exceed the budget, `More evidence` gives the `context.read` handle for the
-full snapshot of matched files and note sections. Use `search` or byte
-ranges for a particular excerpt and `delivery: "complete"` without a budget
-to read the snapshot. A retained snapshot describes the checkout at the time
-of the original query.
+full snapshot of matched files and note sections. Query-relevant passages
+compete for space based on matching terms and coverage across sources.
+`next` can identify a relevant passage omitted from the first response.
+Copy its object as `args.evidence` on `context.read`:
+
+```json
+{"operation":"context.read","args":{"handle":"sha256:<digest>","evidence":{"source":"src/harness.ts","from":42,"to":44}},"budget":500}
+```
+
+Use `evidence: {"query":"shared test state"}` to search the snapshot for
+several passages in one response. Each `hits` entry carries exact text, a
+citation and byte offsets. Pass `source` to search one cited path, `limit` to
+request up to eight matches, or `exclude` with up to 16 `source`/`from`/`to`
+ranges already read. A match too large to quote can appear in `more` with
+its citation and offsets for direct recovery.
+
+Source selectors use exact snapshot paths and inclusive line numbers. A
+range must belong to one file or one note section. Use `delivery: "complete"`
+without a budget to read a long range verbatim. The response gives
+`evidence` citation metadata and the byte offsets of the quoted lines in the
+original snapshot. A bounded response's `next` cursor stops at the selected
+range's end. The first response and recovery quote the original snapshot.
+
+Plain `context.read` still supports a literal `search`, byte ranges and a
+complete snapshot. Use one kind of selector per call.
 
 An explicit `focus` or `delivery: "complete"` applies existing economy
 delivery to that snapshot. The pilot reads the current source text regardless

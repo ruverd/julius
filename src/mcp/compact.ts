@@ -9,11 +9,12 @@ import { wiringPath } from '../graph/write.js';
 import { contextDirFor } from '../context/node-file.js';
 import { existsSync } from 'node:fs';
 import { readWorkspace } from '../graph/workspace.js';
-import { deliverContextEvidence } from './context-evidence.js';
+import { deliverContextEvidence, resolveEvidenceRange, searchEvidenceRanges, type EvidenceSelector } from './context-evidence.js';
 
 const string = { type: 'string', minLength: 1, maxLength: 4096 };
 const integer = (maximum: number, minimum = 0) => ({ type: 'integer', minimum, maximum });
 const object = (properties: object, required: string[] = []) => ({ type: 'object', properties, required, additionalProperties: false });
+const evidenceLocation = { source: string, from: integer(ECONOMY_MAX_BYTES, 1), to: integer(ECONOMY_MAX_BYTES, 1) };
 export const OPERATIONS: ToolDef[] = [
   { name: 'investigation.execute', description: 'Investigate change impact or locate literal failure evidence locally in one call; reuse verified results. Experimental structural evidence, not proof of correctness.', inputSchema: object({ recipe: { enum: ['change-impact', 'failure-localization'] }, paths: { type: 'array', minItems: 1, maxItems: 32, items: string }, query: { type: 'string', minLength: 1, maxLength: 512 }, depth: integer(8, 1) }, ['recipe']) },
   { name: 'julius_find_code', description: 'Rank code by query.', inputSchema: object({ query: string, limit: integer(100, 1), full: { type: 'boolean' }, in: string, evidence: { type: 'boolean', description: 'Quote code and active repo notes.' } }, ['query']) },
@@ -23,7 +24,7 @@ export const OPERATIONS: ToolDef[] = [
   { name: 'julius_find_all', description: 'Search indexed source, grouped by symbol.', inputSchema: object({ pattern: string, in: string, ignore_case: { type: 'boolean' }, fixed: { type: 'boolean' } }, ['pattern']) },
   { name: 'julius_repo_map', description: 'Structural repository orientation.', inputSchema: object({ max_dirs: integer(100, 1) }) },
   { name: 'context.capture', description: 'Bound supplied text; retain omitted bytes locally. Optional compact format summarizes TAP passes or consecutive repeated log/build lines.', inputSchema: object({ content: { type: 'string', maxLength: ECONOMY_MAX_BYTES }, compact: { enum: ['tap', 'log', 'build'] } }, ['content']) },
-  { name: 'context.read', description: 'Recover a byte range or search a retained handle.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string }, ['handle']) },
+  { name: 'context.read', description: 'Read retained bytes or cited evidence.', inputSchema: object({ handle: { type: 'string', pattern: '^sha256:[a-f0-9]{64}$' }, start: integer(ECONOMY_MAX_BYTES), end: integer(ECONOMY_MAX_BYTES), search: string, evidence: object({ ...evidenceLocation, query: string, limit: integer(8, 1), exclude: { type: 'array', maxItems: 16, items: object(evidenceLocation, ['source', 'from']) } }) }, ['handle']) },
   { name: 'context.stats', description: 'Local payload ledger; excludes protocol costs, not billing.', inputSchema: object({}) },
 ];
 export const COMPACT_TOOLS: ToolDef[] = [
@@ -90,7 +91,22 @@ export async function callCompact(root: string, name: string, input: unknown, di
       }
       return { text: (await economy.present(args.content as string, choice, 'mcp')).text, isError: false };
     }
-    if (operation.name === 'context.read') return { text: (await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start: args.start as number | undefined, end: args.end as number | undefined, search: args.search as string | undefined })).text, isError: false };
+    if (operation.name === 'context.read') {
+      const selector = args.evidence as EvidenceSelector | undefined;
+      const start = args.start as number | undefined;
+      const end = args.end as number | undefined;
+      const search = args.search as string | undefined;
+      if (selector && (start !== undefined || end !== undefined || search !== undefined)) {
+        throw new Error('Evidence selectors cannot be combined with start, end or search');
+      }
+      if (selector?.query !== undefined) {
+        return { text: await economy.readEvidence(args.handle as string, choice.budget, bytes => searchEvidenceRanges(bytes, selector)), isError: false };
+      }
+      const result = await economy.read(args.handle as string, { budget: choice.budget, transport: 'mcp', start, end, search },
+        selector && (bytes => resolveEvidenceRange(bytes, selector)),
+      );
+      return { text: result.text, isError: false };
+    }
     if (operation.name === 'context.stats') return { text: JSON.stringify(await economy.stats()), isError: false };
     if (operation.name === 'investigation.execute') return { text: await deliverInvestigation(root, await runInvestigation(root, args as unknown as InvestigationArgs, dir), choice), isError: false };
     if (!TOOLS.some(t => t.name === operation.name)) throw new Error('Unsupported graph operation');

@@ -22,6 +22,11 @@ export function economyTokens(text: string): number {
 }
 export interface CaptureOptions { budget: number; transport?: 'mcp'; preview?: (handle: string) => string; compact?: CompactionFormat }
 export interface ReadOptions extends Omit<CaptureOptions, 'budget' | 'compact'> { budget: number | null; start?: number; end?: number; search?: string; raw?: boolean }
+export interface RetainedRange {
+  start: number;
+  end: number;
+  evidence: { path: string; kind: 'code' | 'note'; from: number; to: number; heading?: string };
+}
 export interface EconomyResult { text: string; handle: string | null; bytes: Buffer; omittedBytes: number }
 export interface RunOptions extends CaptureOptions { maxBytes?: number; timeoutMs?: number }
 export interface RunResult { text: string; status: number | null; signal: NodeJS.Signals | null; stdoutHandle: string; stderrHandle: string; complete: boolean; limit: 'bytes' | 'timeout' | null }
@@ -119,14 +124,16 @@ export class Economy {
     writeFileSync(path + '.tmp', JSON.stringify({ rawTokens, deliveredTokens }), { flag: 'wx', mode: 0o600 });
     renameSync(path + '.tmp', path + '.json');
   }
-  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length, transport?: 'mcp', label?: DeliveryChoice['label']): EconomyResult {
+  private render(bytes: Buffer, handle: string, budget: number, start = 0, total = bytes.length, transport?: 'mcp', label?: DeliveryChoice['label'], range?: RetainedRange): EconomyResult {
     const render = (part: Buffer) => {
       const end = start + part.length;
-      const next = transport === 'mcp' && end < total ? { start: end, end: total } : undefined;
+      const endLimit = range?.end ?? total;
+      const next = transport === 'mcp' && end < endLimit ? { start: end, end: endLimit } : undefined;
       return JSON.stringify({
         ...(label ? { delivery: label } : {}),
         handle, start, end, totalBytes: total, omittedBytes: total - part.length, ...representation(part),
-        recover: transport === 'mcp' ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' } : `julius read ${handle} --raw`,
+        ...(range ? { evidence: range.evidence } : {}),
+        ...(range ? {} : { recover: transport === 'mcp' ? { operation: 'context.read', args: { handle }, instruction: 'Use julius_call with search or byte ranges.' } : `julius read ${handle} --raw` }),
         ...(next ? { next } : {}),
       });
     };
@@ -163,15 +170,21 @@ export class Economy {
     }
     this.record(rawTokens, economyTokens(result.text)); return result;
   }
-  async read(handle: string, options: ReadOptions): Promise<EconomyResult> {
-    if (options.budget !== null) budgetCheck(options.budget);
+  private retainedBytes(handle: string): Buffer {
     if (!/^sha256:[a-f0-9]{64}$/.test(handle)) throw new Error('Invalid economy handle');
     this.initialize();
     let bytes: Buffer;
     try { bytes = safeRead(join(this.store, 'objects', handle.slice(7))); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('Economy handle missing or expired'); throw error; }
     if (digest(bytes) !== handle.slice(7)) throw new Error('Corrupt economy object: digest mismatch');
-    let start = options.start ?? 0; const end = options.end ?? bytes.length;
+    return bytes;
+  }
+
+  async read(handle: string, options: ReadOptions, select?: (bytes: Buffer) => RetainedRange): Promise<EconomyResult> {
+    if (options.budget !== null) budgetCheck(options.budget);
+    const bytes = this.retainedBytes(handle);
+    const range = select?.(bytes);
+    let start = range?.start ?? options.start ?? 0; const end = range?.end ?? options.end ?? bytes.length;
     if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end > bytes.length) throw new Error('Invalid byte range');
     if (options.search !== undefined) {
       if (!options.search.length) throw new Error('search must not be empty');
@@ -184,10 +197,35 @@ export class Economy {
     const result = options.raw
       ? { text: shown.content, bytes: selected, handle, omittedBytes: bytes.length - selected.length }
       : options.budget === null
-        ? { text: JSON.stringify({ delivery: 'complete', handle, start, end, totalBytes: bytes.length, omittedBytes: bytes.length - selected.length, format: shown.format }) + '\n' + shown.content,
+        ? { text: JSON.stringify({ delivery: 'complete', handle, start, end, totalBytes: bytes.length, omittedBytes: bytes.length - selected.length, format: shown.format,
+            ...(range ? { evidence: range.evidence } : {}),
+          }) + '\n' + shown.content,
           bytes: selected, handle, omittedBytes: bytes.length - selected.length }
-        : this.render(selected, handle, options.budget, start, bytes.length, options.transport);
+        : this.render(selected, handle, options.budget, start, bytes.length, options.transport, undefined, range);
     this.record(0, countPayloadTokens(result.text)); return result;
+  }
+
+  async readEvidence(handle: string, budget: number | null, select: (bytes: Buffer) => RetainedRange[]): Promise<string> {
+    if (budget !== null) budgetCheck(budget);
+    const bytes = this.retainedBytes(handle);
+    const hits: Array<RetainedRange & ReturnType<typeof representation>> = [];
+    const more: RetainedRange[] = [];
+    const render = () => JSON.stringify({ delivery: 'evidence', handle, hits, ...(more.length ? { more } : {}) });
+    const fits = (text: string) => budget === null || (countPayloadTokens(text) ?? Infinity) <= budget;
+    const omitted: RetainedRange[] = [];
+    for (const range of select(bytes)) {
+      if (range.start < 0 || range.end < range.start || range.end > bytes.length) throw new Error('Invalid byte range');
+      hits.push({ ...range, ...representation(bytes.subarray(range.start, range.end)) });
+      if (!fits(render())) { hits.pop(); omitted.push(range); }
+    }
+    for (const range of omitted) {
+      more.push(range);
+      if (!fits(render())) more.pop();
+    }
+    const text = render();
+    if (!fits(text)) throw new Error('Budget too small for evidence recovery');
+    this.record(0, countPayloadTokens(text));
+    return text;
   }
   async run(argv: string[], options: RunOptions): Promise<RunResult> {
     budgetCheck(options.budget);

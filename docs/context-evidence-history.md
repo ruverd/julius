@@ -76,4 +76,42 @@ cases where both modes achieved full final coverage, traffic rose 2.0%.
   policies could change the traffic totals.
 
 The runner writes its JSON report and exits with status 1 when the gate
-fails. The implementation stays in draft on the strength of these results.
+fails. The first revision stayed in draft on the strength of these results.
+
+## Directed recovery replay
+
+The initial reader's whole-file fallback dominated both expensive traces.
+On the stale-context question, `src/ask/ask.ts` cost 19,984 estimated tokens
+by itself, and the pilot also read `src/graph/load.ts` for 1,396 tokens.
+On the Rust question, the pilot's bounded handle read used 742 tokens, then
+the fallback to `src/graph/rust.ts` added 2,521. Those costs include requests
+and responses. Run an individual case with `--case=stale-context-code` or
+`--case=native-backend-decision` to inspect the phase totals.
+
+The [directed selectors](compact-mcp.md#experimental-repository-evidence)
+recover several cited passages from the retained snapshot, or one exact
+source range. The benchmark exercises them through stdio MCP:
+
+```sh
+npm run build
+node scripts/experiments/context-evidence-benchmark.mjs --directed
+node scripts/experiments/context-evidence-benchmark.mjs --historical --directed --bulma-repo=/path/to/bulma
+node scripts/experiments/context-evidence-benchmark.mjs --holdout --bulma-repo=/path/to/bulma
+```
+
+For the directed comparisons, both lanes use the same initial budget, up to
+two 700-token handle reads and up to three 700-token local excerpt reads.
+Default handle reads use an identifier taken from the question or the start
+of the object. Pilot handle reads use the question plus excluded ranges
+already visible to the reader, or a `next` reference from the first response.
+Both lanes use the same lexical local fallback on paths visible in the
+question or reply. The oracle stops either lane once its facts are complete.
+It supplies no paths, search terms or byte ranges for recovery. Extra
+integrity checks remain outside the measured reader traffic.
+
+The six original PRs are now diagnostic. The separate holdout pins five
+unseen PRs in the same [manifest](../scripts/experiments/context-evidence-history.mjs).
+It includes simple lookups, decision-plus-code, an exact multi-line passage,
+and an intentionally incorrect source reference tested against a real handle.
+The original promotion thresholds still apply. Legacy-reader numbers above
+and directed-reader totals measure different recovery policies.
