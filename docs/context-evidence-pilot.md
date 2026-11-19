@@ -51,11 +51,12 @@ case where the required exact line cannot fit in the initial budget.
   default mode and 2,972 in the pilot. Calls after initialization and listing
   fell from 26 to 20, with recovery and local-read calls falling from eight
   to one. The unmodified `main` control used 8,411 estimated total tokens.
-- In one paired run, median elapsed time through the initial response was
-  998 ms in default mode and 1,751 ms in the pilot. Through recovery the
-  medians were 999 ms and 1,751 ms. Those timings include process startup and
-  lazy graph builds, varied substantially across cases and were collected
-  while local regression tests ran. They do not establish a latency benefit.
+- Median cold latency through the initial response was 998 → 1,751 ms in
+  one paired run and 2,735 → 2,149 ms in a repeat. Through recovery the
+  medians were 999 → 1,751 ms and 2,736 → 2,150 ms. Both runs include
+  process startup and lazy graph builds and ran alongside local regression
+  tests. Coverage and token totals reproduced. The direction of the latency
+  difference changed between runs.
 - The traffic numbers use `cl100k_base` on observed MCP JSON-RPC frames and
   modeled file-read envelopes. Provider tokens, billing, agent decisions
   and task completion were outside the experiment. The six synthetic cases
