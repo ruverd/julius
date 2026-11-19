@@ -167,9 +167,45 @@ const transportHoldout = [
   },
 ];
 
+const namedSourceHoldout = [
+  {
+    project: 'julius', pr: 16, sha: '6b5ecee7ebc507fda206450c1bcc2695e35b3ee5',
+    name: 'legacy-trail-launch-shapes', budget: 300,
+    query: 'What two exact command shapes does legacyTrail accept in install.ts?',
+    facts: [source('src/hosts/install.ts', 124, "command: 'trail'"), source('src/hosts/install.ts', 125, '@trailhq/trail-code')],
+  },
+  {
+    project: 'julius', pr: 27, sha: 'ccc375cfd81a0f560abfc79f6b0684284cc66bf4',
+    name: 'release-version-consistency', budget: 300,
+    query: 'In scripts/check-release.mjs, quote both lockfile version assertions and the conditional Git tag assertion.',
+    facts: [source('scripts/check-release.mjs', 14, 'Lockfile version differs'), source('scripts/check-release.mjs', 16, 'Lockfile root version differs'),
+      source('scripts/check-release.mjs', 17, 'Git tag must match package version')],
+  },
+  {
+    project: 'bulma', pr: 84, sha: 'cd41bb1a009ebeccd9a06aaccdd210669460b173',
+    name: 'thread-blocking-decision-and-check', budget: 375,
+    query: 'What did the blocking review evidence decision say about open threads, and how does gate.py check isResolved and BLOCKING_LABEL?',
+    facts: [source('.julius/learnings/2026-11-17-gate-approvals-on-blocking-review-evidence-ruver.md', 14, 'An open thread alone does not defer'),
+      source('skills/bulma-code-review/scripts/gate.py', 131, 'node.get("isResolved")'), source('skills/bulma-code-review/scripts/gate.py', 134, 'BLOCKING_LABEL.match')],
+  },
+  {
+    project: 'bulma', pr: 82, sha: 'ea6d280f87a2a0223d8a26c3c9b2cd8a361a6af9',
+    name: 'acceptance-finding-body-guard', budget: 300,
+    query: 'In bind-findings.py, quote the full spec acceptance eligibility check and the placement it assigns.',
+    passages: [{ path: 'skills/bulma-code-review/scripts/bind-findings.py', from: 105, to: 109 }],
+  },
+  {
+    project: 'bulma', pr: 80, sha: 'f6a97318038a62cc017127556467a01da3ebfc45',
+    name: 'very-large-diff-triggers', budget: 300,
+    query: 'Which branches in very_large process a local diff, changed file count, or total churn?',
+    facts: [source('skills/bulma-code-review/scripts/batch-plan.py', 56, 'diff_source'), source('skills/bulma-code-review/scripts/batch-plan.py', 58, 'VERY_LARGE_FILES'),
+      source('skills/bulma-code-review/scripts/batch-plan.py', 60, 'VERY_LARGE_CHURN')],
+  },
+];
+
 export function historicalCases(juliusRepo, bulmaRepo, sample = false) {
   const repositories = { julius: resolve(juliusRepo), bulma: resolve(bulmaRepo) };
-  const fixtures = sample === 'transport' ? transportHoldout : sample === 'marginal' ? marginalHoldout : sample ? holdout : manifest;
+  const fixtures = sample === 'named-source' ? namedSourceHoldout : sample === 'transport' ? transportHoldout : sample === 'marginal' ? marginalHoldout : sample ? holdout : manifest;
   return fixtures.map(fixture => {
     const repo = repositories[fixture.project];
     const read = path => execFileSync('git', ['-C', repo, 'show', `${fixture.sha}:${path}`], { encoding: 'utf8', env: { ...process.env, GIT_NO_LAZY_FETCH: '1' } });

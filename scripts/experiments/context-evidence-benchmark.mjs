@@ -20,7 +20,8 @@ const history = process.argv.includes('--historical');
 const holdout = process.argv.includes('--holdout');
 const marginalHoldout = process.argv.includes('--marginal-holdout');
 const transportHoldout = process.argv.includes('--transport-holdout');
-const directed = holdout || marginalHoldout || transportHoldout || process.argv.includes('--directed');
+const namedSourceHoldout = process.argv.includes('--named-source-holdout');
+const directed = holdout || marginalHoldout || transportHoldout || namedSourceHoldout || process.argv.includes('--directed');
 const formatLines = process.argv.includes('--format-lines');
 const transportControl = process.argv.includes('--transport-control');
 const preferNext = process.argv.includes('--prefer-next');
@@ -405,10 +406,11 @@ async function evaluate(fixture, lane) {
 }
 
 try {
-  const historical = history || holdout || marginalHoldout || transportHoldout;
+  const historical = history || holdout || marginalHoldout || transportHoldout || namedSourceHoldout;
   if (historical && !bulmaRepo) throw new Error('Historical samples require --bulma-repo=/path/to/a/Bulma/git/repository');
   if (transportControl && (!formatLines || !focusEvidence || onlyBaseline)) throw new Error('--transport-control requires --format-lines and --focus-evidence');
-  const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, transportHoldout ? 'transport' : marginalHoldout ? 'marginal' : holdout) : cases).filter(fixture => !caseName || fixture.name === caseName);
+  const sample = namedSourceHoldout ? 'named-source' : transportHoldout ? 'transport' : marginalHoldout ? 'marginal' : holdout;
+  const fixtures = (historical ? historicalCases(process.cwd(), bulmaRepo, sample) : cases).filter(fixture => !caseName || fixture.name === caseName);
   assert.ok(fixtures.length, `Unknown case: ${caseName}`);
   const results = [];
   for (const [index, fixture] of fixtures.entries()) {
@@ -447,7 +449,7 @@ try {
     && (!prior || (preservesPrior && prior.totalTokens !== null && pilot.totalTokens < prior.totalTokens))
     && results.every(row => row.pilot.finalFacts === row.facts && row.pilot.firstFacts >= row.baseline.firstFacts)
     && results.filter(row => row.pilot.firstFacts === row.facts && row.baseline.firstFacts < row.facts).length >= minimumNewlyComplete;
-  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, transportHoldout,
+  console.log(JSON.stringify({ encoding: ECONOMY_ENCODING, providerUsage: null, directed, holdout, marginalHoldout, transportHoldout, namedSourceHoldout,
     formatLines, preferNext, focusEvidence, sameDelivery, ...(historical ? { historicalPlan } : {}), baseline,
     ...(prior ? { prior, preservesPrior, preservesDefault, objective } : {}), ...(transport ? { transport } : {}), pilot, gate, results }, null, 2));
   if (!onlyBaseline && !caseName && !gate) process.exitCode = 1;
